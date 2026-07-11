@@ -683,15 +683,17 @@ export const httpsCallable = (functionsInstance, name) => {
       // Prefer client-provided photos_data (includes localUrl blob URLs)
       let photosToExport = data.photos_data || [];
 
-      // Compute filename: project name_todays date(YYMMDD)
+      // Compute filename: project name_todays date(YYMMDD)_HHMM
       const d = new Date();
       const yy = String(d.getFullYear()).slice(-2);
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      const yymmdd = `${yy}${mm}${dd}`;
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      const yymmdd_hhmm = `${yy}${mm}${dd}_${hh}${min}`;
       const rawProjectName = data.project_name || data.project_id || "Project";
       const sanitizedProjectName = rawProjectName.replace(/[\\/:*?"<>|]/g, '_').trim();
-      const exportFileName = `${sanitizedProjectName}_${yymmdd}`;
+      const exportFileName = `${sanitizedProjectName}_${yymmdd_hhmm}`;
 
       if (name === 'exportPPTX') {
         // Slide dimensions in inches (16:9 widescreen)
