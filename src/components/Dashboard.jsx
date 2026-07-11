@@ -1223,129 +1223,134 @@ export default function Dashboard({ user, onLogout }) {
                   Please select or create a project first to edit captions and view uploaded photos.
                 </p>
               </div>
-            ) : projectPhotos.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600">
-                <ImageIcon className="h-10 w-10 stroke-1 mb-2" />
-                <h3 className="font-semibold text-slate-400 text-sm">No uploaded photos</h3>
-                <p className="mt-1 text-xs text-slate-500 max-w-xs">
-                  Upload photos for this project to start editing captions. Only successfully validated photos will show here.
-                </p>
-              </div>
             ) : (
               <div className="flex-1 flex flex-col overflow-y-auto gap-4">
-                {/* Carousel Viewer (Height half of width size -> aspect-[2/1]) */}
-                <div className="w-full aspect-[2/1] relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden flex items-center justify-center group shrink-0">
-                  <img 
-                    src={projectPhotos[editorIndex]?.base64 || queue.find(q => q.finalFilename === projectPhotos[editorIndex]?.filename)?.thumbnailUrl || projectPhotos[editorIndex]?.url} 
-                    alt="active editor audit" 
-                    className="max-h-full max-w-full object-contain p-2" 
-                  />
-
-                  {/* Left arrow */}
-                  <button
-                    disabled={editorIndex === 0}
-                    onClick={() => setEditorIndex(prev => prev - 1)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-
-                  {/* Right arrow */}
-                  <button
-                    disabled={editorIndex === projectPhotos.length - 1}
-                    onClick={() => setEditorIndex(prev => prev + 1)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-
-                  {/* Index badge */}
-                  <span className="absolute top-4 right-4 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400">
-                    {editorIndex + 1} / {projectPhotos.length}
-                  </span>
-                </div>
-
-                {/* Caption Form (Max 3 rows layout, Enter breaks line, Gemini AI bilingual support) */}
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                  {/* Top Header Above Filling Field: Label + Character Counter ON THE LEFT */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <label className="text-xs font-bold text-slate-300">Add Caption</label>
-                    <span className={`text-xs font-semibold ${caption.length > 280 ? 'text-amber-400' : 'text-slate-400'}`}>
-                      ({caption.length} / 300 characters)
-                    </span>
+                {projectPhotos.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600">
+                    <ImageIcon className="h-10 w-10 stroke-1 mb-2" />
+                    <h3 className="font-semibold text-slate-400 text-sm">No uploaded photos</h3>
+                    <p className="mt-1 text-xs text-slate-500 max-w-xs">
+                      Upload photos for this project to start editing captions. Only successfully validated photos will show here.
+                    </p>
                   </div>
+                ) : (
+                  <>
+                    {/* Carousel Viewer (Height half of width size -> aspect-[2/1]) */}
+                    <div className="w-full aspect-[2/1] relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden flex items-center justify-center group shrink-0">
+                      <img 
+                        src={projectPhotos[editorIndex]?.base64 || queue.find(q => q.finalFilename === projectPhotos[editorIndex]?.filename)?.thumbnailUrl || projectPhotos[editorIndex]?.url} 
+                        alt="active editor audit" 
+                        className="max-h-full max-w-full object-contain p-2" 
+                      />
 
-                  {/* Filling Field + Right Column (Round Square Save Button with Large Diskette Logo) */}
-                  <div className="flex gap-3 items-stretch">
-                    <textarea
-                      rows={3}
-                      maxLength={300}
-                      value={caption}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const lines = val.split('\n');
-                        if (lines.length > 3) {
-                          setCaption(lines.slice(0, 3).join('\n'));
-                        } else {
-                          setCaption(val);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          const lines = caption.split('\n');
-                          if (lines.length >= 3 && e.target.selectionStart === e.target.selectionEnd) {
-                            e.preventDefault();
-                          }
-                        }
-                      }}
-                      placeholder="Press Enter to break line up to three rows."
-                      className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 placeholder-slate-600 transition-colors resize-none leading-relaxed"
-                    />
-                    
-                    {/* Round Square Save Button with Bigger Diskette Logo */}
-                    <button
-                      onClick={handleSaveCaption}
-                      disabled={savingCaption || projectPhotos[editorIndex]?.caption === caption}
-                      title="Save Caption"
-                      className="flex flex-col items-center justify-center h-[72px] w-[72px] shrink-0 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none gap-1"
-                    >
-                      {savingCaption ? <Loader2 className="h-7 w-7 animate-spin" /> : <Save className="h-7 w-7" />}
-                      <span className="text-[10px] font-extrabold tracking-tight">Save</span>
-                    </button>
-                  </div>
-
-                  {/* Gemini AI Suggestions Horizontal Compact Strip (Leaves full vertical space for photo viewer) */}
-                  {!manualMode && (
-                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                      {/* Left arrow */}
                       <button
-                        type="button"
-                        onClick={runGeminiCorrection}
-                        disabled={aiProcessing}
-                        className="flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-2.5 py-1 text-[11px] font-semibold text-white transition-all disabled:opacity-50 shrink-0"
+                        disabled={editorIndex === 0}
+                        onClick={() => setEditorIndex(prev => prev - 1)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
                       >
-                        {aiProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                        <span>AI Auto-Correct (EN/ID)</span>
+                        <ChevronLeft className="h-5 w-5" />
                       </button>
 
-                      <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-                        {aiSuggestions.map((sug, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setCaption(sug.text)}
-                            title={sug.text}
-                            className="max-w-[210px] truncate rounded-lg border border-indigo-500/30 bg-slate-900/90 hover:bg-indigo-900/40 px-2 py-1 text-[11px] text-slate-300 hover:text-white transition-all"
-                          >
-                            <span className="font-bold text-indigo-400 mr-1">{sug.tag}:</span>
-                            {sug.text}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      {/* Right arrow */}
+                      <button
+                        disabled={editorIndex === projectPhotos.length - 1}
+                        onClick={() => setEditorIndex(prev => prev + 1)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
 
-                {/* Publish & Export Section right below Add Caption Form (removes big vertical gap) */}
+                      {/* Index badge */}
+                      <span className="absolute top-4 right-4 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400">
+                        {editorIndex + 1} / {projectPhotos.length}
+                      </span>
+                    </div>
+
+                    {/* Caption Form (Max 3 rows layout, Enter breaks line, Gemini AI bilingual support) */}
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+                      {/* Top Header Above Filling Field: Label + Character Counter ON THE LEFT */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="text-xs font-bold text-slate-300">Add Caption</label>
+                        <span className={`text-xs font-semibold ${caption.length > 280 ? 'text-amber-400' : 'text-slate-400'}`}>
+                          ({caption.length} / 300 characters)
+                        </span>
+                      </div>
+
+                      {/* Filling Field + Right Column (Round Square Save Button with Large Diskette Logo) */}
+                      <div className="flex gap-3 items-stretch">
+                        <textarea
+                          rows={3}
+                          maxLength={300}
+                          value={caption}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const lines = val.split('\n');
+                            if (lines.length > 3) {
+                              setCaption(lines.slice(0, 3).join('\n'));
+                            } else {
+                              setCaption(val);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const lines = caption.split('\n');
+                              if (lines.length >= 3 && e.target.selectionStart === e.target.selectionEnd) {
+                                e.preventDefault();
+                              }
+                            }
+                          }}
+                          placeholder="Press Enter to break line up to three rows."
+                          className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 placeholder-slate-600 transition-colors resize-none leading-relaxed"
+                        />
+                        
+                        {/* Round Square Save Button with Bigger Diskette Logo */}
+                        <button
+                          onClick={handleSaveCaption}
+                          disabled={savingCaption || projectPhotos[editorIndex]?.caption === caption}
+                          title="Save Caption"
+                          className="flex flex-col items-center justify-center h-[72px] w-[72px] shrink-0 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none gap-1"
+                        >
+                          {savingCaption ? <Loader2 className="h-7 w-7 animate-spin" /> : <Save className="h-7 w-7" />}
+                          <span className="text-[10px] font-extrabold tracking-tight">Save</span>
+                        </button>
+                      </div>
+
+                      {/* Gemini AI Suggestions Horizontal Compact Strip (Leaves full vertical space for photo viewer) */}
+                      {!manualMode && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={runGeminiCorrection}
+                            disabled={aiProcessing}
+                            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-2.5 py-1 text-[11px] font-semibold text-white transition-all disabled:opacity-50 shrink-0"
+                          >
+                            {aiProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                            <span>AI Auto-Correct (EN/ID)</span>
+                          </button>
+
+                          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                            {aiSuggestions.map((sug, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setCaption(sug.text)}
+                                title={sug.text}
+                                className="max-w-[210px] truncate rounded-lg border border-indigo-500/30 bg-slate-900/90 hover:bg-indigo-900/40 px-2 py-1 text-[11px] text-slate-300 hover:text-white transition-all"
+                              >
+                                <span className="font-bold text-indigo-400 mr-1">{sug.tag}:</span>
+                                {sug.text}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Publish & Export Section — always rendered once a project is selected,
+                    regardless of photo count. Buttons handle their own disabled state below. */}
                 <div className={`rounded-2xl border border-slate-800 bg-slate-900/40 p-4 shrink-0 ${
                   activeTab === 'export' ? 'block' : 'hidden md:block'
                 }`}>
@@ -1439,13 +1444,7 @@ export default function Dashboard({ user, onLogout }) {
         </button>
 
         <button
-          onClick={() => {
-            if (projectPhotos.length === 0) {
-              alert("Please upload photos first to use the Editor.");
-              return;
-            }
-            setActiveTab('editor');
-          }}
+          onClick={() => setActiveTab('editor')}
           className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
             activeTab === 'editor' ? 'text-indigo-400' : 'text-slate-500'
           }`}
@@ -1455,13 +1454,7 @@ export default function Dashboard({ user, onLogout }) {
         </button>
 
         <button
-          onClick={() => {
-            if (projectPhotos.length === 0) {
-              alert("Upload and caption photos before exporting.");
-              return;
-            }
-            setActiveTab('export');
-          }}
+          onClick={() => setActiveTab('export')}
           className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
             activeTab === 'export' ? 'text-indigo-400' : 'text-slate-500'
           }`}
