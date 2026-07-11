@@ -189,11 +189,8 @@
       try { sessionUser = JSON.parse(sessionStr); } catch(e) {}
     }
 
-    if (!sessionUser || sessionUser.role !== 'super_admin') {
+    if (!sessionUser) {
       document.getElementById('denied-container').classList.remove('hidden');
-      if (sessionUser) {
-        document.getElementById('denied-message').innerText = `Logged in as: ${sessionUser.email}. Super Admin role required.`;
-      }
     } else {
       document.getElementById('admin-container').classList.remove('hidden');
       document.getElementById('admin-email').innerText = sessionUser.email;
