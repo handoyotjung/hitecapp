@@ -897,16 +897,18 @@ export default function Dashboard({ user, onLogout }) {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          <a 
-            href="/admin.html" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            title="Admin Panel"
-            className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-bold text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-[0.98]"
-          >
-            <Shield className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Admin Panel</span>
-          </a>
+          {(user.role === 'super_admin' || user.role === 'admin') && (
+            <a 
+              href="/admin.html" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              title="Admin Panel"
+              className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-bold text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-[0.98]"
+            >
+              <Shield className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">Admin Panel</span>
+            </a>
+          )}
 
           <div className="hidden md:flex items-center gap-2 rounded-lg bg-slate-950 border border-slate-800 px-3 py-1 text-xs">
             <User className="h-3.5 w-3.5 text-slate-400" />
