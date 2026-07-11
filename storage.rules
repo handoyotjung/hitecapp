@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper to check if user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user's email exists in the whitelist_users Firestore collection
+    // Note: Cross-service rules exist in Firebase Storage
+    function isWhitelisted() {
+      return isAuthenticated() && 
+        firestore.exists(/databases/(default)/documents/whitelist_users/$(request.auth.token.email));
+    }
+
+    // Projects folder rules
+    match /projects/{projectId}/{date}/{filename} {
+      allow read, write: if isWhitelisted();
+    }
+
+    // Exports folder rules (PowerPoint and Excel reports)
+    match /exports/{filename} {
+      allow read, write: if isWhitelisted();
+    }
+  }
+}

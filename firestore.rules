@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper to get whitelist document for current user
+    function getWhitelistData() {
+      return get(/databases/$(database)/documents/whitelist_users/$(request.auth.token.email)).data;
+    }
+    
+    // Helper to check if current user is whitelisted
+    function isWhitelisted() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/whitelist_users/$(request.auth.token.email));
+    }
+    
+    // Helper to check if user has super_admin role
+    function isSuperAdmin() {
+      return isWhitelisted() && getWhitelistData().role == 'super_admin';
+    }
+
+    // Whitelist collection rules
+    match /whitelist_users/{email} {
+      allow read: if isAuthenticated() && (request.auth.token.email == email || isSuperAdmin());
+      allow write: if isSuperAdmin();
+    }
+
+    // Projects rules
+    match /projects/{projectId} {
+      allow read, write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isWhitelisted());
+      allow create: if isAuthenticated() && (request.auth.uid == request.resource.data.userId || isWhitelisted());
+    }
+
+    // Photos rules
+    match /photos/{photoId} {
+      allow read, write: if isWhitelisted();
+    }
+
+    // Plan rules
+    match /plan/{planId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+  }
+}

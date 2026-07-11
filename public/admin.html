@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HitecApp Admin Panel</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Outfit Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen relative overflow-x-hidden">
+  <!-- Glowing backgrounds -->
+  <div class="absolute top-0 right-1/4 -z-10 h-96 w-96 rounded-full bg-indigo-500/10 blur-[120px]"></div>
+  <div class="absolute bottom-10 left-1/4 -z-10 h-96 w-96 rounded-full bg-violet-500/10 blur-[120px]"></div>
+
+  <div id="admin-container" class="hidden">
+    <!-- Navbar -->
+    <header class="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/60 px-8 backdrop-blur-md sticky top-0 z-30">
+      <div class="flex items-center gap-2">
+        <svg class="h-6 w-6 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span class="text-xl font-bold tracking-tight text-white">Super Admin Dashboard</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="admin-email" class="text-xs text-slate-300 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg font-medium"></span>
+        <button onclick="logoutAdmin()" class="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors">
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- LEFT COLUMN: User Form (Add / Edit) -->
+      <div class="lg:col-span-1 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md">
+          <h3 id="form-title" class="text-lg font-bold text-white mb-4">Add Whitelisted User</h3>
+          
+          <form id="user-form" onsubmit="saveUser(event)" class="space-y-4">
+            <input type="hidden" id="edit-original-email" value="">
+            
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+              <input type="email" id="user-email" required placeholder="user@example.com" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
+              <input type="text" id="user-password" required placeholder="User password" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Role</label>
+                <select id="user-role" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                  <option value="user">User</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Plan</label>
+                <select id="user-plan" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                  <option value="starter">Starter</option>
+                  <option value="pro">Pro</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Login Expired Date</label>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="setExpiryTemplate(1)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">1 Month</button>
+                  <button type="button" onclick="setExpiryTemplate(6)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">6 Months</button>
+                  <button type="button" onclick="setExpiryTemplate(12)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">1 Year</button>
+                </div>
+              </div>
+              <input type="date" id="user-expires" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+              <p class="mt-1 text-[11px] text-slate-500">Preset buttons set expiry date for Role User. Leave empty for permanent.</p>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+              <button type="submit" class="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 text-xs font-bold text-white transition-all active:scale-[0.98]">
+                Save Account
+              </button>
+              <button type="button" onclick="cancelEdit()" id="cancel-btn" class="hidden rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-2.5 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition-all active:scale-[0.98]">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Users Table List -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-white">Manage Whitelisted Users</h3>
+            <div class="flex gap-2">
+              <button onclick="exportWhitelist()" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">Export JSON</button>
+              <label class="cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">
+                Import JSON
+                <input type="file" accept=".json" onchange="importWhitelist(event)" class="hidden" />
+              </label>
+            </div>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                  <th class="pb-3 pr-2">User / Email</th>
+                  <th class="pb-3 px-2">Password</th>
+                  <th class="pb-3 px-2">Plan / Role</th>
+                  <th class="pb-3 px-2">Login Expired Date</th>
+                  <th class="pb-3 pl-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body" class="divide-y divide-slate-800/60">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Access Denied Screen -->
+  <div id="denied-container" class="hidden flex min-h-screen flex-col items-center justify-center text-center p-6">
+    <div class="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-8 max-w-md shadow-2xl backdrop-blur-md">
+      <svg class="h-16 w-16 text-rose-500 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <h2 class="text-2xl font-bold text-rose-400 mb-2">Access Denied</h2>
+      <p id="denied-message" class="text-sm text-slate-400 mb-6">You must be logged in as a Super Admin to access this page.</p>
+      <a href="/" class="inline-block rounded-xl bg-indigo-600 hover:bg-indigo-500 px-6 py-2.5 text-xs font-bold text-white transition-all active:scale-[0.98]">
+        Return to Portal Login
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // Admin Core logic & default store defined first to avoid Temporal Dead Zone errors
+    var defaultMockStore = {
+      whitelist_users: {
+        "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
+        "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
+        "dummy@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "dummypassword", created_at: "2026-01-01" },
+        "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2026-01-01" },
+        "johan@example.com": { role: "user", company_id: "co_hitec", plan: "starter", password: "userpassword", created_at: "2026-01-01" }
+      },
+      plan: {
+        "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
+        "pro": { max_daily_photos: 300, max_file_size_kb: 1024 }
+      },
+      projects: [],
+      photos: []
+    };
+
+    function loadStore() {
+      const cached = localStorage.getItem("hitecmedia_mock_db");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (!parsed.whitelist_users) {
+            parsed.whitelist_users = { ...defaultMockStore.whitelist_users };
+          }
+          return parsed;
+        } catch (e) {
+          return defaultMockStore;
+        }
+      }
+      return defaultMockStore;
+    }
+
+    function saveStore(store) {
+      localStorage.setItem("hitecmedia_mock_db", JSON.stringify(store));
+    }
+
+    // Security and Admin Session Verification
+    const sessionStr = localStorage.getItem('hitecmedia_session') || sessionStorage.getItem('hitecmedia_session');
+    let sessionUser = null;
+    if (sessionStr) {
+      try { sessionUser = JSON.parse(sessionStr); } catch(e) {}
+    }
+
+    if (!sessionUser || sessionUser.role !== 'super_admin') {
+      document.getElementById('denied-container').classList.remove('hidden');
+      if (sessionUser) {
+        document.getElementById('denied-message').innerText = `Logged in as: ${sessionUser.email}. Super Admin role required.`;
+      }
+    } else {
+      document.getElementById('admin-container').classList.remove('hidden');
+      document.getElementById('admin-email').innerText = sessionUser.email;
+      initAdminPanel();
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem('hitecmedia_session');
+      sessionStorage.removeItem('hitecmedia_session');
+      window.location.href = '/';
+    }
+
+    // Age Calculator
+    function calculateAccountAge(createdDateStr) {
+      if (!createdDateStr) return "N/A";
+      const createdDate = new Date(createdDateStr);
+      if (isNaN(createdDate.getTime())) return "N/A";
+      
+      const diffMs = Date.now() - createdDate.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) return "just created";
+      if (diffDays === 0) return "created today";
+      if (diffDays === 1) return "1 day old";
+      if (diffDays < 30) return `${diffDays} days old`;
+      
+      const diffMonths = Math.floor(diffDays / 30);
+      if (diffMonths === 1) return "1 month old";
+      return `${diffMonths} months old`;
+    }
+
+    function setExpiryTemplate(months) {
+      const d = new Date();
+      d.setMonth(d.getMonth() + months);
+      document.getElementById('user-expires').value = d.toISOString().split('T')[0];
+    }
+
+    function initAdminPanel() {
+      document.getElementById('user-expires').value = '';
+      renderUsers();
+    }
+
+    function renderUsers() {
+      const store = loadStore();
+      const tbody = document.getElementById('users-table-body');
+      tbody.innerHTML = '';
+
+      const users = store.whitelist_users || {};
+      Object.keys(users).forEach(email => {
+        const u = users[email];
+        const roleBadge = u.role === 'super_admin' 
+          ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Admin</span>'
+          : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
+        
+        const planBadge = u.plan === 'pro'
+          ? '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Pro</span>'
+          : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Starter</span>';
+
+        let expiryDisplay = '<span class="text-slate-400 font-medium">Permanent / None</span>';
+        if (u.expires_at) {
+          const isExpired = new Date() > new Date(u.expires_at);
+          const statusBadge = isExpired
+            ? '<span class="rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 text-[9px] font-bold">EXPIRED</span>'
+            : '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold">ACTIVE</span>';
+          expiryDisplay = `<div class="flex items-center gap-2"><span class="text-slate-200 font-medium">${u.expires_at}</span> ${statusBadge}</div>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors';
+        tr.innerHTML = `
+          <td class="py-3.5 pr-2">
+            <p class="font-bold text-slate-200">${email}</p>
+          </td>
+          <td class="py-3.5 px-2 font-mono text-slate-400">${u.password || '••••••••'}</td>
+          <td class="py-3.5 px-2 space-y-1">
+            <div class="flex gap-1.5 flex-wrap">${planBadge} ${roleBadge}</div>
+          </td>
+          <td class="py-3.5 px-2">
+            ${expiryDisplay}
+          </td>
+          <td class="py-3.5 pl-2 text-right">
+            <div class="flex justify-end gap-1.5">
+              <button onclick="editUser('${email}')" class="px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">Edit</button>
+              <button onclick="deleteUser('${email}')" class="px-2.5 py-1.5 rounded-lg border border-rose-900/30 bg-slate-900 text-rose-500 hover:bg-rose-950/20 transition-colors" ${email === 'handoyo.tjung@gmail.com' ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>Delete</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function saveUser(e) {
+      e.preventDefault();
+      const email = document.getElementById('user-email').value.trim().toLowerCase();
+      const password = document.getElementById('user-password').value;
+      const role = document.getElementById('user-role').value;
+      const plan = document.getElementById('user-plan').value;
+      const expires_at = document.getElementById('user-expires').value;
+
+      const store = loadStore();
+      const originalEmail = document.getElementById('edit-original-email').value;
+
+      if (originalEmail && originalEmail !== email) {
+        delete store.whitelist_users[originalEmail];
+      }
+
+      store.whitelist_users[email] = {
+        role,
+        plan,
+        password,
+        expires_at
+      };
+
+      saveStore(store);
+      cancelEdit();
+      renderUsers();
+    }
+
+    function editUser(email) {
+      const store = loadStore();
+      const u = store.whitelist_users[email];
+      if (!u) return;
+
+      document.getElementById('edit-original-email').value = email;
+      document.getElementById('user-email').value = email;
+      document.getElementById('user-password').value = u.password || '';
+      document.getElementById('user-role').value = u.role || 'user';
+      document.getElementById('user-plan').value = u.plan || 'starter';
+      document.getElementById('user-expires').value = u.expires_at || '';
+
+      document.getElementById('form-title').innerText = "Edit Whitelisted User";
+      document.getElementById('cancel-btn').classList.remove('hidden');
+    }
+
+    function cancelEdit() {
+      document.getElementById('edit-original-email').value = '';
+      document.getElementById('user-form').reset();
+      document.getElementById('user-expires').value = '';
+      document.getElementById('form-title').innerText = "Add Whitelisted User";
+      document.getElementById('cancel-btn').classList.add('hidden');
+    }
+
+    function deleteUser(email) {
+      if (email === 'handoyo.tjung@gmail.com') return; // protect default admin
+      const confirmed = confirm(`Are you sure you want to remove "${email}" from the whitelist?`);
+      if (!confirmed) return;
+
+      const store = loadStore();
+      delete store.whitelist_users[email];
+      saveStore(store);
+      renderUsers();
+    }
+
+    function exportWhitelist() {
+      const store = loadStore();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(store, null, 2));
+      const dlAnchorElem = document.createElement('a');
+      dlAnchorElem.setAttribute("href", dataStr);
+      dlAnchorElem.setAttribute("download", "hitecmedia_whitelist_backup.json");
+      dlAnchorElem.click();
+    }
+
+    function importWhitelist(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          let usersToImport = {};
+
+          // Case 1: Array of user objects [{ email: '...', password: '...', role: '...' }]
+          if (Array.isArray(imported)) {
+            imported.forEach(u => {
+              const email = u.email || u.user || u.username;
+              if (email && typeof email === 'string') {
+                usersToImport[email.toLowerCase().trim()] = {
+                  ...u,
+                  password: u.password || 'password123',
+                  role: u.role || 'user',
+                  plan: u.plan || 'starter',
+                  created_at: u.created_at || new Date().toISOString(),
+                  expires_at: u.expires_at || null
+                };
+              }
+            });
+          } 
+          // Case 2: Object containing whitelist_users, users, or direct email map
+          else if (typeof imported === 'object' && imported !== null) {
+            const sourceDict = imported.whitelist_users || imported.users || imported.whitelist || imported;
+            Object.keys(sourceDict).forEach(key => {
+              const val = sourceDict[key];
+              if (val && typeof val === 'object') {
+                const email = val.email || key;
+                if (email && typeof email === 'string' && email.includes('@')) {
+                  usersToImport[email.toLowerCase().trim()] = {
+                    ...val,
+                    password: val.password || 'password123',
+                    role: val.role || 'user',
+                    plan: val.plan || 'starter',
+                    created_at: val.created_at || new Date().toISOString(),
+                    expires_at: val.expires_at || null
+                  };
+                }
+              }
+            });
+          }
+
+          const count = Object.keys(usersToImport).length;
+          if (count > 0) {
+            const store = loadStore();
+            if (imported.whitelist_users) {
+              // Full backup imported: update whitelist with imported backup
+              store.whitelist_users = usersToImport;
+            } else {
+              // Partial user list imported: merge into existing whitelist
+              store.whitelist_users = { ...store.whitelist_users, ...usersToImport };
+            }
+            // Ensure logged-in admin session is never locked out
+            if (sessionUser && sessionUser.email && !store.whitelist_users[sessionUser.email]) {
+              store.whitelist_users[sessionUser.email] = {
+                role: 'super_admin',
+                plan: 'pro',
+                password: 'adminpassword'
+              };
+            }
+            saveStore(store);
+            renderUsers();
+            alert(`Successfully imported/updated ${count} user(s) in the whitelist!`);
+          } else {
+            alert("Could not find valid user entries in the imported JSON file. Ensure each user has an email address.");
+          }
+        } catch (err) {
+          alert("Error parsing JSON file: " + err.message);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
