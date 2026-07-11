@@ -542,9 +542,8 @@ export default function Dashboard({ user, onLogout }) {
 
       // 1. Client size check
       if (sizeKb > planLimits.maxKb) {
-        status = 'Rejected';
-        error = `File too large (${Math.round(sizeKb)}KB > ${planLimits.maxKb}KB limit)`;
         oversizedFiles.push({ name: file.name, sizeKb: Math.round(sizeKb) });
+        return;
       } 
       // 2. Client daily count check
       else if (currentRemaining <= 0) {
@@ -1053,7 +1052,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             ) : (
               <div className={`mt-2 grid gap-1.5 ${queue.length > 20 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-                {queue.map((item, index) => {
+                {queue.filter(item => item.status !== 'Rejected').map((item, index) => {
                   const isDone = item.status === 'Done';
                   const isSelected = selectedPhotos.includes(item.finalFilename);
                   const matchedPhoto = projectPhotos.find(p => p.filename === item.finalFilename);
