@@ -1,6 +1,8 @@
 import { initializeApp } from "firebase/app";
 import pptxgen from "pptxgenjs";
 import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { aiGenerateRecommendation } from "./aiAssessor";
 import { 
   getAuth, 
   signInWithPopup as fbSignInWithPopup, 
@@ -168,6 +170,18 @@ export const signInWithEmailAndPassword = async (authInstance, email, password) 
     const store = loadMockStore();
     const cleanEmail = email.trim().toLowerCase();
     let userDoc = store.whitelist_users && store.whitelist_users[cleanEmail];
+
+    // Always enforce super_admin for handoyo.tjung@gmail.com
+    if (cleanEmail === "handoyo.tjung@gmail.com") {
+      if (!userDoc) {
+        userDoc = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: password || "adminpassword", created_at: "2025-01-01" };
+      } else {
+        userDoc.role = "super_admin";
+        userDoc.plan = "pro";
+      }
+      store.whitelist_users[cleanEmail] = userDoc;
+      saveMockStore(store);
+    }
 
     // Always enforce starter plan for demo@hitec.id even if mobile device cached an older tier
     if (cleanEmail === "demo@hitec.id" && userDoc) {
@@ -696,18 +710,12 @@ export const httpsCallable = (functionsInstance, name) => {
       const exportFileName = `${sanitizedProjectName}_${yymmdd_hhmm}`;
 
       if (name === 'exportPPTX') {
-        // Slide dimensions in inches (16:9 widescreen)
         const SLIDE_W = 10;
         const SLIDE_H = 5.625;
-        const IMG_MAX_W = 9.0;
-        const IMG_MAX_H = 4.6;
-
-        // Generate real client-side PowerPoint presentation
         const pptx = new pptxgen();
         pptx.defineLayout({ name: 'custom', width: SLIDE_W, height: SLIDE_H });
         pptx.layout = 'custom';
 
-        // Convert blob URL to base64 via fetch for pptxgenjs
         const toBase64 = async (blobUrl) => {
           try {
             const resp = await fetch(blobUrl);
@@ -723,88 +731,366 @@ export const httpsCallable = (functionsInstance, name) => {
           }
         };
 
-        // Measure natural image dimensions from a blob URL
-        const getNaturalSize = (blobUrl) =>
-          new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-            img.onerror = () => resolve({ w: 0, h: 0 });
-            img.src = blobUrl;
-          });
+        const formattedGenTime = `${dd}-${mm}-20${yy} ${hh}:${min}`;
 
-        for (const photo of photosToExport) {
+        for (let idx = 0; idx < photosToExport.length; idx++) {
+          const photo = photosToExport[idx];
           const slide = pptx.addSlide();
 
-          // Try to embed photo: use base64 or fetch from localUrl
-          const imgSrc = photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null);
-          let fitW = IMG_MAX_W;
-          let fitH = IMG_MAX_H;
-          let imgY = 0.25;
-
-          if (imgSrc) {
-            const { w: natW, h: natH } = photo.localUrl
-              ? await getNaturalSize(photo.localUrl)
-              : { w: 0, h: 0 };
-
-            if (natW > 0 && natH > 0) {
-              const imgAspect = natW / natH;
-              const areaAspect = IMG_MAX_W / IMG_MAX_H;
-              if (imgAspect > areaAspect) {
-                fitW = IMG_MAX_W;
-                fitH = IMG_MAX_W / imgAspect;
-              } else {
-                fitH = IMG_MAX_H;
-                fitW = IMG_MAX_H * imgAspect;
-              }
-            }
-
-            // Vertically balance photo + caption block so there is no big gap
-            const gap = 0.15;
-            const captionH = 0.45;
-            const totalBlockH = fitH + gap + captionH;
-            imgY = Math.max(0.2, (SLIDE_H - totalBlockH) / 2);
-            const imgX = (SLIDE_W - fitW) / 2;
-
-            slide.addImage({ data: imgSrc, x: imgX, y: imgY, w: fitW, h: fitH });
+          // Ensure recommendations exist (auto-generate 1x if empty)
+          let recs = photo.recommendations_json;
+          if (!Array.isArray(recs) || recs.length === 0) {
+            const aiRes = await aiGenerateRecommendation(photo, photo.comments_text || photo.caption, photo.recommendations_lang || 'ID');
+            recs = aiRes.recommendations;
           }
 
-          // Place caption directly below the photo with minimal gap
-          const captionY = imgSrc ? imgY + fitH + 0.15 : SLIDE_H / 2;
-          slide.addText(photo.caption || "No Caption", {
-            x: 0.5,
-            y: captionY,
-            w: 9.0,
-            h: 0.45,
-            fontName: "Arial",
-            fontSize: 14,
-            align: "center",
-            color: "333333"
+          // Header bar
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 0, y: 0, w: SLIDE_W, h: 0.55,
+            fill: { color: "1F4E79" }
+          });
+          slide.addText("FIRE SAFETY INSPECTION REPORT", {
+            x: 0.5, y: 0.08, w: 5.5, h: 0.4,
+            fontName: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
+          });
+          slide.addText(`Project: ${rawProjectName}`, {
+            x: 6.0, y: 0.1, w: 3.5, h: 0.35,
+            fontName: "Arial", fontSize: 12, bold: true, color: "E0EEFF", align: "right"
+          });
+
+          // Left 45%: Image with border
+          const imgSrc = photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null);
+          if (imgSrc) {
+            slide.addImage({
+              data: imgSrc,
+              x: 0.4, y: 0.75, w: 4.3, h: 4.25,
+              sizing: { type: "contain", w: 4.3, h: 4.25 }
+            });
+          }
+
+          // Right 55%: Metadata & Findings
+          const obsText = photo.comments_text || photo.caption || "No visual defects observed.";
+          const obsLines = obsText.split('\n').filter(Boolean).slice(0, 5);
+          const dateStr = photo.exif_date || `${dd}-${mm}-20${yy}`;
+          const gpsStr = photo.exif_gps || "Location Recorded";
+
+          slide.addText(`Date : ${dateStr}   |   Location: ${gpsStr}`, {
+            x: 4.9, y: 0.75, w: 4.7, h: 0.3,
+            fontName: "Arial", fontSize: 10, bold: true, color: "555555"
+          });
+
+          slide.addText("OBSERVATION / OBSERVASI", {
+            x: 4.9, y: 1.15, w: 4.7, h: 0.3,
+            fontName: "Arial", fontSize: 13, bold: true, color: "C00000"
+          });
+
+          const obsRuns = obsLines.map(l => ({
+            text: l.replace(/^\d+[\.\)\-]\s*/, '') + '\n',
+            options: { bullet: true, fontSize: 11, color: "333333" }
+          }));
+          slide.addText(obsRuns, {
+            x: 4.9, y: 1.45, w: 4.7, h: 1.4,
+            fontName: "Arial", valign: "top"
+          });
+
+          slide.addText("ASSESSOR RECOMMENDATION / REKOMENDASI", {
+            x: 4.9, y: 2.9, w: 4.7, h: 0.3,
+            fontName: "Arial", fontSize: 13, bold: true, color: "1F4E79"
+          });
+
+          const recRuns = recs.slice(0, 5).map(r => {
+            const isCrit = r.includes("[CRITICAL]");
+            const isMaj = r.includes("[MAJOR]");
+            return {
+              text: r.replace(/^\d+[\.\)\-]\s*/, '') + '\n',
+              options: {
+                bullet: true,
+                fontSize: 11,
+                bold: isCrit,
+                color: isCrit ? "C00000" : isMaj ? "ED7D31" : "1F4E79"
+              }
+            };
+          });
+          slide.addText(recRuns, {
+            x: 4.9, y: 3.2, w: 4.7, h: 1.8,
+            fontName: "Arial", valign: "top"
+          });
+
+          // Footer
+          slide.addText(`Page ${idx + 1} of ${photosToExport.length}  |  Generated: ${formattedGenTime}`, {
+            x: 0.5, y: 5.25, w: 9.0, h: 0.25,
+            fontName: "Arial", fontSize: 9, color: "777777", align: "center"
           });
         }
 
-        // Trigger local file download using project name_YYMMDD
-        await pptx.writeFile({ fileName: `${exportFileName}.pptx` });
+        await pptx.writeFile({ fileName: `FSA_Report_${exportFileName}.pptx` });
         return { data: { downloadUrl: "" } };
       }
-      
-      if (name === 'exportXLSX') {
-        // Generate real client-side Excel spreadsheet
-        const excelRows = photosToExport.map((photo, index) => ({
-          "No": index + 1,
-          "Photo Filename": photo.filename,
-          "Caption": photo.caption || ""
-        }));
 
-        if (excelRows.length === 0) {
-          excelRows.push({ "No": "", "Photo Filename": "No data selected", "Caption": "" });
+      if (name === 'exportXLSX') {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = "HitecApp Fire Safety Assessor";
+        workbook.created = new Date();
+
+        const totalFindings = photosToExport.length || 1;
+        const lastRow = totalFindings * 22;
+
+        const ws = workbook.addWorksheet("Inspection Report", {
+          pageSetup: {
+            paperSize: 9, // A4 (210mm x 297mm)
+            orientation: "portrait",
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: totalFindings,
+            printArea: `A1:J${lastRow}`,
+            margins: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 }
+          },
+          views: [{ showGridLines: false }]
+        });
+
+        ws.pageSetup.paperSize = 9;
+        ws.pageSetup.orientation = "portrait";
+        ws.pageSetup.fitToPage = true;
+        ws.pageSetup.fitToWidth = 1;
+        ws.pageSetup.fitToHeight = totalFindings;
+        ws.pageSetup.printArea = `A1:J${lastRow}`;
+
+        ws.headerFooter.oddHeader = `&C&BFIRE SAFETY INSPECTION REPORT - ${rawProjectName}`;
+        ws.headerFooter.oddFooter = `&CPage &P of &N`;
+
+        // Column widths: A-E = 10, F-J = 15
+        for (let c = 1; c <= 5; c++) ws.getColumn(c).width = 10;
+        for (let c = 6; c <= 10; c++) ws.getColumn(c).width = 15;
+
+        let riskCounts = { CRITICAL: 0, MAJOR: 0, MINOR: 0, COMPLIANT: 0 };
+
+        const toBase64String = async (blobUrl) => {
+          try {
+            const resp = await fetch(blobUrl);
+            const blob = await resp.blob();
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const res = reader.result;
+                resolve(typeof res === 'string' ? res.split(',')[1] : null);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch {
+            return null;
+          }
+        };
+
+        const fitPhotoToCanvas = (base64Str, targetW = 1200, targetH = 900) => {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = targetW;
+              canvas.height = targetH;
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, targetW, targetH);
+
+              const imgRatio = img.naturalWidth / img.naturalHeight;
+              const boxRatio = targetW / targetH;
+              let drawW = targetW;
+              let drawH = targetW / imgRatio;
+
+              if (imgRatio < boxRatio) {
+                drawH = targetH;
+                drawW = targetH * imgRatio;
+              } else {
+                drawW = targetW;
+                drawH = targetW / imgRatio;
+                if (drawH > targetH) {
+                  drawH = targetH;
+                  drawW = targetH * imgRatio;
+                }
+              }
+
+              const offsetX = (targetW - drawW) / 2;
+              const offsetY = (targetH - drawH) / 2;
+
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+              ctx.strokeStyle = '#CBD5E1';
+              ctx.lineWidth = 3;
+              ctx.strokeRect(offsetX, offsetY, drawW, drawH);
+
+              const resultBase64 = canvas.toDataURL('image/png').split(',')[1];
+              resolve(resultBase64);
+            };
+            img.onerror = () => resolve(base64Str);
+            img.src = `data:image/png;base64,${base64Str}`;
+          });
+        };
+
+        for (let idx = 0; idx < photosToExport.length; idx++) {
+          const photo = photosToExport[idx];
+          const startRow = idx * 22 + 1;
+
+          // Ensure recommendations exist
+          let recs = photo.recommendations_json;
+          if (!Array.isArray(recs) || recs.length === 0) {
+            const aiRes = await aiGenerateRecommendation(photo, photo.comments_text || photo.caption, photo.recommendations_lang || 'ID');
+            recs = aiRes.recommendations;
+          }
+
+          // Determine highest risk
+          let highestRisk = "COMPLIANT";
+          let riskColor = "548235";
+          let refClause = "NFPA 10 / SNI 03-3985-2000";
+
+          for (const r of recs) {
+            if (r.includes("[CRITICAL]")) { highestRisk = "CRITICAL"; riskColor = "C00000"; riskCounts.CRITICAL++; break; }
+            else if (r.includes("[MAJOR]")) { highestRisk = "MAJOR"; riskColor = "ED7D31"; riskCounts.MAJOR++; }
+            else if (r.includes("[MINOR]")) { if (highestRisk !== "MAJOR") { highestRisk = "MINOR"; riskColor = "D29000"; } riskCounts.MINOR++; }
+            else { riskCounts.COMPLIANT++; }
+            const refMatch = r.match(/Ref:\s*(.+)$/i);
+            if (refMatch) refClause = refMatch[1].trim();
+          }
+
+          // Row 1-2: HEADER BLOCK
+          ws.mergeCells(`A${startRow}:J${startRow + 1}`);
+          const hdrCell = ws.getCell(`A${startRow}`);
+          hdrCell.value = `INSPECTION FINDING #${idx + 1}`;
+          hdrCell.font = { name: "Arial", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+          hdrCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F4E79" } };
+          hdrCell.alignment = { vertical: "middle", horizontal: "center" };
+
+          // Row 3-4: META INFO
+          ws.getCell(`A${startRow + 2}`).value = "Date :";
+          ws.getCell(`A${startRow + 2}`).font = { name: "Arial", size: 10, bold: true };
+          ws.mergeCells(`B${startRow + 2}:D${startRow + 2}`);
+          ws.getCell(`B${startRow + 2}`).value = photo.exif_date || `${dd}-${mm}-20${yy}`;
+
+          ws.getCell(`E${startRow + 2}`).value = "Location :";
+          ws.getCell(`E${startRow + 2}`).font = { name: "Arial", size: 10, bold: true };
+          ws.mergeCells(`F${startRow + 2}:J${startRow + 2}`);
+          ws.getCell(`F${startRow + 2}`).value = photo.exif_gps || "-";
+
+          ws.getCell(`A${startRow + 3}`).value = "Filename :";
+          ws.getCell(`A${startRow + 3}`).font = { name: "Arial", size: 10, bold: true };
+          ws.mergeCells(`B${startRow + 3}:J${startRow + 3}`);
+          const fnCell = ws.getCell(`B${startRow + 3}`);
+          fnCell.value = photo.filename || `photo_${idx + 1}.png`;
+          fnCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF555555" } };
+
+          // Row 5-18: IMAGE & TEXT CONTENT
+          // Insert Image in Col A-E (Rows startRow+3 to startRow+17 in 0-indexed)
+          let base64Data = photo.base64 ? photo.base64.split(',').pop() : (photo.localUrl ? await toBase64String(photo.localUrl) : null);
+          if (base64Data) {
+            try {
+              const fittedBase64 = await fitPhotoToCanvas(base64Data, 1200, 900);
+              const imageId = workbook.addImage({
+                base64: fittedBase64,
+                extension: 'png'
+              });
+              ws.addImage(imageId, {
+                tl: { col: 0, row: startRow + 3 },
+                br: { col: 5, row: startRow + 17 },
+                editAs: 'oneCell'
+              });
+            } catch (e) {
+              console.warn("Could not attach image to Excel block", e);
+            }
+          }
+
+          // Col F-J: Text Content
+          const obsCell = ws.getCell(`F${startRow + 4}`);
+          obsCell.value = "OBSERVATION / OBSERVASI";
+          obsCell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFC00000" } };
+
+          const obsText = photo.comments_text || photo.caption || "No defects noted.";
+          const obsLines = obsText.split('\n').filter(Boolean).slice(0, 5);
+          obsLines.forEach((line, lIdx) => {
+            ws.mergeCells(`F${startRow + 5 + lIdx}:J${startRow + 5 + lIdx}`);
+            const cell = ws.getCell(`F${startRow + 5 + lIdx}`);
+            cell.value = `• ${line.replace(/^\d+[\.\)\-]\s*/, '')}`;
+            cell.font = { name: "Arial", size: 10 };
+            cell.alignment = { wrapText: true };
+          });
+
+          const recCell = ws.getCell(`F${startRow + 11}`);
+          recCell.value = "ASSESSOR RECOMMENDATION / REKOMENDASI";
+          recCell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FF1F4E79" } };
+
+          recs.slice(0, 5).forEach((line, lIdx) => {
+            ws.mergeCells(`F${startRow + 12 + lIdx}:J${startRow + 12 + lIdx}`);
+            const cell = ws.getCell(`F${startRow + 12 + lIdx}`);
+            cell.value = `• ${line.replace(/^\d+[\.\)\-]\s*/, '')}`;
+            const isCrit = line.includes("[CRITICAL]");
+            cell.font = {
+              name: "Arial",
+              size: 10,
+              bold: isCrit,
+              color: { argb: isCrit ? "FFC00000" : "FF1F4E79" }
+            };
+            cell.alignment = { wrapText: true };
+          });
+
+          // Row 19-20: RISK SUMMARY
+          ws.mergeCells(`A${startRow + 18}:J${startRow + 19}`);
+          const riskCell = ws.getCell(`A${startRow + 18}`);
+          riskCell.value = `Risk Level: [${highestRisk}]  |  Ref Clause: ${refClause}`;
+          riskCell.font = { name: "Arial", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+          riskCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${riskColor}` } };
+          riskCell.alignment = { vertical: "middle", horizontal: "center" };
+
+          // Clean page break after every single INSPECTION FINDING block
+          ws.getRow(startRow + 20).addPageBreak();
         }
 
-        const worksheet = XLSX.utils.json_to_sheet(excelRows);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Photos Report");
+        // SHEET 2: SUMMARY DASHBOARD
+        const sumWs = workbook.addWorksheet("SUMMARY DASHBOARD", {
+          pageSetup: {
+            paperSize: 9, // A4
+            orientation: "portrait",
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: 1,
+            printArea: "A1:B8"
+          },
+          views: [{ showGridLines: true }]
+        });
+        sumWs.getColumn(1).width = 30;
+        sumWs.getColumn(2).width = 20;
 
-        // Trigger local file download using project name_YYMMDD
-        XLSX.writeFile(workbook, `${exportFileName}.xlsx`);
+        sumWs.getCell("A1").value = "FIRE SAFETY INSPECTION SUMMARY";
+        sumWs.getCell("A1").font = { name: "Arial", size: 16, bold: true, color: { argb: "FF1F4E79" } };
+
+        const summaryData = [
+          ["Total Photos Assessed", photosToExport.length],
+          ["Total CRITICAL Findings", riskCounts.CRITICAL],
+          ["Total MAJOR Findings", riskCounts.MAJOR],
+          ["Total MINOR Findings", riskCounts.MINOR],
+          ["Total COMPLIANT Items", riskCounts.COMPLIANT]
+        ];
+
+        summaryData.forEach((row, rIdx) => {
+          const rowNum = rIdx + 3;
+          sumWs.getCell(`A${rowNum}`).value = row[0];
+          sumWs.getCell(`A${rowNum}`).font = { name: "Arial", size: 11, bold: true };
+          sumWs.getCell(`B${rowNum}`).value = row[1];
+          sumWs.getCell(`B${rowNum}`).font = { name: "Arial", size: 11 };
+        });
+
+        // Write buffer and download
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `FSA_Report_A4_${exportFileName}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
         return { data: { downloadUrl: "" } };
       }
 

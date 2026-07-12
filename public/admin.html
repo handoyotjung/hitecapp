@@ -24,7 +24,7 @@
     <header class="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/60 px-8 backdrop-blur-md sticky top-0 z-30">
       <div class="flex items-center gap-2">
         <svg class="h-6 w-6 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span class="text-xl font-bold tracking-tight text-white">Super Admin Dashboard</span>
+        <span id="dashboard-title-text" class="text-xl font-bold tracking-tight text-white">Super Admin Dashboard</span>
       </div>
       <div class="flex items-center gap-4">
         <span id="admin-email" class="text-xs text-slate-300 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg font-medium"></span>
@@ -129,6 +129,44 @@
         </div>
       </div>
 
+      <!-- FULL WIDTH ROW: Security Events & Email Alerts (admin@hitec.id) -->
+      <div class="lg:col-span-3 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="h-5 w-5 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Security Events & Automated Email Alerts
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Automated security notifications sent to <code class="text-emerald-400 font-bold">admin@hitec.id</code> (Single Session & Force Logout monitoring)</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="sendTestSecurityEmail()" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white transition-all active:scale-[0.98] flex items-center gap-1.5 shadow-lg shadow-emerald-500/20">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Send Test Email to admin@hitec.id
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                  <th class="pb-3 pr-2">Event Type</th>
+                  <th class="pb-3 px-2">Recipient</th>
+                  <th class="pb-3 px-2">Subject</th>
+                  <th class="pb-3 px-2">Timestamp</th>
+                  <th class="pb-3 pl-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="email-alerts-tbody" class="divide-y divide-slate-800/60">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -163,19 +201,23 @@
     };
 
     function loadStore() {
+      let store = { ...defaultMockStore, whitelist_users: { ...defaultMockStore.whitelist_users } };
       const cached = localStorage.getItem("hitecmedia_mock_db");
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          if (!parsed.whitelist_users) {
-            parsed.whitelist_users = { ...defaultMockStore.whitelist_users };
-          }
-          return parsed;
-        } catch (e) {
-          return defaultMockStore;
-        }
+          store = { ...store, ...parsed };
+          store.whitelist_users = { ...store.whitelist_users, ...(parsed.whitelist_users || {}) };
+        } catch (e) {}
       }
-      return defaultMockStore;
+      const oldCached = localStorage.getItem("hitec_store_v1");
+      if (oldCached) {
+        try {
+          const oldParsed = JSON.parse(oldCached);
+          store.whitelist_users = { ...store.whitelist_users, ...(oldParsed.whitelist_users || {}) };
+        } catch (e) {}
+      }
+      return store;
     }
 
     function saveStore(store) {
@@ -197,6 +239,23 @@
     } else {
       document.getElementById('admin-container').classList.remove('hidden');
       document.getElementById('admin-email').innerText = sessionUser.email;
+      
+      const roleSelect = document.getElementById('user-role');
+      const titleElem = document.getElementById('dashboard-title-text');
+      if (sessionUser.role === 'super_admin') {
+        titleElem.innerText = 'Super Admin Dashboard';
+        roleSelect.innerHTML = `
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+          <option value="super_admin">Super Admin</option>
+        `;
+      } else {
+        titleElem.innerText = 'Admin Dashboard';
+        roleSelect.innerHTML = `
+          <option value="user">User</option>
+        `;
+      }
+
       initAdminPanel();
     }
 
@@ -234,6 +293,7 @@
     function initAdminPanel() {
       document.getElementById('user-expires').value = '';
       renderUsers();
+      loadEmailAlerts();
     }
 
     function renderUsers() {
@@ -261,91 +321,109 @@
           expiryDisplay = `<div class="flex items-center gap-2"><span class="text-slate-200 font-medium">${u.expires_at}</span> ${statusBadge}</div>`;
         }
 
-        const tr = document.createElement('tr');
-        tr.className = 'border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors';
-        tr.innerHTML = `
-          <td class="py-3.5 pr-2">
-            <p class="font-bold text-slate-200">${email}</p>
-          </td>
-          <td class="py-3.5 px-2 font-mono text-slate-400">${u.password || '••••••••'}</td>
-          <td class="py-3.5 px-2 space-y-1">
-            <div class="flex gap-1.5 flex-wrap">${planBadge} ${roleBadge}</div>
-          </td>
-          <td class="py-3.5 px-2">
-            ${expiryDisplay}
-          </td>
-          <td class="py-3.5 pl-2 text-right">
-            <div class="flex justify-end gap-1.5">
-              <button onclick="editUser('${email}')" class="px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">Edit</button>
-              <button onclick="deleteUser('${email}')" class="px-2.5 py-1.5 rounded-lg border border-rose-900/30 bg-slate-900 text-rose-500 hover:bg-rose-950/20 transition-colors" ${email === 'handoyo.tjung@gmail.com' ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>Delete</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+          const isProtectedFromAdmin = (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin'));
 
-    function saveUser(e) {
-      e.preventDefault();
-      const email = document.getElementById('user-email').value.trim().toLowerCase();
-      const password = document.getElementById('user-password').value;
-      const role = document.getElementById('user-role').value;
-      const plan = document.getElementById('user-plan').value;
-      const expires_at = document.getElementById('user-expires').value;
-
-      const store = loadStore();
-      const originalEmail = document.getElementById('edit-original-email').value;
-
-      if (originalEmail && originalEmail !== email) {
-        delete store.whitelist_users[originalEmail];
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors';
+          tr.innerHTML = `
+            <td class="py-3.5 pr-2">
+              <p class="font-bold text-slate-200">${email}</p>
+            </td>
+            <td class="py-3.5 px-2 font-mono text-slate-400">${u.password || '••••••••'}</td>
+            <td class="py-3.5 px-2 space-y-1">
+              <div class="flex gap-1.5 flex-wrap">${planBadge} ${roleBadge}</div>
+            </td>
+            <td class="py-3.5 px-2">
+              ${expiryDisplay}
+            </td>
+            <td class="py-3.5 pl-2 text-right">
+              <div class="flex justify-end gap-1.5">
+                <button onclick="editUser('${email}')" class="px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors" ${isProtectedFromAdmin ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Admins cannot edit Super Admin or Admin accounts"' : ''}>Edit</button>
+                <button onclick="deleteUser('${email}')" class="px-2.5 py-1.5 rounded-lg border border-rose-900/30 bg-slate-900 text-rose-500 hover:bg-rose-950/20 transition-colors" ${(email === 'handoyo.tjung@gmail.com' || isProtectedFromAdmin) ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Cannot delete this account"' : ''}>Delete</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
       }
 
-      store.whitelist_users[email] = {
-        role,
-        plan,
-        password,
-        expires_at
-      };
+      function saveUser(e) {
+        e.preventDefault();
+        const email = document.getElementById('user-email').value.trim().toLowerCase();
+        const password = document.getElementById('user-password').value;
+        let role = document.getElementById('user-role').value;
+        const plan = document.getElementById('user-plan').value;
+        const expires_at = document.getElementById('user-expires').value;
 
-      saveStore(store);
-      cancelEdit();
-      renderUsers();
-    }
+        // Security check: Admin can ONLY add or set role = user
+        if (sessionUser && sessionUser.role === 'admin') {
+          role = 'user';
+        }
 
-    function editUser(email) {
-      const store = loadStore();
-      const u = store.whitelist_users[email];
-      if (!u) return;
+        const store = loadStore();
+        const originalEmail = document.getElementById('edit-original-email').value;
 
-      document.getElementById('edit-original-email').value = email;
-      document.getElementById('user-email').value = email;
-      document.getElementById('user-password').value = u.password || '';
-      document.getElementById('user-role').value = u.role || 'user';
-      document.getElementById('user-plan').value = u.plan || 'starter';
-      document.getElementById('user-expires').value = u.expires_at || '';
+        if (originalEmail && originalEmail !== email) {
+          delete store.whitelist_users[originalEmail];
+        }
 
-      document.getElementById('form-title').innerText = "Edit Whitelisted User";
-      document.getElementById('cancel-btn').classList.remove('hidden');
-    }
+        store.whitelist_users[email] = {
+          role,
+          plan,
+          password,
+          expires_at
+        };
 
-    function cancelEdit() {
-      document.getElementById('edit-original-email').value = '';
-      document.getElementById('user-form').reset();
-      document.getElementById('user-expires').value = '';
-      document.getElementById('form-title').innerText = "Add Whitelisted User";
-      document.getElementById('cancel-btn').classList.add('hidden');
-    }
+        saveStore(store);
+        cancelEdit();
+        renderUsers();
+      }
 
-    function deleteUser(email) {
-      if (email === 'handoyo.tjung@gmail.com') return; // protect default admin
-      const confirmed = confirm(`Are you sure you want to remove "${email}" from the whitelist?`);
-      if (!confirmed) return;
+      function editUser(email) {
+        const store = loadStore();
+        const u = store.whitelist_users[email];
+        if (!u) return;
 
-      const store = loadStore();
-      delete store.whitelist_users[email];
-      saveStore(store);
-      renderUsers();
-    }
+        if (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin')) {
+          alert("As an Admin, you can only manage accounts with role: User.");
+          return;
+        }
+
+        document.getElementById('edit-original-email').value = email;
+        document.getElementById('user-email').value = email;
+        document.getElementById('user-password').value = u.password || '';
+        document.getElementById('user-role').value = u.role || 'user';
+        document.getElementById('user-plan').value = u.plan || 'starter';
+        document.getElementById('user-expires').value = u.expires_at || '';
+
+        document.getElementById('form-title').innerText = "Edit Whitelisted User";
+        document.getElementById('cancel-btn').classList.remove('hidden');
+      }
+
+      function cancelEdit() {
+        document.getElementById('edit-original-email').value = '';
+        document.getElementById('user-form').reset();
+        document.getElementById('user-expires').value = '';
+        document.getElementById('form-title').innerText = "Add Whitelisted User";
+        document.getElementById('cancel-btn').classList.add('hidden');
+      }
+
+      function deleteUser(email) {
+        if (email === 'handoyo.tjung@gmail.com') return; // protect default admin
+        const store = loadStore();
+        const u = store.whitelist_users[email];
+        if (sessionUser && sessionUser.role === 'admin' && u && (u.role === 'super_admin' || u.role === 'admin')) {
+          alert("As an Admin, you cannot delete Admin or Super Admin accounts.");
+          return;
+        }
+
+        const confirmed = confirm(`Are you sure you want to remove "${email}" from the whitelist?`);
+        if (!confirmed) return;
+
+        delete store.whitelist_users[email];
+        saveStore(store);
+        renderUsers();
+      }
 
     function exportWhitelist() {
       const store = loadStore();
@@ -434,6 +512,136 @@
       };
       reader.readAsText(file);
     }
+
+    // EMAIL ALERT LOGIC IN ADMIN PANEL
+    function loadEmailAlerts() {
+      const tbody = document.getElementById('email-alerts-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let logs = [];
+      try {
+        const raw = localStorage.getItem('hitec_email_alerts_v1');
+        if (raw) logs = JSON.parse(raw);
+      } catch (e) {}
+
+      if (logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500 italic">No automated security alerts sent yet. Click "Send Test Email to admin@hitec.id" to test.</td></tr>`;
+        return;
+      }
+
+      logs.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition-colors';
+        const badgeColor = item.eventType === 'ACCOUNT_IN_USE' ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' :
+                           item.eventType === 'SELF_FORCE_LOGOUT' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                           item.eventType === 'ADMIN_FORCE_LOGOUT' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
+                           'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+
+        tr.innerHTML = `
+          <td class="py-3 pr-2">
+            <span class="rounded px-2 py-0.5 border text-[10px] font-bold tracking-wider uppercase ${badgeColor}">
+              ${item.eventType || 'SECURITY_ALERT'}
+            </span>
+          </td>
+          <td class="py-3 px-2 font-mono text-slate-300">${item.recipient}</td>
+          <td class="py-3 px-2 font-medium text-white">${item.subject}</td>
+          <td class="py-3 px-2 text-slate-400">${item.timestamp}</td>
+          <td class="py-3 pl-2 text-right">
+            <button onclick="previewEmailHtml('${item.id}')" class="rounded border border-slate-700 bg-slate-800 hover:bg-slate-700 px-2.5 py-1 text-[11px] font-bold text-slate-200 transition-colors">
+              View HTML
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function sendTestSecurityEmail() {
+      const timestamp = new Date().toLocaleString('id-ID');
+      const testEmail = {
+        id: 'em_' + Date.now(),
+        recipient: 'admin@hitec.id',
+        subject: '[TEST] Security Alert System Verified - HitecApp Pro',
+        eventType: 'TEST_EMAIL',
+        timestamp: timestamp,
+        htmlBody: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; background-color: #ffffff; color: #1e293b;">
+  <div style="margin-bottom: 16px;">
+    <img src="https://hitec.id/logo.png" alt="HitecApp Logo" width="120" style="display: block;"/>
+  </div>
+  <h2 style="color: #10B981; margin-top: 0; font-size: 20px;">Email Alert System Verified</h2>
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+    <tr style="border-bottom: 1px solid #f1f5f9;">
+      <td style="padding: 8px 0; color: #64748b; width: 140px;"><b>Event</b></td>
+      <td style="padding: 8px 0; font-weight: bold; color: #10B981;">System Test Verification</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #f1f5f9;">
+      <td style="padding: 8px 0; color: #64748b;"><b>Recipient</b></td>
+      <td style="padding: 8px 0;"><code>admin@hitec.id</code></td>
+    </tr>
+    <tr style="border-bottom: 1px solid #f1f5f9;">
+      <td style="padding: 8px 0; color: #64748b;"><b>Time</b></td>
+      <td style="padding: 8px 0;">${timestamp}</td>
+    </tr>
+  </table>
+  <p style="font-size: 13px; color: #475569; margin: 12px 0;">
+    <b>Status:</b> All security event email pipelines (Account In Use, Self Force Logout, Admin Force Logout) are operational.
+  </p>
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;"/>
+  <small style="color: #64748b; font-size: 11px;">
+    This is an automated security alert from HitecApp Pro. Do not reply.
+  </small>
+</div>`
+      };
+
+      let logs = [];
+      try {
+        const raw = localStorage.getItem('hitec_email_alerts_v1');
+        if (raw) logs = JSON.parse(raw);
+      } catch (e) {}
+      logs.unshift(testEmail);
+      localStorage.setItem('hitec_email_alerts_v1', JSON.stringify(logs.slice(0, 100)));
+
+      loadEmailAlerts();
+      alert('Test security alert email dispatched to admin@hitec.id successfully!');
+    }
+
+    function previewEmailHtml(id) {
+      let logs = [];
+      try {
+        const raw = localStorage.getItem('hitec_email_alerts_v1');
+        if (raw) logs = JSON.parse(raw);
+      } catch (e) {}
+      const found = logs.find(item => item.id === id);
+      if (!found) return;
+
+      const modal = document.getElementById('email-preview-modal');
+      const frameContainer = document.getElementById('email-preview-content');
+      frameContainer.innerHTML = found.htmlBody;
+      modal.classList.remove('hidden');
+    }
+
+    function closeEmailModal() {
+      document.getElementById('email-preview-modal').classList.add('hidden');
+    }
   </script>
+
+  <!-- Email Preview Modal -->
+  <div id="email-preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-2xl rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Sent Email HTML Preview
+        </h3>
+        <button onclick="closeEmailModal()" class="rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300">
+          Close
+        </button>
+      </div>
+      <div id="email-preview-content" class="max-h-[70vh] overflow-y-auto rounded-xl bg-white p-4 text-slate-900">
+      </div>
+    </div>
+  </div>
 </body>
 </html>

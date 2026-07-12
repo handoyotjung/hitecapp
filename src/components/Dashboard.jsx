@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import UploadZone from './UploadZone';
 import { UpgradeModal } from './UpgradeModal';
+import { aiGrammarCheck, aiGenerateRecommendation } from '../aiAssessor';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -46,7 +47,7 @@ const saveProjectsToCache = (user, projectsList) => {
   }
 };
 
-export default function Dashboard({ user, onLogout }) {
+export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Mobile Tab State: 'upload' | 'editor' | 'export'
   const [activeTab, setActiveTab] = useState('upload');
   
@@ -84,6 +85,15 @@ export default function Dashboard({ user, onLogout }) {
   const [savingCaption, setSavingCaption] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false);
+
+  // Fire Safety Assessor UI State
+  const [commentsText, setCommentsText] = useState('');
+  const [commentsLang, setCommentsLang] = useState('ID');
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationsLang, setRecommendationsLang] = useState('ID');
+  const [manualRecEdit, setManualRecEdit] = useState(false);
+  const [aiGrammarChecking, setAiGrammarChecking] = useState(false);
+  const [aiGeneratingRec, setAiGeneratingRec] = useState(false);
 
   // Gemini AI bilingual spelling correction and suggestion helper (Bahasa Indonesia & English)
   const generateGeminiSuggestions = (input) => {
@@ -408,11 +418,19 @@ export default function Dashboard({ user, onLogout }) {
     return () => unsubscribe();
   }, [selectedProject?.id]);
 
-  // Update caption input when editor photo changes
+  // Update caption & assessor inputs when editor photo changes
   useEffect(() => {
     if (projectPhotos.length > 0 && projectPhotos[editorIndex]) {
-      setCaption(projectPhotos[editorIndex].caption || '');
+      const activePhoto = projectPhotos[editorIndex];
+      const obs = activePhoto.comments_text || activePhoto.caption || '';
+      setCommentsText(obs);
+      setCommentsLang(activePhoto.comments_lang || 'ID');
+      setRecommendations(Array.isArray(activePhoto.recommendations_json) ? activePhoto.recommendations_json : []);
+      setRecommendationsLang(activePhoto.recommendations_lang || 'ID');
+      setCaption(obs);
     } else {
+      setCommentsText('');
+      setRecommendations([]);
       setCaption('');
     }
   }, [projectPhotos, editorIndex]);
@@ -428,7 +446,13 @@ export default function Dashboard({ user, onLogout }) {
         filename: p.filename || p.originalFilename || '',
         url: p.url || '',
         base64: p.base64 || p.thumbnailUrl || '',
-        caption: p.caption || '',
+        caption: p.comments_text || p.caption || '',
+        comments_text: p.comments_text || p.caption || '',
+        comments_lang: p.comments_lang || 'ID',
+        recommendations_json: Array.isArray(p.recommendations_json) ? p.recommendations_json : [],
+        recommendations_lang: p.recommendations_lang || 'ID',
+        exif_date: p.exif_date || '',
+        exif_gps: p.exif_gps || '',
         size_kb: p.size_kb || p.sizeKb || 0,
         created_at: p.created_at || nowIso
       }));
@@ -776,24 +800,113 @@ export default function Dashboard({ user, onLogout }) {
     });
   };
 
-  const handleSaveCaption = async () => {
+  const handleRefreshPhotoOrder = () => {
+    if (!selectedProject) return;
+    const orderedQueue = queue.filter(item => item.status === 'Done');
+    setProjectPhotos(prev => {
+      const prevMap = new Map();
+      prev.forEach(p => {
+        const key = p.filename || p.id;
+        if (key) prevMap.set(key, p);
+      });
+
+      const updatedPhotos = orderedQueue.map(q => {
+        const existing = prevMap.get(q.finalFilename) || {};
+        return {
+          ...existing,
+          id: existing.id || q.id || ("photo_" + Math.random().toString(36).substring(7)),
+          filename: q.finalFilename || existing.filename,
+          url: existing.url || q.previewUrl || q.thumbnailUrl || '',
+          base64: existing.base64 || q.thumbnailUrl || '',
+          caption: existing.caption || '',
+          comments_text: existing.comments_text || existing.caption || '',
+          comments_lang: existing.comments_lang || 'ID',
+          recommendations_json: existing.recommendations_json || [],
+          recommendations_lang: existing.recommendations_lang || 'ID',
+          size_kb: existing.size_kb || q.sizeKb || 0,
+          created_at: existing.created_at || new Date().toISOString()
+        };
+      });
+      return updatedPhotos;
+    });
+    setEditorIndex(0);
+  };
+
+  const handleAiGrammarCheck = async (style = 'Baku', targetLang = commentsLang) => {
+    setAiGrammarChecking(true);
+    try {
+      const res = await aiGrammarCheck(commentsText, targetLang, style);
+      if (res && res.corrected) {
+        const correctedText = res.corrected.join('\n');
+        setCommentsText(correctedText);
+
+        // Automatically generate tailored recommendations matching the observation & style
+        if (projectPhotos[editorIndex]) {
+          const recRes = await aiGenerateRecommendation(
+            projectPhotos[editorIndex],
+            correctedText,
+            targetLang,
+            style
+          );
+          if (recRes && recRes.recommendations) {
+            setRecommendations(recRes.recommendations);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("AI Grammar Check error:", err);
+    } finally {
+      setAiGrammarChecking(false);
+    }
+  };
+
+  const handleGenerateRecommendation = async () => {
+    if (!projectPhotos[editorIndex]) return;
+    setAiGeneratingRec(true);
+    try {
+      const res = await aiGenerateRecommendation(
+        projectPhotos[editorIndex],
+        commentsText,
+        recommendationsLang
+      );
+      if (res && res.recommendations) {
+        setRecommendations(res.recommendations);
+      }
+    } catch (err) {
+      console.error("AI Recommendation error:", err);
+    } finally {
+      setAiGeneratingRec(false);
+    }
+  };
+
+  const handleSaveAssessment = async () => {
     if (projectPhotos.length === 0) return;
     const currentPhoto = projectPhotos[editorIndex];
     if (!currentPhoto) return;
 
     setSavingCaption(true);
     try {
-      await updateDoc(doc(db, 'photos', currentPhoto.id), {
-        caption: caption.substring(0, 300)
-      });
-      // Update local state copy
-      setProjectPhotos(prev => prev.map((p, idx) => idx === editorIndex ? { ...p, caption } : p));
+      const updatePayload = {
+        comments_text: commentsText.substring(0, 500),
+        comments_lang: commentsLang,
+        recommendations_json: recommendations.slice(0, 5),
+        recommendations_lang: recommendationsLang,
+        caption: commentsText.substring(0, 300)
+      };
+
+      await updateDoc(doc(db, 'photos', currentPhoto.id), updatePayload);
+
+      setProjectPhotos(prev => prev.map((p, idx) => 
+        idx === editorIndex ? { ...p, ...updatePayload } : p
+      ));
     } catch (err) {
-      console.error("Error saving caption:", err);
+      console.error("Error saving assessment:", err);
     } finally {
       setSavingCaption(false);
     }
   };
+
+  const handleSaveCaption = handleSaveAssessment;
 
   const handleExport = async (format) => {
     if (!selectedProject) return;
@@ -863,9 +976,11 @@ export default function Dashboard({ user, onLogout }) {
   const handleRemove = () => {
     if (allDoneSelected) {
       setQueue([]);
+      setProjectPhotos([]);
       setSelectedPhotos([]);
     } else if (selectedPhotos.length > 0) {
       setQueue(prev => prev.filter(item => !selectedPhotos.includes(item.finalFilename)));
+      setProjectPhotos(prev => prev.filter(p => !selectedPhotos.includes(p.filename)));
       setSelectedPhotos([]);
     }
   };
@@ -885,25 +1000,25 @@ export default function Dashboard({ user, onLogout }) {
         <div className="hidden md:flex flex-col items-center justify-center min-w-[200px] max-w-[320px] w-full px-4">
           <div className="flex items-center justify-between w-full text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
             <span>Daily Usage</span>
-            <span className="text-indigo-400">{dailyUploadCount} / {planLimits.maxDaily} photos</span>
+            <span className="text-emerald-400">{dailyUploadCount} / {planLimits.maxDaily} photos</span>
           </div>
           {/* Thin progress bar */}
           <div className="h-1 w-full rounded-full bg-slate-800 overflow-hidden">
             <div 
-              className="h-full bg-indigo-500 transition-all duration-300"
+              className="h-full bg-emerald-500 transition-all duration-300"
               style={{ width: `${Math.min((dailyUploadCount / planLimits.maxDaily) * 100, 100)}%` }}
             />
           </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          {(user.role === 'super_admin' || user.role === 'admin') && (
+          {(user.role === 'super_admin' || user.role === 'admin' || user.email?.toLowerCase() === 'handoyo.tjung@gmail.com') && (
             <a 
               href="/admin.html" 
               target="_blank" 
               rel="noopener noreferrer"
               title="Admin Panel"
-              className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-bold text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-[0.98]"
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all active:scale-[0.98]"
             >
               <Shield className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">Admin Panel</span>
@@ -914,11 +1029,20 @@ export default function Dashboard({ user, onLogout }) {
             <User className="h-3.5 w-3.5 text-slate-400" />
             <span className="text-slate-300 font-medium">{user.email}</span>
             <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-              isPro ? 'bg-indigo-500/10 text-indigo-400' : 'bg-slate-800 text-slate-400'
+              isPro ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'
             }`}>
               {isPro ? 'Pro' : 'Starter'}
             </span>
           </div>
+
+          <button
+            onClick={onOpenSecurity}
+            title="Profile & Enterprise Security Sessions"
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-semibold text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all active:scale-[0.98]"
+          >
+            <Shield className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Security</span>
+          </button>
 
           <button
             onClick={onLogout}
@@ -950,7 +1074,7 @@ export default function Dashboard({ user, onLogout }) {
                 placeholder="New project name..."
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
-                className="flex-1 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-indigo-500 transition-colors"
+                className="flex-1 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500 transition-colors"
               />
               <button
                 type="submit"
@@ -969,7 +1093,7 @@ export default function Dashboard({ user, onLogout }) {
                   const val = e.target.value;
                   setSelectedProject(val ? projects.find(p => p.id === val) : null);
                 }}
-                className="flex-1 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors"
+                className="flex-1 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-500 transition-colors"
               >
                 {loadingProjects ? (
                   <option value="">Loading projects...</option>
@@ -1004,6 +1128,11 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Drag and Drop Photos Box Section moved to Top Left Column */}
+          <div className="p-4 border-b border-slate-800 bg-slate-900/20 shrink-0">
+            <UploadZone onFilesSelected={handleFilesSelected} />
           </div>
 
           {/* Queue List */}
@@ -1081,13 +1210,13 @@ export default function Dashboard({ user, onLogout }) {
                       }}
                       className={`flex items-center gap-2 rounded-xl border p-2.5 transition-all cursor-grab active:cursor-grabbing ${
                         dragOverItemIndex === index
-                          ? 'border-indigo-400 bg-indigo-950/40 scale-[1.01] shadow-lg'
+                          ? 'border-emerald-400 bg-emerald-950/40 scale-[1.01] shadow-lg'
                           : draggedItemIndex === index
                             ? 'opacity-40 border-dashed border-slate-700'
                             : projectPhotos[editorIndex]?.filename === item.finalFilename
                               ? 'border-yellow-500/60 bg-yellow-950/20'
                               : isSelected
-                                ? 'border-indigo-500/60 bg-indigo-950/20'
+                                ? 'border-emerald-500/60 bg-emerald-950/20'
                                 : 'border-slate-900 bg-slate-900/30'
                       } ${!isDone ? 'opacity-60' : ''}`}
                     >
@@ -1105,7 +1234,7 @@ export default function Dashboard({ user, onLogout }) {
                             checked={isSelected}
                             readOnly
                             disabled={!isDone}
-                            className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-indigo-500 cursor-pointer disabled:opacity-30"
+                            className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-emerald-500 cursor-pointer disabled:opacity-30"
                           />
                         </div>
                       </div>
@@ -1136,9 +1265,9 @@ export default function Dashboard({ user, onLogout }) {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-medium text-slate-200 group-hover:text-indigo-300 transition-colors">{item.finalFilename}</p>
+                          <p className="truncate text-xs font-medium text-slate-200 group-hover:text-emerald-300 transition-colors">{item.finalFilename}</p>
                           <p className="text-[10px] text-slate-500">{Math.round(item.sizeKb)} KB</p>
-                          <p className={`text-[10px] truncate mt-0.5 ${currentCaption ? 'text-indigo-400 font-medium' : 'text-slate-600 italic'}`}>
+                          <p className={`text-[10px] truncate mt-0.5 ${currentCaption ? 'text-emerald-400 font-medium' : 'text-slate-600 italic'}`}>
                             {currentCaption || 'No caption'}
                           </p>
                         </div>
@@ -1151,8 +1280,8 @@ export default function Dashboard({ user, onLogout }) {
                         )}
                         {item.status === 'Uploading' && (
                           <div className="flex items-center gap-1">
-                            <Loader2 className="h-3 w-3 animate-spin text-indigo-400" />
-                            <span className="text-[10px] font-bold text-indigo-400">{item.progress}%</span>
+                            <Loader2 className="h-3 w-3 animate-spin text-emerald-400" />
+                            <span className="text-[10px] font-bold text-emerald-400">{item.progress}%</span>
                           </div>
                         )}
                         {item.status === 'Retrying' && (
@@ -1198,21 +1327,27 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* Right Side: Upload Box, Photo Carousel Editor and Exporters */}
+        {/* Right Side: Photo Carousel Editor and Exporters */}
         <div className={`w-full md:w-1/2 flex-1 flex-col overflow-hidden bg-slate-900/10 ${
           activeTab !== 'upload' ? 'flex' : 'hidden md:flex'
         }`}>
-          
-          {/* Drag and Drop Photos Box Section at Top of Right Column */}
-          <div className="p-4 border-b border-slate-800 bg-slate-900/20 shrink-0">
-            <UploadZone onFilesSelected={handleFilesSelected} />
-          </div>
-
           {/* Photo Editor Tab View / Main Pane */}
           <div className={`flex-1 flex-col overflow-hidden p-4 md:p-6 ${
             activeTab === 'editor' ? 'flex' : 'hidden md:flex'
           }`}>
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Caption Editor</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Caption Editor</h2>
+              <button
+                type="button"
+                onClick={handleRefreshPhotoOrder}
+                disabled={!selectedProject || projectPhotos.length === 0}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-all active:scale-95 disabled:opacity-40"
+                title="Sync preview order with updated photo list"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Refresh</span>
+              </button>
+            </div>
 
             {!selectedProject ? (
               <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600">
@@ -1266,84 +1401,219 @@ export default function Dashboard({ user, onLogout }) {
                       </span>
                     </div>
 
-                    {/* Caption Form (Max 3 rows layout, Enter breaks line, Gemini AI bilingual support) */}
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                      {/* Top Header Above Filling Field: Label + Character Counter ON THE LEFT */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <label className="text-xs font-bold text-slate-300">Add Caption</label>
-                        <span className={`text-xs font-semibold ${caption.length > 280 ? 'text-amber-400' : 'text-slate-400'}`}>
-                          ({caption.length} / 300 characters)
-                        </span>
-                      </div>
+                    {/* CARD A: OBSERVATION / OBSERVASI */}
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-bold text-slate-200 uppercase tracking-wide">
+                            OBSERVATION / OBSERVASI
+                          </label>
+                          <span className="text-[11px] text-slate-400">
+                            ({commentsText.split('\n').filter(Boolean).length}/5 lines)
+                          </span>
+                        </div>
 
-                      {/* Filling Field + Right Column (Round Square Save Button with Large Diskette Logo) */}
-                      <div className="flex gap-3 items-stretch">
-                        <textarea
-                          rows={3}
-                          maxLength={300}
-                          value={caption}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const lines = val.split('\n');
-                            if (lines.length > 3) {
-                              setCaption(lines.slice(0, 3).join('\n'));
-                            } else {
-                              setCaption(val);
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const lines = caption.split('\n');
-                              if (lines.length >= 3 && e.target.selectionStart === e.target.selectionEnd) {
-                                e.preventDefault();
-                              }
-                            }
-                          }}
-                          placeholder="Press Enter to break line up to three rows."
-                          className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 placeholder-slate-600 transition-colors resize-none leading-relaxed"
-                        />
-                        
-                        {/* Round Square Save Button with Bigger Diskette Logo */}
-                        <button
-                          onClick={handleSaveCaption}
-                          disabled={savingCaption || projectPhotos[editorIndex]?.caption === caption}
-                          title="Save Caption"
-                          className="flex flex-col items-center justify-center h-[72px] w-[72px] shrink-0 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none gap-1"
-                        >
-                          {savingCaption ? <Loader2 className="h-7 w-7 animate-spin" /> : <Save className="h-7 w-7" />}
-                          <span className="text-[10px] font-extrabold tracking-tight">Save</span>
-                        </button>
-                      </div>
-
-                      {/* Gemini AI Suggestions Horizontal Compact Strip (Leaves full vertical space for photo viewer) */}
-                      {!manualMode && (
-                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                        {/* Unified Language Toggle ID / EN (applies to both Observation & Recommendation AI) */}
+                        <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
                           <button
                             type="button"
-                            onClick={runGeminiCorrection}
-                            disabled={aiProcessing}
-                            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-2.5 py-1 text-[11px] font-semibold text-white transition-all disabled:opacity-50 shrink-0"
+                            onClick={() => {
+                              setCommentsLang('ID');
+                              setRecommendationsLang('ID');
+                            }}
+                            className={`px-2.5 py-0.5 text-[10px] font-bold rounded ${
+                              commentsLang === 'ID' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                            }`}
                           >
-                            {aiProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                            <span>AI Auto-Correct (EN/ID)</span>
+                            ID
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCommentsLang('EN');
+                              setRecommendationsLang('EN');
+                            }}
+                            className={`px-2.5 py-0.5 text-[10px] font-bold rounded ${
+                              commentsLang === 'EN' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            EN
+                          </button>
+                        </div>
+                      </div>
+
+                      <textarea
+                        rows={5}
+                        value={commentsText}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const lines = val.split('\n');
+                          if (lines.length > 5) {
+                            setCommentsText(lines.slice(0, 5).join('\n'));
+                          } else {
+                            setCommentsText(val);
+                          }
+                        }}
+                        placeholder={
+                          commentsLang === 'ID'
+                            ? "1. APAR tekanan di zona merah\n2. Segel rusak"
+                            : "1. Extinguisher pressure in red zone\n2. Seal broken"
+                        }
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-none leading-relaxed"
+                      />
+
+                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => handleAiGrammarCheck('Baku', commentsLang)}
+                            disabled={aiGrammarChecking}
+                            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1 text-xs font-semibold text-white transition-all disabled:opacity-50"
+                          >
+                            {aiGrammarChecking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                            <span>AI Grammar Check</span>
                           </button>
 
-                          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-                            {aiSuggestions.map((sug, idx) => (
+                          {commentsLang === 'ID' ? (
+                            <>
                               <button
-                                key={idx}
                                 type="button"
-                                onClick={() => setCaption(sug.text)}
-                                title={sug.text}
-                                className="max-w-[210px] truncate rounded-lg border border-indigo-500/30 bg-slate-900/90 hover:bg-indigo-900/40 px-2 py-1 text-[11px] text-slate-300 hover:text-white transition-all"
+                                onClick={() => handleAiGrammarCheck('Baku', 'ID')}
+                                disabled={aiGrammarChecking}
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                               >
-                                <span className="font-bold text-indigo-400 mr-1">{sug.tag}:</span>
-                                {sug.text}
+                                Baku
                               </button>
-                            ))}
-                          </div>
+                              <button
+                                type="button"
+                                onClick={() => handleAiGrammarCheck('Teknis (ATEX NFPA oriented)', 'ID')}
+                                disabled={aiGrammarChecking}
+                                className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-900/50 hover:text-white transition-colors"
+                              >
+                                Teknis (ATEX NFPA oriented)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAiGrammarCheck('Profesional', 'ID')}
+                                disabled={aiGrammarChecking}
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                              >
+                                Profesional
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleAiGrammarCheck('Baku', 'EN')}
+                                disabled={aiGrammarChecking}
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                              >
+                                Standard
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAiGrammarCheck('Technical (ATEX NFPA)', 'EN')}
+                                disabled={aiGrammarChecking}
+                                className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-900/50 hover:text-white transition-colors"
+                              >
+                                Technical (ATEX NFPA)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAiGrammarCheck('Professional', 'EN')}
+                                disabled={aiGrammarChecking}
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                              >
+                                Professional
+                              </button>
+                            </>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    </div>
+
+                    {/* CARD B: ASSESSOR RECOMMENDATION - AI Fire Safety Assessor */}
+                    <div className="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
+                            RECOMMENDATION - AI Fire Safety Assessor
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Standard Certification Badge */}
+                      <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-700/50 px-3 py-1 text-[11px] font-semibold text-emerald-300">
+                        <Shield className="h-3.5 w-3.5 text-emerald-400" />
+                        <span>Powered by NFPA 10, NFPA 25, SNI 03-3985-2000</span>
+                      </div>
+
+                      <textarea
+                        rows={5}
+                        readOnly={!manualRecEdit}
+                        value={recommendations.join('\n')}
+                        onChange={(e) => {
+                          if (!manualRecEdit) return;
+                          const lines = e.target.value.split('\n');
+                          setRecommendations(lines.slice(0, 5));
+                        }}
+                        placeholder={
+                          commentsLang === 'ID'
+                            ? "[CRITICAL] Ganti APAR karena tekanan di zona merah. Ref: SNI 03-3985-2000 Pasal 5.2"
+                            : "[CRITICAL] Replace fire extinguisher immediately. Ref: NFPA 10 Sec 6.1.3.1"
+                        }
+                        className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors resize-none leading-relaxed ${
+                          manualRecEdit
+                            ? 'border-emerald-500 bg-slate-950 text-slate-100'
+                            : 'border-slate-800 bg-slate-950/60 text-slate-300 cursor-default'
+                        }`}
+                      />
+
+                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={handleGenerateRecommendation}
+                            disabled={aiGeneratingRec}
+                            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
+                          >
+                            {aiGeneratingRec ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                            <span>Generate Recommendation</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleGenerateRecommendation}
+                            disabled={aiGeneratingRec}
+                            className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors"
+                          >
+                            Regenerate
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setManualRecEdit(!manualRecEdit)}
+                            className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                              manualRecEdit
+                                ? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
+                                : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
+                            }`}
+                          >
+                            {manualRecEdit ? "Lock Editing" : "Edit Manual"}
+                          </button>
+                        </div>
+
+                        {/* Save Assessment button moved up in the same line at far right position */}
+                        <button
+                          onClick={handleSaveAssessment}
+                          disabled={savingCaption}
+                          className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50 ml-auto"
+                        >
+                          {savingCaption ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                          <span>Save Assessment</span>
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -1435,7 +1705,7 @@ export default function Dashboard({ user, onLogout }) {
         <button
           onClick={() => setActiveTab('upload')}
           className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
-            activeTab === 'upload' ? 'text-indigo-400' : 'text-slate-500'
+            activeTab === 'upload' ? 'text-emerald-400' : 'text-slate-500'
           }`}
         >
           <Upload className="h-4 w-4" />
@@ -1445,7 +1715,7 @@ export default function Dashboard({ user, onLogout }) {
         <button
           onClick={() => setActiveTab('editor')}
           className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
-            activeTab === 'editor' ? 'text-indigo-400' : 'text-slate-500'
+            activeTab === 'editor' ? 'text-emerald-400' : 'text-slate-500'
           }`}
         >
           <ImageIcon className="h-4 w-4" />
@@ -1455,7 +1725,7 @@ export default function Dashboard({ user, onLogout }) {
         <button
           onClick={() => setActiveTab('export')}
           className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
-            activeTab === 'export' ? 'text-indigo-400' : 'text-slate-500'
+            activeTab === 'export' ? 'text-emerald-400' : 'text-slate-500'
           }`}
         >
           <FileText className="h-4 w-4" />
@@ -1493,7 +1763,7 @@ export default function Dashboard({ user, onLogout }) {
                     setAlertPopup(null);
                     setShowUpgradeModal(true);
                   }}
-                  className="rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/30"
+                  className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-600/30"
                 >
                   Upgrade Plan
                 </button>

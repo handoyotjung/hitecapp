@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { auth, db, signInWithPopup, signInWithEmailAndPassword, GoogleAuthProvider, signOut, doc, getDoc } from '../firebase';
-import { LogIn, ShieldAlert, Mail, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
+import { ShieldAlert, Lock, User as UserIcon, Eye, EyeOff, ShieldCheck, LogOut } from 'lucide-react';
+import { apiLogin, apiLogoutOtherDevices, getClientDeviceId, getClientDeviceName } from '../sessionSecurity';
 
 export default function Login({ onLoginSuccess, errorOverride }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true); // checked by default
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [useEmailLogin, setUseEmailLogin] = useState(true);
+
+  // Modal State for ACCOUNT_IN_USE
+  const [accountInUseModal, setAccountInUseModal] = useState(false);
+  const [loggingOutOther, setLoggingOutOther] = useState(false);
 
   useEffect(() => {
     if (errorOverride) {
@@ -18,16 +21,11 @@ export default function Login({ onLoginSuccess, errorOverride }) {
   }, [errorOverride]);
 
   const saveSession = (userData) => {
-    // Always save to localStorage so that new tabs (like target="_blank" Admin Panel) can read the session
     localStorage.setItem('hitecmedia_session', JSON.stringify(userData));
   };
 
-  const handleGoogleLogin = async () => {
-    // No-op / Removed Google login
-  };
-
   const handleEmailLogin = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!email.trim() || !password) {
       setError("Please enter your email and password.");
       return;
@@ -35,28 +33,35 @@ export default function Login({ onLoginSuccess, errorOverride }) {
     setLoading(true);
     setError(null);
     try {
-      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
-      const user = result.user;
+      const deviceId = getClientDeviceId();
+      const deviceName = getClientDeviceName();
 
-      const docRef = doc(db, 'whitelist_users', user.email.toLowerCase());
-      const docSnap = await getDoc(docRef);
+      const result = await apiLogin({
+        email: email.trim(),
+        password,
+        device_id: deviceId,
+        device_name: deviceName
+      });
 
-      if (docSnap.exists()) {
-        const whitelistData = docSnap.data();
-        const sessionData = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          role: whitelistData.role || 'user',
-          companyId: whitelistData.company_id || 'default_company'
-        };
-        saveSession(sessionData);
-        onLoginSuccess(sessionData);
-      } else {
-        await signOut(auth);
-        setError("User account details not found in whitelist.");
+      if (result.status === 403 && result.body && result.body.code === 'ACCOUNT_IN_USE') {
+        setAccountInUseModal(true);
+        setLoading(false);
+        return;
       }
+
+      if (result.status !== 200 || !result.body.success) {
+        throw new Error(result.body?.message || "Invalid email or password.");
+      }
+
+      const sessionData = {
+        ...result.body.user,
+        uid: "user_" + email.trim().toLowerCase(),
+        token: result.body.token,
+        session_device_id: deviceId
+      };
+
+      saveSession(sessionData);
+      onLoginSuccess(sessionData);
     } catch (err) {
       console.error(err);
       setError(err.message || "Invalid email or password.");
@@ -65,30 +70,47 @@ export default function Login({ onLoginSuccess, errorOverride }) {
     }
   };
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
-      {/* Dynamic glow effect background */}
-      <div className="absolute top-1/4 left-1/4 -z-10 h-72 w-72 rounded-full bg-indigo-500/10 blur-[120px]" />
-      <div className="absolute bottom-1/4 right-1/4 -z-10 h-72 w-72 rounded-full bg-violet-500/10 blur-[120px]" />
+  const handleLogoutOtherDeviceAndRetry = async () => {
+    setLoggingOutOther(true);
+    try {
+      await apiLogoutOtherDevices({ email: email.trim() });
+      setAccountInUseModal(false);
+      await handleEmailLogin();
+    } catch (err) {
+      setError("Failed to logout other device. Please try again.");
+      setAccountInUseModal(false);
+    } finally {
+      setLoggingOutOther(false);
+    }
+  };
 
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-md">
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-black px-4 relative overflow-hidden font-outfit">
+      {/* Sleek Black & Emerald Green theme glow effect */}
+      <div className="absolute top-1/4 left-1/4 -z-10 h-80 w-80 rounded-full bg-emerald-500/10 blur-[140px]" />
+      <div className="absolute bottom-1/4 right-1/4 -z-10 h-80 w-80 rounded-full bg-emerald-600/10 blur-[140px]" />
+
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-500/25 bg-neutral-950/90 p-8 shadow-2xl shadow-emerald-950/30 backdrop-blur-md">
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-500/20 to-violet-600/20 border border-indigo-500/30 p-3.5 shadow-lg shadow-indigo-500/10 mb-2">
-            <img src="/logo-hs-white.png" alt="HS Logo" className="h-full w-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-emerald-700/20 border border-emerald-500/40 p-3.5 shadow-lg shadow-emerald-500/10 mb-2">
+            <img src="/logo-hs-white.png" alt="HS Logo" className="h-full w-full object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
           </div>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white font-outfit">
             HitecApp
           </h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Tool for Safety Indonesia
+          <p className="mt-1 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+            PT Safety Indonesia Utama
+          </p>
+          <p className="mt-0.5 text-xs text-neutral-400">
+            ATEX Assessment & Compliance Services
           </p>
         </div>
 
         {error && (
-          <div className="mt-6 flex items-start gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">
+          <div className="mt-6 flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 p-4 text-sm text-rose-300">
             <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
             <div>
-              <p className="font-semibold">Access Denied</p>
+              <p className="font-semibold">Access Notice</p>
               <p className="mt-0.5 text-rose-200/90">{error}</p>
             </div>
           </div>
@@ -99,14 +121,14 @@ export default function Login({ onLoginSuccess, errorOverride }) {
             <div>
               <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
               <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500/70" />
                 <input
                   type="email"
                   required
-                  placeholder="name@example.com"
+                  placeholder="assessor@hitec.id"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-10 pr-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full rounded-xl border border-neutral-800 bg-neutral-900/80 pl-10 pr-4 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500 transition-colors placeholder-neutral-600"
                 />
               </div>
             </div>
@@ -114,19 +136,19 @@ export default function Login({ onLoginSuccess, errorOverride }) {
             <div>
               <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500/70" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-10 pr-10 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full rounded-xl border border-neutral-800 bg-neutral-900/80 pl-10 pr-10 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500 transition-colors placeholder-neutral-600"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-emerald-400 transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
                 </button>
@@ -139,16 +161,17 @@ export default function Login({ onLoginSuccess, errorOverride }) {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-700 bg-slate-950 accent-indigo-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 accent-emerald-500 cursor-pointer"
                 />
                 <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors select-none">Remember Me</span>
               </label>
+              <span className="text-xs text-emerald-400/80 font-medium">1 Active Session Guard</span>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/30 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
               {loading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -159,10 +182,58 @@ export default function Login({ onLoginSuccess, errorOverride }) {
           </form>
         </div>
 
-        <div className="mt-8 flex items-center justify-center gap-1.5 text-xs text-slate-500">
-          <span>© 2026 HITEC Solution</span>
+        <div className="mt-8 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+          <span>© 2026 HITEC Solution • Enterprise Security</span>
         </div>
       </div>
+
+      {/* ACCOUNT_IN_USE Modal */}
+      {accountInUseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-2xl border border-emerald-500/30 bg-neutral-950 p-6 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3 text-emerald-400 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <ShieldAlert className="h-5 w-5 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Access Denied</h3>
+                <p className="text-xs text-emerald-400/80">Active Session Found</p>
+              </div>
+            </div>
+
+            <p className="text-sm leading-relaxed text-slate-300 mb-6">
+              This account is currently active on another device. For security and data integrity, only one active session is permitted at a time.
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setAccountInUseModal(false)}
+                disabled={loggingOutOther}
+                className="rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-neutral-800 transition-colors"
+              >
+                OK
+              </button>
+              <button
+                type="button"
+                onClick={handleLogoutOtherDeviceAndRetry}
+                disabled={loggingOutOther}
+                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/20"
+              >
+                {loggingOutOther ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout Other Device</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
