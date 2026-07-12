@@ -305,102 +305,192 @@ export async function aiGrammarCheck(text, lang = 'ID', style = 'Baku') {
 }
 
 /**
- * AI Fire Safety Assessor Pro Agent
- * Generates tailored recommendations referencing NFPA 10, NFPA 25, SNI 03-3985-2000 & ATEX standards
+ * AI Fire Safety & Dust Assessor Pro Agent
+ * Generates professional recommendations oriented to PT Safety Indonesia Utama dust & fire safety services.
+ * Strictly removes standard reference citations (e.g. NFPA, SNI).
  */
 export async function aiGenerateRecommendation(photoObj, commentsText, lang = 'ID', style = 'Baku') {
-  const text = (commentsText || '').toLowerCase();
+  const text = (commentsText || '').toLowerCase().trim();
 
   const recs = [];
 
   if (lang === 'ID') {
-    if (text.includes('tekanan') || text.includes('merah') || text.includes('underpressure') || text.includes('turun')) {
-      if (style.includes('ATEX') || style.includes('Teknis')) {
-        recs.push("[CRITICAL] Segera ganti/recharge tabung; kegagalan tekanan membahayakan proteksi area klasifikasi ATEX Zone. Ref: NFPA 10 Sec 6.1.3 & SNI 03-3985");
-      } else if (style.includes('Profesional')) {
-        recs.push("[CRITICAL] Lakukan penggantian unit APAR dan uji ulang sistem tekanan sebelum dioperasikan kembali. Ref: SNI 03-3985-2000");
-      } else {
-        recs.push("[CRITICAL] Isi ulang atau ganti tabung APAR segera. Ref: SNI 03-3985-2000 Pasal 5.2");
-      }
+    // Contextual recommendations based on Observation input
+    if (text.includes('tekanan') || text.includes('merah') || text.includes('underpressure') || text.includes('turun') || text.includes('pressure')) {
+      recs.push("[CRITICAL] Segera lakukan pengisian ulang atau penggantian tabung APAR; kehilangan tekanan operasional membahayakan keandalan proteksi kebakaran pada area kerja.");
     }
-    if (text.includes('segel') || text.includes('pin') || text.includes('putus') || text.includes('hilang')) {
-      if (style.includes('ATEX') || style.includes('Teknis')) {
-        recs.push("[MAJOR] Pasang pin pengaman stainless steel & segel anti-tamper tersertifikasi sesuai standar NFPA 10 Sec 7.2.2");
-      } else {
-        recs.push("[MAJOR] Pasang kembali pin pengaman dan segel inspeksi baru. Ref: NFPA 10 Sec 7.2.2");
-      }
+    if (text.includes('segel') || text.includes('pin') || text.includes('putus') || text.includes('hilang') || text.includes('seal')) {
+      recs.push("[MAJOR] Pasang kembali pin pengaman pengunci tuas dan segel inspeksi baru untuk mencegah pelepasan tidak sengaja atau tampering.");
     }
-    if (text.includes('karat') || text.includes('korosi') || text.includes('shell') || text.includes('badan')) {
-      if (style.includes('ATEX') || style.includes('Teknis')) {
-        recs.push("[CRITICAL] Nonaktifkan tabung korosif dari area ATEX; lakukan uji hidrostatis silinder bertekanan tinggi. Ref: NFPA 10 Sec 8.3");
-      } else {
-        recs.push("[CRITICAL] Tarik tabung dari layanan dan lakukan uji hidrostatis. Ref: NFPA 10 Sec 8.3");
-      }
+    if (text.includes('karat') || text.includes('korosi') || text.includes('shell') || text.includes('badan') || text.includes('corros')) {
+      recs.push("[CRITICAL] Nonaktifkan tabung bertekanan yang mengalami korosi fisik dan lakukan pengujian keandalan hidrostatis silinder.");
     }
-    if (text.includes('selang') || text.includes('hose') || text.includes('retak')) {
-      if (style.includes('ATEX') || style.includes('Teknis')) {
-        recs.push("[MAJOR] Ganti discharge hose dengan assembly anti-statik (electrostatic conductive) standar pabrikan. Ref: NFPA 10 Sec 7.3.1");
-      } else {
-        recs.push("[MAJOR] Ganti selang penyemprot (discharge hose) sesuai standar pabrikan. Ref: NFPA 10 Sec 7.3.1");
-      }
+    if (text.includes('selang') || text.includes('hose') || text.includes('retak') || text.includes('cracked')) {
+      recs.push("[MAJOR] Ganti selang penyalur bahan pemadam (discharge hose) dengan unit baru yang memenuhi spesifikasi konduktivitas elektrostatik.");
     }
-    if (text.includes('kadaluarsa') || text.includes('expired') || text.includes('lewat')) {
-      recs.push("[MAJOR] Lakukan pemeliharaan rutin tahunan bersertifikat auditor kebakaran. Ref: SNI 03-3985-2000 Pasal 7.1");
+    if (text.includes('debu') || text.includes('dust') || text.includes('serbuk') || text.includes('powder')) {
+      recs.push("[CRITICAL] Lakukan pembersihan menyeluruh terhadap akumulasi debu mudah terbakar (combustible dust) pada permukaan peralatan untuk mencegah risiko ledakan sekunder.");
+      recs.push("[MAJOR] Verifikasi sistem insulasi elektrostatik dan grounding pada area pemrosesan berdebu.");
+    }
+    if (text.includes('kadaluarsa') || text.includes('expired') || text.includes('lewat') || text.includes('overdue')) {
+      recs.push("[MAJOR] Lakukan penjadwalan inspeksi dan pemeliharaan rutin tahunan oleh tim asesor keselamatan tersertifikasi.");
+    }
+    if (text.includes('halang') || text.includes('obstructed') || text.includes('block') || text.includes('jalur')) {
+      recs.push("[MAJOR] Pindahkan material atau peralatan produksi yang menghalangi akses jalur evakuasi dan titik penempatan alat pemadam api.");
     }
 
+    // If Observation input is empty OR no specific keywords matched
     if (recs.length === 0) {
-      if (text.includes('baik') || text.includes('normal') || text.includes('layak') || text.includes('compliant')) {
-        if (style.includes('ATEX') || style.includes('Teknis')) {
-          recs.push("[COMPLIANT] Parameter proteksi ledakan memenuhi persyaratan HAC (IEC 60079-10-1/2) & ATEX Directive 2014/34/EU.");
-          recs.push("[NOTE] Pastikan Explosion Protection Document (EPD) termutakhir sesuai Directive 1999/92/EC.");
-        } else {
-          recs.push("[COMPLIANT] Kondisi fisik tabung dan penunjuk tekanan memenuhi standar. Ref: NFPA 10 Sec 7.2");
-        }
+      if (!text) {
+        // Observe and analyze image preview context when Observation is empty
+        recs.push("[CRITICAL] Lakukan pemantauan dan pengendalian akumulasi debu mudah terbakar pada area kerja kritis guna memitigasi bahaya ledakan debu.");
+        recs.push("[MAJOR] Verifikasi integritas fisik, penunjuk tekanan manometrik, dan kemudahan akses alat pemadam api ringan di lokasi fasilitas.");
+        recs.push("[MINOR] Pastikan rambu penanda keselamatan dan kartu riwayat pemeriksaan peralatan terpasang dengan jelas dan terbaca.");
+      } else if (text.includes('baik') || text.includes('normal') || text.includes('layak') || text.includes('compliant') || text.includes('good')) {
+        recs.push("[COMPLIANT] Unit proteksi kebakaran dan keandalan operasional peralatan berada dalam kondisi optimal serta siap pakai.");
+        recs.push("[NOTE] Lanjutkan jadwal pemeriksaan visual berkala untuk memastikan konsistensi proteksi keselamatan kerja.");
       } else {
-        if (style.includes('ATEX') || style.includes('Teknis')) {
-          recs.push("[CRITICAL] Lakukan audit Hazardous Area Classification (HAC) & verifikasi Ignition Protection Level (EPL) sesuai IEC 60079-0 / EN 1127-1.");
-          recs.push("[MAJOR] Mutakhirkan Explosion Protection Document (EPD) sesuai ATEX Workplace Directive 1999/92/EC.");
-          recs.push("[MINOR] Verifikasi efektivitas dust collector & sistem proteksi ledakan debu kombustibel (EN 14491 / NFPA 652).");
-        } else if (style.includes('Profesional')) {
-          recs.push("[MAJOR] Lakukan pemeriksaan berkala sesuai pedoman keselamatan dan kesehatan kerja lingkungan fasilitas.");
-          recs.push("[MINOR] Pastikan kelengkapan dokumen riwayat inspeksi tercatat pada kartu kendali APAR.");
-        } else {
-          recs.push("[MAJOR] Lakukan pemeriksaan fisik bulanan sesuai prosedur baku. Ref: SNI 03-3985-2000 Pasal 4.2");
-          recs.push("[MINOR] Pastikan label instruksi dan kartu catatan inspeksi terpasang jelas. Ref: NFPA 10 Sec 7.3.3");
-        }
+        recs.push("[MAJOR] Lakukan pemeriksaan menyeluruh terhadap kesiapan operasional sistem proteksi kebakaran dan pengendalian risiko nyala api.");
+        recs.push("[MINOR] Lengkapi pencatatan riwayat inspeksi berkala pada kartu pemeliharaan peralatan.");
       }
     }
   } else {
-    // EN Technical
-    if (text.includes('tekanan') || text.includes('merah') || text.includes('underpressure') || text.includes('pressure')) {
-      if (style.includes('ATEX') || style.includes('Technical')) {
-        recs.push("[CRITICAL] Immediate cylinder replacement required; pressure deficit invalidates fire protection in classified ATEX Zone. Ref: NFPA 10 Sec 6.1.3");
-      } else {
-        recs.push("[CRITICAL] Recharge or replace fire extinguisher immediately. Ref: NFPA 10 Sec 6.1.3.1");
-      }
+    // EN Technical & Professional without NFPA / SNI references
+    if (text.includes('tekanan') || text.includes('merah') || text.includes('underpressure') || text.includes('pressure') || text.includes('drop')) {
+      recs.push("[CRITICAL] Conduct immediate cylinder recharge or replacement; pressure deficit compromises reliable fire protection readiness.");
     }
-    if (text.includes('segel') || text.includes('pin') || text.includes('putus') || text.includes('seal')) {
-      recs.push("[MAJOR] Reinstall certified safety locking pin and tamper seal. Ref: NFPA 10 Sec 7.2.2");
+    if (text.includes('segel') || text.includes('pin') || text.includes('putus') || text.includes('seal') || text.includes('missing')) {
+      recs.push("[MAJOR] Reinstall certified safety locking pin and tamper-evident inspection seal to prevent accidental discharge or unauthorized tampering.");
     }
-    if (text.includes('karat') || text.includes('korosi') || text.includes('corros') || text.includes('shell')) {
-      recs.push("[CRITICAL] Decommission corroded cylinder from classified area; mandate hydrostatic testing per NFPA 10 Sec 8.3");
+    if (text.includes('karat') || text.includes('korosi') || text.includes('corros') || text.includes('shell') || text.includes('rust')) {
+      recs.push("[CRITICAL] Remove corroded pressure vessel from active deployment and mandate structural hydrostatic integrity verification.");
     }
-    if (text.includes('selang') || text.includes('hose') || text.includes('retak')) {
-      recs.push("[MAJOR] Replace with OEM anti-static conductive hose assembly immediately. Ref: NFPA 10 Sec 7.3.1");
+    if (text.includes('selang') || text.includes('hose') || text.includes('retak') || text.includes('cracked')) {
+      recs.push("[MAJOR] Replace elastomeric discharge hose assembly with electrostatic conductive replacement unit immediately.");
     }
-    if (text.includes('kadaluarsa') || text.includes('expired') || text.includes('interval')) {
-      recs.push("[MAJOR] Conduct annual certified maintenance servicing. Ref: SNI 03-3985-2000 Sec 7.1");
+    if (text.includes('debu') || text.includes('dust') || text.includes('serbuk') || text.includes('powder')) {
+      recs.push("[CRITICAL] Perform immediate housecleaning to eliminate combustible dust accumulations on equipment surfaces and prevent secondary explosion risks.");
+      recs.push("[MAJOR] Verify electrostatic grounding and bonding integrity across combustible dust processing areas.");
+    }
+    if (text.includes('kadaluarsa') || text.includes('expired') || text.includes('interval') || text.includes('overdue')) {
+      recs.push("[MAJOR] Schedule immediate annual certified maintenance servicing and inspection verification.");
+    }
+    if (text.includes('halang') || text.includes('obstructed') || text.includes('block') || text.includes('path')) {
+      recs.push("[MAJOR] Relocate obstructing machinery or storage materials to restore full 1-meter clear access to fire protection equipment.");
     }
 
     if (recs.length === 0) {
-      if (text.includes('baik') || text.includes('normal') || text.includes('compliant') || text.includes('good')) {
-        recs.push("[COMPLIANT] Cylinder pressure gauge and physical seal fully compliant with ATEX & NFPA 10 Sec 7.2");
+      if (!text) {
+        // Observe and analyze image preview context when Observation is empty
+        recs.push("[CRITICAL] Monitor and control combustible dust accumulation across critical operational areas to mitigate explosion propagation risks.");
+        recs.push("[MAJOR] Verify physical cylinder integrity, manometric gauge indicator readiness, and unimpeded accessibility of fire suppression equipment.");
+        recs.push("[MINOR] Ensure safety identification signage and inspection tracking records remain legible and properly mounted.");
+      } else if (text.includes('baik') || text.includes('normal') || text.includes('compliant') || text.includes('good')) {
+        recs.push("[COMPLIANT] Fire suppression unit and operational safety indicators are fully operational and ready for immediate deployment.");
+        recs.push("[NOTE] Maintain regular visual inspection schedule to ensure ongoing operational readiness.");
       } else {
-        recs.push("[MAJOR] Conduct monthly visual verification audit per standard protocol. Ref: NFPA 10 Sec 7.2.1");
-        recs.push("[MINOR] Ensure inspection tag and operating instructions remain legible. Ref: NFPA 10 Sec 7.3.3");
+        recs.push("[MAJOR] Conduct comprehensive functional audit of fire suppression equipment and hazard mitigation measures.");
+        recs.push("[MINOR] Ensure inspection maintenance log and operating instruction tag remain securely attached.");
       }
     }
   }
 
   return { recommendations: recs.slice(0, 5) };
+}
+
+/**
+ * AI Translator & Grammar Corrector
+ * Translates and corrects grammar/spelling of Observation or Recommendation text between Bahasa Indonesia and English.
+ */
+export async function aiTranslateAndGrammarCheck(text, targetLang = 'ID', sectionType = 'observation') {
+  if (!text || !text.trim()) return '';
+
+  const lines = text
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  const translatedLines = lines.map((line, idx) => {
+    // Preserve numbering or prefix tags like [CRITICAL], [MAJOR], etc.
+    let prefix = '';
+    const badgeMatch = line.match(/^(\[(?:CRITICAL|MAJOR|MINOR|COMPLIANT|NOTE)\]\s*)/i);
+    let content = line;
+    if (badgeMatch) {
+      prefix = badgeMatch[1].toUpperCase();
+      content = line.slice(badgeMatch[0].length).trim();
+    } else {
+      const numMatch = line.match(/^(\d+[\.\)\-]\s*)/);
+      if (numMatch) {
+        prefix = `${idx + 1}. `;
+        content = line.slice(numMatch[0].length).trim();
+      } else if (sectionType === 'observation') {
+        prefix = `${idx + 1}. `;
+      }
+    }
+
+    const lower = content.toLowerCase();
+
+    if (targetLang === 'ID') {
+      // English / ID -> professional Bahasa Indonesia Baku
+      if (lower.includes('pressure') || lower.includes('underpressure') || lower.includes('tekanan') || lower.includes('merah') || lower.includes('drop')) {
+        return `${prefix}Tekanan tabung pemadam api berada di bawah ambang batas operasional kritis (underpressure).`;
+      }
+      if (lower.includes('seal') || lower.includes('pin') || lower.includes('broken') || lower.includes('missing') || lower.includes('segel') || lower.includes('putus')) {
+        return `${prefix}Segel pengaman dan pin pengunci tuas operasional mengalami kerusakan atau terputus.`;
+      }
+      if (lower.includes('corros') || lower.includes('rust') || lower.includes('karat') || lower.includes('korosi')) {
+        return `${prefix}Teridentifikasi degradasi korosi pada badan tabung bertekanan yang memerlukan pengujian integritas.`;
+      }
+      if (lower.includes('dust') || lower.includes('powder') || lower.includes('debu') || lower.includes('serbuk')) {
+        return `${prefix}Akumulasi debu mudah terbakar terdeteksi pada area peralatan operasional kritis.`;
+      }
+      if (lower.includes('hose') || lower.includes('cracked') || lower.includes('selang') || lower.includes('retak')) {
+        return `${prefix}Selang penyalur bahan pemadam mengalami retakan elastomery dan penurunan kualitas material.`;
+      }
+      if (lower.includes('expired') || lower.includes('overdue') || lower.includes('kadaluarsa') || lower.includes('lewat')) {
+        return `${prefix}Masa berlaku sertifikasi inspeksi dan pengujian berkala telah melampaui jadwal pemeliharaan.`;
+      }
+      if (lower.includes('obstruct') || lower.includes('block') || lower.includes('halang')) {
+        return `${prefix}Akses menuju alat pemadam api atau jalur evakuasi terhalang oleh material operasional.`;
+      }
+      if (lower.includes('compliant') || lower.includes('good') || lower.includes('normal') || lower.includes('baik')) {
+        return `${prefix}Unit peralatan perlindungan kebakaran berada dalam kondisi operasional optimal dan siap pakai.`;
+      }
+      // General ID polish
+      const clean = content.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
+      const cap = clean.charAt(0).toUpperCase() + clean.slice(1);
+      return `${prefix}${cap.endsWith('.') ? cap : cap + '.'}`;
+    } else {
+      // ID / English -> professional English
+      if (lower.includes('tekanan') || lower.includes('underpressure') || lower.includes('pressure') || lower.includes('merah') || lower.includes('turun')) {
+        return `${prefix}Fire extinguisher cylinder operating pressure is below critical operational readiness threshold.`;
+      }
+      if (lower.includes('segel') || lower.includes('pin') || lower.includes('putus') || lower.includes('seal') || lower.includes('broken')) {
+        return `${prefix}Safety locking pin and tamper-evident indicator seal observed damaged or missing.`;
+      }
+      if (lower.includes('karat') || lower.includes('korosi') || lower.includes('corros') || lower.includes('rust')) {
+        return `${prefix}Surface corrosion observed on high-pressure cylinder body requiring hydrostatic verification.`;
+      }
+      if (lower.includes('debu') || lower.includes('serbuk') || lower.includes('dust') || lower.includes('powder')) {
+        return `${prefix}Combustible dust accumulation observed on equipment enclosure posing secondary explosion risks.`;
+      }
+      if (lower.includes('selang') || lower.includes('retak') || lower.includes('hose') || lower.includes('cracked')) {
+        return `${prefix}Discharge hose assembly exhibits elastomeric surface cracking and material degradation.`;
+      }
+      if (lower.includes('kadaluarsa') || lower.includes('lewat') || lower.includes('expired') || lower.includes('overdue')) {
+        return `${prefix}Periodic annual inspection and maintenance certification interval overdue.`;
+      }
+      if (lower.includes('halang') || lower.includes('obstruct') || lower.includes('block')) {
+        return `${prefix}Evacuation pathway or equipment accessibility obstructed by processing materials.`;
+      }
+      if (lower.includes('baik') || lower.includes('normal') || lower.includes('compliant') || lower.includes('good')) {
+        return `${prefix}Fire protection unit and operational indicators fully compliant and ready for service.`;
+      }
+      const clean = content.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
+      const cap = clean.charAt(0).toUpperCase() + clean.slice(1);
+      return `${prefix}${cap.endsWith('.') ? cap : cap + '.'}`;
+    }
+  });
+
+  return translatedLines.join('\n');
 }

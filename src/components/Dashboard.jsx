@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import UploadZone from './UploadZone';
 import { UpgradeModal } from './UpgradeModal';
-import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation } from '../aiAssessor';
+import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck } from '../aiAssessor';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -868,19 +868,36 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     setAiGrammarChecking(true);
     try {
       const photoObj = projectPhotos[editorIndex] || {};
-      const res = await aiObservationAssessor(photoObj, commentsText, targetLang);
       let updatedComments = commentsText;
-      if (res && res.observations) {
-        updatedComments = res.observations.join('\n');
-        setCommentsText(updatedComments);
+
+      // 1. Translate and grammar-check Observation text if present, otherwise generate observation
+      if (commentsText && commentsText.trim()) {
+        const translatedObs = await aiTranslateAndGrammarCheck(commentsText, targetLang, 'observation');
+        if (translatedObs) {
+          updatedComments = translatedObs;
+          setCommentsText(updatedComments);
+        }
+      } else {
+        const res = await aiObservationAssessor(photoObj, commentsText, targetLang);
+        if (res && res.observations) {
+          updatedComments = res.observations.join('\n');
+          setCommentsText(updatedComments);
+        }
       }
 
-      if (projectPhotos[editorIndex]) {
+      // 2. Translate and grammar-check Recommendation text if present, otherwise generate recommendations contextually
+      if (recommendations && recommendations.length > 0) {
+        const recText = recommendations.join('\n');
+        const translatedRecsText = await aiTranslateAndGrammarCheck(recText, targetLang, 'recommendation');
+        if (translatedRecsText) {
+          const translatedRecsArr = translatedRecsText.split('\n').map(r => r.trim()).filter(Boolean);
+          setRecommendations(translatedRecsArr);
+        }
+      } else if (photoObj) {
         const recRes = await aiGenerateRecommendation(
-          projectPhotos[editorIndex],
+          photoObj,
           updatedComments,
-          targetLang,
-          'Teknis (ATEX NFPA oriented)'
+          targetLang
         );
         if (recRes && recRes.recommendations) {
           setRecommendations(recRes.recommendations);
@@ -1540,11 +1557,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         </div>
 
                         {/* Unified Language Toggle Bahasa / English in the middle */}
-                        <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+                        <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5" title="Auto Translate & Grammar Check all Observation & Recommendation texts">
                           <button
                             type="button"
                             onClick={() => handleLanguageSwitch('ID')}
-                            className={`px-3 py-1 text-xs font-bold rounded ${
+                            className={`px-3 py-1 text-xs font-bold rounded transition-all ${
                               commentsLang === 'ID' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
                             }`}
                           >
@@ -1553,7 +1570,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           <button
                             type="button"
                             onClick={() => handleLanguageSwitch('EN')}
-                            className={`px-3 py-1 text-xs font-bold rounded ${
+                            className={`px-3 py-1 text-xs font-bold rounded transition-all ${
                               commentsLang === 'EN' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
                             }`}
                           >
