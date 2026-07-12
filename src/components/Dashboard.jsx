@@ -946,9 +946,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
       await updateDoc(doc(db, 'photos', currentPhoto.id), updatePayload);
 
-      setProjectPhotos(prev => prev.map((p, idx) => 
+      const updatedPhotos = projectPhotos.map((p, idx) => 
         idx === editorIndex ? { ...p, ...updatePayload } : p
-      ));
+      );
+      setProjectPhotos(updatedPhotos);
+
+      if (selectedProject) {
+        setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
+        updateDoc(doc(db, 'projects', selectedProject.id), { photos: updatedPhotos }).catch(() => {});
+      }
     } catch (err) {
       console.error("Error saving assessment:", err);
     } finally {
@@ -1050,15 +1056,57 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
   };
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
+    let photosToDelete = [];
     if (allDoneSelected) {
-      setQueue([]);
-      setProjectPhotos([]);
-      setSelectedPhotos([]);
+      photosToDelete = [...projectPhotos];
     } else if (selectedPhotos.length > 0) {
-      setQueue(prev => prev.filter(item => !selectedPhotos.includes(item.finalFilename)));
-      setProjectPhotos(prev => prev.filter(p => !selectedPhotos.includes(p.filename)));
-      setSelectedPhotos([]);
+      photosToDelete = projectPhotos.filter(p => 
+        selectedPhotos.includes(p.filename) || selectedPhotos.includes(p.id)
+      );
+    }
+
+    if (photosToDelete.length === 0) {
+      if (allDoneSelected) {
+        setQueue([]);
+        setSelectedPhotos([]);
+      } else if (selectedPhotos.length > 0) {
+        setQueue(prev => prev.filter(item => !selectedPhotos.includes(item.finalFilename)));
+        setSelectedPhotos([]);
+      }
+      return;
+    }
+
+    // 1. Delete docs from photos collection
+    for (const photo of photosToDelete) {
+      if (photo.id) {
+        try {
+          await deleteDoc(doc(db, 'photos', photo.id));
+        } catch (e) {
+          console.error("Error deleting photo doc:", e);
+        }
+      }
+    }
+
+    // 2. Update local state
+    const deletedFilenames = new Set(photosToDelete.map(p => p.filename));
+    const deletedIds = new Set(photosToDelete.map(p => p.id));
+
+    const remainingPhotos = projectPhotos.filter(p => !deletedFilenames.has(p.filename) && !deletedIds.has(p.id));
+    setProjectPhotos(remainingPhotos);
+    setQueue(prev => prev.filter(item => !deletedFilenames.has(item.finalFilename)));
+    setSelectedPhotos([]);
+
+    // 3. Update project record so cached photos list stays permanently in sync
+    if (selectedProject) {
+      const updatedProject = {
+        ...selectedProject,
+        photos: remainingPhotos
+      };
+      setSelectedProject(updatedProject);
+      try {
+        await updateDoc(doc(db, 'projects', selectedProject.id), { photos: remainingPhotos });
+      } catch (e) {}
     }
   };
 
