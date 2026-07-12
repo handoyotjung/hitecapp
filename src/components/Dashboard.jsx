@@ -90,7 +90,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [commentsText, setCommentsText] = useState('');
   const [commentsLang, setCommentsLang] = useState('ID');
   const [recommendations, setRecommendations] = useState([]);
-  const [recommendationsLang, setRecommendationsLang] = useState('ID');
+  const [recommendationsLang, setRecommendationsLang] = useState('EN');
   const [aiGrammarChecking, setAiGrammarChecking] = useState(false);
   const [aiGeneratingRec, setAiGeneratingRec] = useState(false);
 
@@ -1516,12 +1516,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       </span>
                     </div>
 
-                    {/* CARD A: OBSERVATION / OBSERVASI */}
+                    {/* CARD A: COMMENTS / KOMENTAR */}
                     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-sm">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <label className="text-xs font-bold text-white uppercase tracking-wide">
-                            {commentsLang === 'ID' ? 'OBSERVASI' : 'OBSERVATION'}
+                            {commentsLang === 'ID' ? 'KOMENTAR' : 'COMMENTS'}
                           </label>
                         </div>
 
@@ -1605,7 +1605,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         </div>
 
                         {/* Unified Language Toggle Bahasa / English in the middle */}
-                        <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5" title="Auto Translate & Grammar Check all Observation & Recommendation texts">
+                        <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5" title="Auto Translate & Grammar Check all Comments & Recommendation texts">
                           <button
                             type="button"
                             onClick={() => handleLanguageSwitch('ID')}

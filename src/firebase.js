@@ -830,7 +830,7 @@ export const httpsCallable = (functionsInstance, name) => {
             fontName: "Arial", fontSize: 10, bold: true, color: "555555"
           });
 
-          slide.addText("OBSERVATION / OBSERVASI", {
+          slide.addText("COMMENTS / KOMENTAR", {
             x: 4.9, y: 1.15, w: 4.7, h: 0.3,
             fontName: "Arial", fontSize: 13, bold: true, color: "C00000"
           });
@@ -1009,7 +1009,7 @@ export const handleExportExcel = async (project) => {
 
     // Right Col F-J: Text
     const obsCell = ws.getCell(`F${currentRow + 4}`);
-    obsCell.value = "OBSERVATION / OBSERVASI";
+    obsCell.value = "COMMENTS / KOMENTAR";
     obsCell.font = { name: "Arial", size: 10, bold: true };
     obsCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
 
