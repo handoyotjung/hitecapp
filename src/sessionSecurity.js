@@ -57,13 +57,6 @@ const loadStore = () => {
       store = JSON.parse(raw);
       if (!store.whitelist_users) store.whitelist_users = {};
     }
-    const oldRaw = localStorage.getItem('hitec_store_v1');
-    if (oldRaw) {
-      const oldStore = JSON.parse(oldRaw);
-      if (oldStore && oldStore.whitelist_users) {
-        store.whitelist_users = { ...oldStore.whitelist_users, ...store.whitelist_users };
-      }
-    }
   } catch {
     // ignore
   }

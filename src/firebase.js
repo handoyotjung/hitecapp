@@ -71,11 +71,7 @@ let auth, db, storage, functions;
 // Mock database storage
 const mockStore = {
   whitelist_users: {
-    "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
-    "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
-    "dummy@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "dummypassword", created_at: "2026-01-01" },
-    "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2026-01-01" },
-    "johan@example.com": { role: "user", company_id: "co_hitec", plan: "starter", password: "userpassword", created_at: "2026-01-01" }
+    "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" }
   },
   plan: {
     "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
@@ -90,8 +86,9 @@ const loadMockStore = () => {
   if (cached) {
     try {
       const parsed = JSON.parse(cached);
-      if (!parsed.whitelist_users) {
-        parsed.whitelist_users = { ...mockStore.whitelist_users };
+      parsed.whitelist_users = parsed.whitelist_users || {};
+      if (!parsed.whitelist_users["handoyo.tjung@gmail.com"]) {
+        parsed.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
       }
       if (!Array.isArray(parsed.projects)) {
         parsed.projects = [];
@@ -208,21 +205,11 @@ export const signInWithEmailAndPassword = async (authInstance, email, password) 
       saveMockStore(store);
     }
 
-    // Always enforce starter plan for demo@hitec.id even if mobile device cached an older tier
-    if (cleanEmail === "demo@hitec.id" && userDoc) {
-      userDoc.plan = "starter";
-      userDoc.role = "user";
-      store.whitelist_users[cleanEmail] = userDoc;
-      saveMockStore(store);
-    }
-
-    // Allow seamless access for demo/testing accounts (like demo@hitec.id, dummy@hitec.id, admin@hitec.id, or any @hitec.id email)
-    const isDemoAccount = cleanEmail === "demo@hitec.id" || cleanEmail === "dummy@hitec.id" || cleanEmail === "admin@hitec.id" || cleanEmail.endsWith("@hitec.id") || cleanEmail.includes("demo") || cleanEmail.includes("dummy");
+    // Allow temporary login access for demo/testing accounts without writing them into store.whitelist_users
+    const isDemoAccount = cleanEmail === "demo@hitec.id" || cleanEmail === "dummy@hitec.id" || cleanEmail === "admin@hitec.id" || cleanEmail.endsWith("@hitec.id");
     if (isDemoAccount && !userDoc) {
       const isAdminOrDummy = cleanEmail.includes("admin") || cleanEmail.includes("dummy");
       userDoc = { role: isAdminOrDummy ? "super_admin" : "user", company_id: "co_hitec", plan: isAdminOrDummy ? "pro" : "starter", password: password || "demopassword", created_at: "2026-01-01" };
-      store.whitelist_users[cleanEmail] = userDoc;
-      saveMockStore(store);
     }
 
     if (!userDoc || (!isDemoAccount && userDoc.password !== password)) {
