@@ -2,6 +2,30 @@ import { initializeApp } from "firebase/app";
 import pptxgen from "pptxgenjs";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
+
+export const fixOOXMLDrawingsExt = async (buffer, extents = []) => {
+  try {
+    const zip = await JSZip.loadAsync(buffer);
+    const drawingFiles = Object.keys(zip.files).filter(name => /^xl\/drawings\/drawing\d+\.xml$/i.test(name));
+    for (const drawingName of drawingFiles) {
+      let drawingXml = await zip.file(drawingName).async("string");
+      let picIndex = 0;
+      drawingXml = drawingXml.replace(/<xdr:pic>[\s\S]*?<\/xdr:pic>/g, (picXml) => {
+        const extObj = extents[picIndex] || { cx: 11430000, cy: 8572500 };
+        picIndex++;
+        return picXml.replace(/<xdr:spPr>([\s\S]*?)<a:ext\b[^>]*\/>/g, (match, before) => {
+          return `<xdr:spPr>${before}<a:ext cx="${extObj.cx}" cy="${extObj.cy}"/>`;
+        });
+      });
+      zip.file(drawingName, drawingXml);
+    }
+    return await zip.generateAsync({ type: "arraybuffer" });
+  } catch (err) {
+    console.warn("Could not post-process OOXML drawing parts:", err);
+    return buffer;
+  }
+};
 import { aiGenerateRecommendation } from "./aiAssessor";
 import { 
   getAuth, 
@@ -683,7 +707,7 @@ export const getDownloadURL = async (storageRef) => {
 // FUNCTIONS WRAPPERS
 // ----------------------------------------------------
 export const httpsCallable = (functionsInstance, name) => {
-  if (isMockMode) {
+  if (isMockMode || name === 'exportXLSX' || name === 'exportPPTX') {
     return async (data) => {
       console.log(`Mock Callable: ${name}`, data);
       const project_id = data.project_id;
@@ -832,260 +856,373 @@ export const httpsCallable = (functionsInstance, name) => {
         workbook.creator = "HitecApp Fire Safety Assessor";
         workbook.created = new Date();
 
-        const totalFindings = photosToExport.length || 1;
-        const lastRow = totalFindings * 22;
-
         const ws = workbook.addWorksheet("Inspection Report", {
           pageSetup: {
-            paperSize: 9, // A4 (210mm x 297mm)
+            paperSize: 9, // A4
             orientation: "portrait",
+            margins: { top: 0.39, bottom: 0.39, left: 0.39, right: 0.39 },
             fitToPage: true,
             fitToWidth: 1,
-            fitToHeight: totalFindings,
-            printArea: `A1:J${lastRow}`,
-            margins: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 }
+            fitToHeight: 0
           },
-          views: [{ showGridLines: false }]
+          views: [{ showGridLines: false }],
+          headerFooter: {} // No header/footer
         });
 
-        ws.pageSetup.paperSize = 9;
-        ws.pageSetup.orientation = "portrait";
-        ws.pageSetup.fitToPage = true;
-        ws.pageSetup.fitToWidth = 1;
-        ws.pageSetup.fitToHeight = totalFindings;
-        ws.pageSetup.printArea = `A1:J${lastRow}`;
-
-        ws.headerFooter.oddHeader = `&C&BFIRE SAFETY INSPECTION REPORT - ${rawProjectName}`;
-        ws.headerFooter.oddFooter = `&CPage &P of &N`;
-
-        // Column widths: A-E = 10, F-J = 15
-        for (let c = 1; c <= 5; c++) ws.getColumn(c).width = 10;
-        for (let c = 6; c <= 10; c++) ws.getColumn(c).width = 15;
+        // Set base widths: A-E = 4 (Total 20 for Image), F = 40, G-J = 8
+        const baseWidths = [4, 4, 4, 4, 4, 40, 8, 8, 8, 8];
+        baseWidths.forEach((w, i) => {
+          ws.getColumn(i + 1).width = w;
+        });
 
         let riskCounts = { CRITICAL: 0, MAJOR: 0, MINOR: 0, COMPLIANT: 0 };
 
-        const toBase64String = async (blobUrl) => {
-          try {
-            const resp = await fetch(blobUrl);
-            const blob = await resp.blob();
-            return new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                const res = reader.result;
-                resolve(typeof res === 'string' ? res.split(',')[1] : null);
-              };
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-          } catch {
-            return null;
+        const cleanBase64Str = (str) => {
+          if (!str || typeof str !== 'string') return null;
+          const idx = str.indexOf('base64,');
+          if (idx !== -1) {
+            return str.substring(idx + 7).replace(/\s+/g, '');
           }
+          return str.replace(/\s+/g, '');
         };
 
-        const fitPhotoToCanvas = (base64Str, targetW = 1200, targetH = 900) => {
-          return new Promise((resolve) => {
+        const promiseWithTimeout = (promise, ms, fallback = null) => {
+          return Promise.race([
+            promise,
+            new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+          ]);
+        };
+
+        const getPhotoBase64 = async (photo) => {
+          if (photo.base64) {
+            const cleaned = cleanBase64Str(photo.base64);
+            if (cleaned) return cleaned;
+          }
+          const candidateUrl = photo.localUrl || photo.url || photo.thumbnailUrl || photo.preview || photo.src;
+          if (!candidateUrl) return null;
+          if (candidateUrl.startsWith('data:image/')) {
+            return cleanBase64Str(candidateUrl);
+          }
+          const fetchPromise = (async () => {
+            try {
+              const resp = await fetch(candidateUrl);
+              const blob = await resp.blob();
+              return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(cleanBase64Str(reader.result));
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            } catch (e) {
+              return await new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = () => {
+                  try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || 800;
+                    canvas.height = img.naturalHeight || 600;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    resolve(cleanBase64Str(canvas.toDataURL('image/png')));
+                  } catch (err) {
+                    resolve(null);
+                  }
+                };
+                img.onerror = () => resolve(null);
+                img.src = candidateUrl;
+              });
+            }
+          })();
+          return await promiseWithTimeout(fetchPromise, 1800, null);
+        };
+
+        const fitPhotoToCanvas = async (base64Str, targetW = 1200, targetH = 900) => {
+          const cleanInput = cleanBase64Str(base64Str);
+          if (!cleanInput) return null;
+          const drawPromise = new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = targetW;
-              canvas.height = targetH;
-              const ctx = canvas.getContext('2d');
-              ctx.fillStyle = '#FFFFFF';
-              ctx.fillRect(0, 0, targetW, targetH);
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = targetW;
+                canvas.height = targetH;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, targetW, targetH);
 
-              const imgRatio = img.naturalWidth / img.naturalHeight;
-              const boxRatio = targetW / targetH;
-              let drawW = targetW;
-              let drawH = targetW / imgRatio;
+                const imgRatio = img.naturalWidth / img.naturalHeight;
+                const boxRatio = targetW / targetH;
+                let drawW = targetW;
+                let drawH = targetW / imgRatio;
 
-              if (imgRatio < boxRatio) {
-                drawH = targetH;
-                drawW = targetH * imgRatio;
-              } else {
-                drawW = targetW;
-                drawH = targetW / imgRatio;
-                if (drawH > targetH) {
+                if (imgRatio < boxRatio) {
                   drawH = targetH;
                   drawW = targetH * imgRatio;
+                } else {
+                  drawW = targetW;
+                  drawH = targetW / imgRatio;
+                  if (drawH > targetH) {
+                    drawH = targetH;
+                    drawW = targetH * imgRatio;
+                  }
                 }
+
+                const offsetX = (targetW - drawW) / 2;
+                const offsetY = (targetH - drawH) / 2;
+
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+                ctx.strokeStyle = '#CBD5E1';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(offsetX, offsetY, drawW, drawH);
+
+                const resultBase64 = cleanBase64Str(canvas.toDataURL('image/png'));
+                resolve(resultBase64 || cleanInput);
+              } catch (e) {
+                resolve(cleanInput);
               }
-
-              const offsetX = (targetW - drawW) / 2;
-              const offsetY = (targetH - drawH) / 2;
-
-              ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = 'high';
-              ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
-
-              ctx.strokeStyle = '#CBD5E1';
-              ctx.lineWidth = 3;
-              ctx.strokeRect(offsetX, offsetY, drawW, drawH);
-
-              const resultBase64 = canvas.toDataURL('image/png').split(',')[1];
-              resolve(resultBase64);
             };
-            img.onerror = () => resolve(base64Str);
-            img.src = `data:image/png;base64,${base64Str}`;
+            img.onerror = () => resolve(cleanInput);
+            img.src = `data:image/png;base64,${cleanInput}`;
           });
+          return await promiseWithTimeout(drawPromise, 1800, cleanInput);
         };
+
+        const getImageSizePx = async (base64Str) => {
+          const clean = cleanBase64Str(base64Str);
+          if (!clean) return { width: 1200, height: 900 };
+          const sizePromise = new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              resolve({
+                width: Math.max(1, img.naturalWidth || 1200),
+                height: Math.max(1, img.naturalHeight || 900)
+              });
+            };
+            img.onerror = () => {
+              resolve({ width: 1200, height: 900 });
+            };
+            img.src = `data:image/png;base64,${clean}`;
+          });
+          return await promiseWithTimeout(sizePromise, 1200, { width: 1200, height: 900 });
+        };
+
+        const embeddedExts = [];
+        const imagePromises = [];
 
         for (let idx = 0; idx < photosToExport.length; idx++) {
           const photo = photosToExport[idx];
-          const startRow = idx * 22 + 1;
+          const startRow = idx * 28 + 1;
 
-          // Ensure recommendations exist
-          let recs = photo.recommendations_json;
+          let recs = photo.recommendations_json || photo.recommendations;
+          if (typeof recs === 'string') {
+            recs = recs.split('\n').filter(Boolean);
+          }
           if (!Array.isArray(recs) || recs.length === 0) {
-            const aiRes = await aiGenerateRecommendation(photo, photo.comments_text || photo.caption, photo.recommendations_lang || 'ID');
-            recs = aiRes.recommendations;
+            recs = ["No specific recommendation noted."];
           }
 
-          // Determine highest risk
           let highestRisk = "COMPLIANT";
-          let riskColor = "548235";
-          let refClause = "NFPA 10 / SNI 03-3985-2000";
+          let riskFill = "00B050";
+          let riskFontWhite = true;
+          let refClause = "SNI 03-3985-2000 / NFPA 10";
 
           for (const r of recs) {
-            if (r.includes("[CRITICAL]")) { highestRisk = "CRITICAL"; riskColor = "C00000"; riskCounts.CRITICAL++; break; }
-            else if (r.includes("[MAJOR]")) { highestRisk = "MAJOR"; riskColor = "ED7D31"; riskCounts.MAJOR++; }
-            else if (r.includes("[MINOR]")) { if (highestRisk !== "MAJOR") { highestRisk = "MINOR"; riskColor = "D29000"; } riskCounts.MINOR++; }
+            if (r.includes("[CRITICAL]")) { highestRisk = "CRITICAL"; riskFill = "FF0000"; riskFontWhite = true; riskCounts.CRITICAL++; break; }
+            else if (r.includes("[MAJOR]")) { highestRisk = "MAJOR"; riskFill = "FFA500"; riskFontWhite = false; riskCounts.MAJOR++; }
+            else if (r.includes("[MINOR]")) { if (highestRisk !== "MAJOR") { highestRisk = "MINOR"; riskFill = "FFFF00"; riskFontWhite = false; } riskCounts.MINOR++; }
             else { riskCounts.COMPLIANT++; }
             const refMatch = r.match(/Ref:\s*(.+)$/i);
             if (refMatch) refClause = refMatch[1].trim();
           }
 
-          // Row 1-2: HEADER BLOCK
+          // ROW 1-2: BLOCK HEADER
           ws.mergeCells(`A${startRow}:J${startRow + 1}`);
           const hdrCell = ws.getCell(`A${startRow}`);
-          hdrCell.value = `INSPECTION FINDING #${idx + 1}`;
-          hdrCell.font = { name: "Arial", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+          hdrCell.value = `INSPECTION FINDING # ${idx + 1}`;
+          hdrCell.font = { name: "Arial", size: 16, bold: true, color: { argb: "FFFFFFFF" } };
           hdrCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F4E79" } };
           hdrCell.alignment = { vertical: "middle", horizontal: "center" };
+          hdrCell.border = { bottom: { style: "thick", color: { argb: "FF1F4E79" } } };
 
-          // Row 3-4: META INFO
-          ws.getCell(`A${startRow + 2}`).value = "Date :";
-          ws.getCell(`A${startRow + 2}`).font = { name: "Arial", size: 10, bold: true };
+          // ROW 3-4: META DATA
+          ws.getCell(`A${startRow + 2}`).value = "Date";
+          ws.getCell(`A${startRow + 2}`).font = { name: "Arial", size: 11, bold: true };
           ws.mergeCells(`B${startRow + 2}:D${startRow + 2}`);
-          ws.getCell(`B${startRow + 2}`).value = photo.exif_date || `${dd}-${mm}-20${yy}`;
+          ws.getCell(`B${startRow + 2}`).value = photo.exif_date || "N/A";
+          ws.getCell(`B${startRow + 2}`).font = { name: "Arial", size: 11, bold: true };
 
-          ws.getCell(`E${startRow + 2}`).value = "Location :";
-          ws.getCell(`E${startRow + 2}`).font = { name: "Arial", size: 10, bold: true };
-          ws.mergeCells(`F${startRow + 2}:J${startRow + 2}`);
-          ws.getCell(`F${startRow + 2}`).value = photo.exif_gps || "-";
+          ws.getCell(`F${startRow + 2}`).value = "File";
+          ws.getCell(`F${startRow + 2}`).font = { name: "Arial", size: 11, bold: true };
+          ws.mergeCells(`G${startRow + 2}:J${startRow + 2}`);
+          ws.getCell(`G${startRow + 2}`).value = photo.filename || `photo_${idx + 1}.png`;
+          ws.getCell(`G${startRow + 2}`).font = { name: "Arial", size: 11, bold: true };
 
-          ws.getCell(`A${startRow + 3}`).value = "Filename :";
-          ws.getCell(`A${startRow + 3}`).font = { name: "Arial", size: 10, bold: true };
-          ws.mergeCells(`B${startRow + 3}:J${startRow + 3}`);
-          const fnCell = ws.getCell(`B${startRow + 3}`);
-          fnCell.value = photo.filename || `photo_${idx + 1}.png`;
-          fnCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF555555" } };
+          ws.getCell(`A${startRow + 3}`).value = "Location";
+          ws.getCell(`A${startRow + 3}`).font = { name: "Arial", size: 11, bold: true };
+          ws.mergeCells(`B${startRow + 3}:D${startRow + 3}`);
+          ws.getCell(`B${startRow + 3}`).value = photo.exif_gps || photo.gps_address || rawProjectName || "N/A";
+          ws.getCell(`B${startRow + 3}`).font = { name: "Arial", size: 11, bold: true };
 
-          // Row 5-18: IMAGE & TEXT CONTENT
-          // Insert Image in Col A-E (Rows startRow+3 to startRow+17 in 0-indexed)
-          let base64Data = photo.base64 ? photo.base64.split(',').pop() : (photo.localUrl ? await toBase64String(photo.localUrl) : null);
-          if (base64Data) {
+          // ROW 5-24: CONTENT 2 KOLOM (Rows startRow+4 to startRow+23)
+          for (let rIdx = startRow + 4; rIdx <= startRow + 23; rIdx++) {
+            ws.getRow(rIdx).height = 20;
+          }
+
+          // Attach Image asynchronously and collect promise with strict 1.2s overall timeout
+          const imgPromise = promiseWithTimeout((async () => {
             try {
-              const fittedBase64 = await fitPhotoToCanvas(base64Data, 1200, 900);
-              const imageId = workbook.addImage({
-                base64: fittedBase64,
-                extension: 'png'
-              });
-              ws.addImage(imageId, {
-                tl: { col: 0, row: startRow + 3 },
-                br: { col: 5, row: startRow + 17 },
-                editAs: 'oneCell'
-              });
+              const rawBase64 = await getPhotoBase64(photo);
+              if (rawBase64) {
+                const fittedBase64 = await fitPhotoToCanvas(rawBase64, 1200, 900);
+                const dims = await getImageSizePx(fittedBase64 || rawBase64);
+                const cx = Math.max(1, Math.round(dims.width * 9525));
+                const cy = Math.max(1, Math.round(dims.height * 9525));
+                embeddedExts.push({ cx, cy });
+
+                const imageId = workbook.addImage({
+                  base64: fittedBase64 || rawBase64,
+                  extension: 'png'
+                });
+                ws.addImage(imageId, {
+                  tl: { col: 0, row: startRow + 3 },
+                  br: { col: 4.9, row: startRow + 23.9 },
+                  editAs: 'oneCell'
+                });
+              }
             } catch (e) {
               console.warn("Could not attach image to Excel block", e);
             }
-          }
+          })(), 1200, null);
+          imagePromises.push(imgPromise);
 
           // Col F-J: Text Content
-          const obsCell = ws.getCell(`F${startRow + 4}`);
-          obsCell.value = "OBSERVATION / OBSERVASI";
-          obsCell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFC00000" } };
+          const obsHdr = ws.getCell(`F${startRow + 4}`);
+          obsHdr.value = "OBSERVATION / OBSERVASI";
+          obsHdr.font = { name: "Arial", size: 10, bold: true };
+          obsHdr.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7E6E6" } };
 
           const obsText = photo.comments_text || photo.caption || "No defects noted.";
           const obsLines = obsText.split('\n').filter(Boolean).slice(0, 5);
           obsLines.forEach((line, lIdx) => {
             ws.mergeCells(`F${startRow + 5 + lIdx}:J${startRow + 5 + lIdx}`);
             const cell = ws.getCell(`F${startRow + 5 + lIdx}`);
-            cell.value = `• ${line.replace(/^\d+[\.\)\-]\s*/, '')}`;
+            cell.value = `1. ${line.replace(/^\d+[\.\)\-]\s*/, '')}`;
             cell.font = { name: "Arial", size: 10 };
-            cell.alignment = { wrapText: true };
+            cell.alignment = { vertical: "top", wrapText: true };
           });
 
-          const recCell = ws.getCell(`F${startRow + 11}`);
-          recCell.value = "ASSESSOR RECOMMENDATION / REKOMENDASI";
-          recCell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FF1F4E79" } };
+          const recHdr = ws.getCell(`F${startRow + 11}`);
+          recHdr.value = "ASSESSOR RECOMMENDATION";
+          recHdr.font = { name: "Arial", size: 10, bold: true };
+          recHdr.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2CC" } };
 
           recs.slice(0, 5).forEach((line, lIdx) => {
             ws.mergeCells(`F${startRow + 12 + lIdx}:J${startRow + 12 + lIdx}`);
             const cell = ws.getCell(`F${startRow + 12 + lIdx}`);
             cell.value = `• ${line.replace(/^\d+[\.\)\-]\s*/, '')}`;
-            const isCrit = line.includes("[CRITICAL]");
-            cell.font = {
-              name: "Arial",
-              size: 10,
-              bold: isCrit,
-              color: { argb: isCrit ? "FFC00000" : "FF1F4E79" }
-            };
-            cell.alignment = { wrapText: true };
+            cell.font = { name: "Arial", size: 10, italic: true };
+            cell.alignment = { vertical: "top", wrapText: true };
           });
 
-          // Row 19-20: RISK SUMMARY
-          ws.mergeCells(`A${startRow + 18}:J${startRow + 19}`);
-          const riskCell = ws.getCell(`A${startRow + 18}`);
-          riskCell.value = `Risk Level: [${highestRisk}]  |  Ref Clause: ${refClause}`;
-          riskCell.font = { name: "Arial", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
-          riskCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${riskColor}` } };
-          riskCell.alignment = { vertical: "middle", horizontal: "center" };
+          // ROW 25-26: RISK & REFERENCE
+          ws.getCell(`A${startRow + 24}`).value = "Risk Level:";
+          ws.getCell(`A${startRow + 24}`).font = { name: "Arial", size: 10, bold: true };
+          ws.getCell(`B${startRow + 24}`).value = highestRisk;
+          ws.getCell(`B${startRow + 24}`).font = { name: "Arial", size: 10, bold: true, color: { argb: riskFontWhite ? "FFFFFFFF" : "FF000000" } };
+          ws.getCell(`B${startRow + 24}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${riskFill}` } };
 
-          // Clean page break after every single INSPECTION FINDING block
-          ws.getRow(startRow + 20).addPageBreak();
+          ws.getCell(`F${startRow + 24}`).value = `Ref: ${refClause}`;
+          ws.getCell(`F${startRow + 24}`).font = { name: "Arial", size: 10, bold: true };
+
+          // ROW 27-28: SPACER + BORDER
+          ws.mergeCells(`A${startRow + 26}:J${startRow + 27}`);
+          ws.getCell(`A${startRow + 26}`).border = { bottom: { style: "double", color: { argb: "FF333333" } } };
+
+          // PAGE BREAK LOGIC: After every 2 photos
+          if ((idx + 1) % 2 === 0 && idx < photosToExport.length - 1) {
+            ws.getRow(startRow + 27).addPageBreak();
+          }
         }
 
-        // SHEET 2: SUMMARY DASHBOARD
-        const sumWs = workbook.addWorksheet("SUMMARY DASHBOARD", {
+        // IMPORTANT: Wait for all image processing & insertions to complete
+        await Promise.all(imagePromises);
+
+        // COLUMN WIDTH - AUTO SIZE FOR TEXT (Col F-J)
+        ws.columns.forEach((col, cIdx) => {
+          if (cIdx >= 5) { // Col F-J (index 5 to 9)
+            let maxLength = 0;
+            col.eachCell({ includeEmpty: true }, cell => {
+              let length = cell.value ? cell.value.toString().length : 0;
+              if (length > maxLength) maxLength = length;
+            });
+            col.width = maxLength < 10 ? 10 : maxLength + 2;
+          }
+        });
+        // Guarantee base width A-E = 4 and F >= 40
+        for (let c = 1; c <= 5; c++) ws.getColumn(c).width = 4;
+        ws.getColumn('F').width = Math.max(ws.getColumn('F').width || 40, 40);
+
+        // SHEET 2: SUMMARY TABLE ONLY - NO CHART
+        const sumWs = workbook.addWorksheet("Summary", {
           pageSetup: {
             paperSize: 9, // A4
-            orientation: "portrait",
-            fitToPage: true,
-            fitToWidth: 1,
-            fitToHeight: 1,
-            printArea: "A1:B8"
+            orientation: "portrait"
           },
-          views: [{ showGridLines: true }]
+          views: [{ showGridLines: false }]
         });
-        sumWs.getColumn(1).width = 30;
-        sumWs.getColumn(2).width = 20;
 
-        sumWs.getCell("A1").value = "FIRE SAFETY INSPECTION SUMMARY";
-        sumWs.getCell("A1").font = { name: "Arial", size: 16, bold: true, color: { argb: "FF1F4E79" } };
+        sumWs.getCell("A1").value = "PROJECT SUMMARY";
+        sumWs.getCell("A1").font = { name: "Arial", size: 18, bold: true };
 
-        const summaryData = [
-          ["Total Photos Assessed", photosToExport.length],
-          ["Total CRITICAL Findings", riskCounts.CRITICAL],
-          ["Total MAJOR Findings", riskCounts.MAJOR],
-          ["Total MINOR Findings", riskCounts.MINOR],
-          ["Total COMPLIANT Items", riskCounts.COMPLIANT]
+        sumWs.mergeCells("A3:J3");
+        sumWs.getCell("A3").value = `Project: ${rawProjectName}`;
+        sumWs.getCell("A3").font = { name: "Arial", size: 14, bold: true };
+
+        const rowsData = [
+          ["Total Findings", photosToExport.length, null, false],
+          ["Critical", riskCounts.CRITICAL, "FF0000", true],
+          ["Major", riskCounts.MAJOR, "FFA500", false],
+          ["Minor", riskCounts.MINOR, "FFFF00", false],
+          ["Compliant", riskCounts.COMPLIANT, "00B050", true]
         ];
 
-        summaryData.forEach((row, rIdx) => {
-          const rowNum = rIdx + 3;
-          sumWs.getCell(`A${rowNum}`).value = row[0];
-          sumWs.getCell(`A${rowNum}`).font = { name: "Arial", size: 11, bold: true };
-          sumWs.getCell(`B${rowNum}`).value = row[1];
-          sumWs.getCell(`B${rowNum}`).font = { name: "Arial", size: 11 };
+        rowsData.forEach((item, idx) => {
+          const rNum = idx + 5;
+          sumWs.getCell(`A${rNum}`).value = item[0];
+          sumWs.getCell(`A${rNum}`).font = { name: "Arial", size: 11, bold: true };
+          sumWs.getCell(`B${rNum}`).value = item[1];
+          sumWs.getCell(`B${rNum}`).font = { name: "Arial", size: 11, bold: true, color: { argb: item[3] ? "FFFFFFFF" : "FF000000" } };
+          if (item[2]) {
+            sumWs.getCell(`B${rNum}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${item[2]}` } };
+          }
+          sumWs.getCell(`A${rNum}`).border = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
+          sumWs.getCell(`B${rNum}`).border = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
         });
 
-        // Write buffer and download
-        const buffer = await workbook.xlsx.writeBuffer();
+        sumWs.getColumn(1).width = 25;
+        sumWs.getColumn(2).width = 15;
+
+        // FILENAME & DOWNLOAD: FSA_Report_A4_{project_name}_{DDMMYYYY}.xlsx
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        const ddmmyyyy = `${dd}${mm}${yyyy}`;
+        const finalFilename = `FSA_Report_A4_${exportFileName}_${ddmmyyyy}.xlsx`;
+
+        const rawBuffer = await workbook.xlsx.writeBuffer();
+        const buffer = await fixOOXMLDrawingsExt(rawBuffer, embeddedExts);
         const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `FSA_Report_A4_${exportFileName}.xlsx`;
+        a.download = finalFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

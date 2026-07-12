@@ -10,11 +10,11 @@ import {
   FolderPlus, Folder, Loader2, ArrowRight, ArrowLeft,
   Upload, FileText, CheckCircle2, AlertCircle, Trash2, 
   ChevronLeft, ChevronRight, Save, Download, FileSpreadsheet,
-  LogOut, Shield, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical
+  LogOut, Shield, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X
 } from 'lucide-react';
 import UploadZone from './UploadZone';
 import { UpgradeModal } from './UpgradeModal';
-import { aiGrammarCheck, aiGenerateRecommendation } from '../aiAssessor';
+import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation } from '../aiAssessor';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -91,7 +91,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [commentsLang, setCommentsLang] = useState('ID');
   const [recommendations, setRecommendations] = useState([]);
   const [recommendationsLang, setRecommendationsLang] = useState('ID');
-  const [manualRecEdit, setManualRecEdit] = useState(false);
   const [aiGrammarChecking, setAiGrammarChecking] = useState(false);
   const [aiGeneratingRec, setAiGeneratingRec] = useState(false);
 
@@ -832,21 +831,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     setEditorIndex(0);
   };
 
-  const handleAiGrammarCheck = async (style = 'Baku', targetLang = commentsLang) => {
+  const handleAiObservationAssessor = async (targetLang = commentsLang) => {
     setAiGrammarChecking(true);
     try {
-      const res = await aiGrammarCheck(commentsText, targetLang, style);
-      if (res && res.corrected) {
-        const correctedText = res.corrected.join('\n');
-        setCommentsText(correctedText);
+      const photoObj = projectPhotos[editorIndex] || {};
+      const res = await aiObservationAssessor(photoObj, commentsText, targetLang);
+      if (res && res.observations) {
+        const obsText = res.observations.join('\n');
+        setCommentsText(obsText);
 
-        // Automatically generate tailored recommendations matching the observation & style
-        if (projectPhotos[editorIndex]) {
+        if (photoObj) {
           const recRes = await aiGenerateRecommendation(
-            projectPhotos[editorIndex],
-            correctedText,
+            photoObj,
+            obsText,
             targetLang,
-            style
+            'Teknis (ATEX NFPA oriented)'
           );
           if (recRes && recRes.recommendations) {
             setRecommendations(recRes.recommendations);
@@ -854,7 +853,41 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         }
       }
     } catch (err) {
-      console.error("AI Grammar Check error:", err);
+      console.error("AI Observation Assessor error:", err);
+    } finally {
+      setAiGrammarChecking(false);
+    }
+  };
+
+  const handleAiGrammarCheck = handleAiObservationAssessor;
+
+  const handleLanguageSwitch = async (targetLang) => {
+    setCommentsLang(targetLang);
+    setRecommendationsLang(targetLang);
+
+    setAiGrammarChecking(true);
+    try {
+      const photoObj = projectPhotos[editorIndex] || {};
+      const res = await aiObservationAssessor(photoObj, commentsText, targetLang);
+      let updatedComments = commentsText;
+      if (res && res.observations) {
+        updatedComments = res.observations.join('\n');
+        setCommentsText(updatedComments);
+      }
+
+      if (projectPhotos[editorIndex]) {
+        const recRes = await aiGenerateRecommendation(
+          projectPhotos[editorIndex],
+          updatedComments,
+          targetLang,
+          'Teknis (ATEX NFPA oriented)'
+        );
+        if (recRes && recRes.recommendations) {
+          setRecommendations(recRes.recommendations);
+        }
+      }
+    } catch (err) {
+      console.error("Language switch translation error:", err);
     } finally {
       setAiGrammarChecking(false);
     }
@@ -1211,32 +1244,28 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 : 'border-slate-900 bg-slate-900/30'
                       } ${!isDone ? 'opacity-60' : ''}`}
                     >
-                      {/* LEFT: Row number + Selection checkbox */}
-                      <div className="shrink-0 flex items-center gap-1.5 pl-1">
-                        <div
-                          className="flex items-center gap-1.5 cursor-pointer"
-                          onClick={(e) => { e.stopPropagation(); togglePhotoSelection(item.finalFilename, item.status); }}
-                        >
-                          <span className="text-xs font-mono font-semibold text-slate-400 min-w-[20px] text-right">
-                            {index + 1}.
-                          </span>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            readOnly
-                            disabled={!isDone}
-                            className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-emerald-500 cursor-pointer disabled:opacity-30"
-                          />
-                        </div>
+                      {/* LEFT: Row number */}
+                      <div
+                        className="shrink-0 flex items-center pl-1 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePhotoSelection(item.finalFilename, item.status);
+                          if (canNavigate) navigateToPhoto(item.finalFilename);
+                        }}
+                      >
+                        <span className="text-xs font-mono font-semibold text-slate-400 min-w-[20px] text-right">
+                          {index + 1}.
+                        </span>
                       </div>
 
-                      {/* CENTER: Thumbnail + info — clicking navigates to Caption Editor */}
+                      {/* CENTER: Thumbnail + info — clicking selects photo and navigates to Caption Editor */}
                       <div
-                        className={`flex items-center gap-2.5 min-w-0 flex-1 ${
-                          canNavigate ? 'cursor-pointer group' : ''
-                        }`}
-                        onClick={() => canNavigate && navigateToPhoto(item.finalFilename)}
-                        title={canNavigate ? 'Click to view in Caption Editor' : ''}
+                        className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group"
+                        onClick={() => {
+                          togglePhotoSelection(item.finalFilename, item.status);
+                          if (canNavigate) navigateToPhoto(item.finalFilename);
+                        }}
+                        title="Click to select and view in Caption Editor"
                       >
                         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-950 flex items-center justify-center">
                           {item.thumbnailUrl ? (
@@ -1283,6 +1312,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         )}
                         {item.status === 'Done' && (
                           <div className="flex items-center gap-1.5">
+                            {isSelected && (
+                              <Check className="h-4 w-4 text-white stroke-[3] shrink-0" title="Selected" />
+                            )}
                             {projectPhotos[editorIndex]?.filename === item.finalFilename && (
                               <Edit2 className="h-4 w-4 text-yellow-400 shrink-0 animate-pulse" title="Currently viewing in Caption Editor" />
                             )}
@@ -1397,38 +1429,19 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <label className="text-xs font-bold text-white uppercase tracking-wide">
-                            {commentsLang === 'ID' ? 'OBSERVASI (TEMUAN INSPEKSI)' : 'OBSERVATION (INSPECTION FINDING)'}
+                            {commentsLang === 'ID' ? 'OBSERVASI' : 'OBSERVATION'}
                           </label>
-                          <span className="text-[11px] text-white/80 font-medium">
-                            ({commentsText.split('\n').filter(Boolean).length}/5 {commentsLang === 'ID' ? 'baris' : 'lines'})
-                          </span>
                         </div>
 
-                        {/* Unified Language Toggle ID / EN (applies to both Observation & Recommendation AI) */}
-                        <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+                        <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              setCommentsLang('ID');
-                              setRecommendationsLang('ID');
-                            }}
-                            className={`px-2.5 py-0.5 text-[10px] font-bold rounded ${
-                              commentsLang === 'ID' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-                            }`}
+                            onClick={() => setCommentsText('')}
+                            title="Clear"
+                            className="flex items-center gap-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 text-[11px] font-bold transition-colors shadow-sm"
                           >
-                            ID
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCommentsLang('EN');
-                              setRecommendationsLang('EN');
-                            }}
-                            className={`px-2.5 py-0.5 text-[10px] font-bold rounded ${
-                              commentsLang === 'EN' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            EN
+                            <X className="h-3.5 w-3.5" />
+                            <span>Clear</span>
                           </button>
                         </div>
                       </div>
@@ -1444,83 +1457,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             setCommentsText(lines.slice(0, 5).join('\n'));
                           }
                         }}
-                        placeholder={
-                          commentsLang === 'ID'
-                            ? "1. APAR tekanan di zona merah\n2. Segel rusak"
-                            : "1. Extinguisher pressure in red zone\n2. Seal broken"
-                        }
+                        placeholder=""
                         className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none leading-relaxed"
                       />
-
-                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => handleAiGrammarCheck('Baku', commentsLang)}
-                            disabled={aiGrammarChecking}
-                            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1 text-xs font-semibold text-white transition-all disabled:opacity-50"
-                          >
-                            {aiGrammarChecking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                            <span>{commentsLang === 'ID' ? 'Periksa Tata Bahasa AI' : 'AI Grammar Check'}</span>
-                          </button>
-
-                          {commentsLang === 'ID' ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleAiGrammarCheck('Baku', 'ID')}
-                                disabled={aiGrammarChecking}
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
-                              >
-                                Baku
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleAiGrammarCheck('Teknis (ATEX NFPA oriented)', 'ID')}
-                                disabled={aiGrammarChecking}
-                                className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-900/50 transition-colors"
-                              >
-                                Teknis (ATEX NFPA oriented)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleAiGrammarCheck('Profesional', 'ID')}
-                                disabled={aiGrammarChecking}
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
-                              >
-                                Profesional
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleAiGrammarCheck('Baku', 'EN')}
-                                disabled={aiGrammarChecking}
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
-                              >
-                                Standard
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleAiGrammarCheck('Technical (ATEX NFPA)', 'EN')}
-                                disabled={aiGrammarChecking}
-                                className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-900/50 transition-colors"
-                              >
-                                Technical (ATEX NFPA)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleAiGrammarCheck('Professional', 'EN')}
-                                disabled={aiGrammarChecking}
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
-                              >
-                                Professional
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
                     </div>
 
                     {/* CARD B: ASSESSOR RECOMMENDATION - AI Fire Safety Assessor */}
@@ -1529,41 +1468,35 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         <div className="flex items-center gap-2">
                           <label className="text-xs font-bold text-white uppercase tracking-wide">
                             {commentsLang === 'ID'
-                              ? 'REKOMENDASI - AI FIRE SAFETY ASSESSOR'
-                              : 'RECOMMENDATION - AI FIRE SAFETY ASSESSOR'}
+                              ? 'REKOMENDASI'
+                              : 'RECOMMENDATION'}
                           </label>
                         </div>
 
-                        {/* Standard Certification Badge moved to right side of AI Fire Safety Assessor */}
-                        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-700/50 px-3 py-1 text-[11px] font-semibold text-white">
-                          <Shield className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                          <span>
-                            {commentsLang === 'ID'
-                              ? 'Didukung oleh NFPA 10, NFPA 25, SNI 03-3985-2000'
-                              : 'Powered by NFPA 10, NFPA 25, SNI 03-3985-2000'}
-                          </span>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setRecommendations([])}
+                          title="Clear"
+                          className="flex items-center gap-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 text-[11px] font-bold transition-colors shadow-sm"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          <span>Clear</span>
+                        </button>
                       </div>
 
                       <textarea
                         rows={5}
-                        readOnly={!manualRecEdit}
                         value={recommendations.join('\n')}
                         onChange={(e) => {
-                          if (!manualRecEdit) return;
                           const lines = e.target.value.split('\n');
-                          setRecommendations(lines.slice(0, 5));
+                          if (lines.length <= 5) {
+                            setRecommendations(lines);
+                          } else {
+                            setRecommendations(lines.slice(0, 5));
+                          }
                         }}
-                        placeholder={
-                          commentsLang === 'ID'
-                            ? "[CRITICAL] Ganti APAR karena tekanan di zona merah. Ref: SNI 03-3985-2000 Pasal 5.2"
-                            : "[CRITICAL] Replace fire extinguisher immediately. Ref: NFPA 10 Sec 6.1.3.1"
-                        }
-                        className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-white font-medium outline-none transition-colors resize-none leading-relaxed ${
-                          manualRecEdit
-                            ? 'border-emerald-500 bg-slate-950 text-white'
-                            : 'border-slate-800 bg-slate-950/60 text-white cursor-default'
-                        }`}
+                        placeholder=""
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none leading-relaxed"
                       />
 
                       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
@@ -1577,39 +1510,38 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             {aiGeneratingRec ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                             <span>{commentsLang === 'ID' ? 'Buat Rekomendasi' : 'Generate Recommendation'}</span>
                           </button>
+                        </div>
 
+                        {/* Unified Language Toggle Bahasa / English in the middle */}
+                        <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
                           <button
                             type="button"
-                            onClick={handleGenerateRecommendation}
-                            disabled={aiGeneratingRec}
-                            className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-white transition-colors"
-                          >
-                            {commentsLang === 'ID' ? 'Buat Ulang' : 'Regenerate'}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setManualRecEdit(!manualRecEdit)}
-                            className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                              manualRecEdit
-                                ? 'border-amber-500/50 bg-amber-500/10 text-white'
-                                : 'border-slate-700 bg-slate-900 text-white hover:bg-slate-800'
+                            onClick={() => handleLanguageSwitch('ID')}
+                            className={`px-3 py-1 text-xs font-bold rounded ${
+                              commentsLang === 'ID' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
                             }`}
                           >
-                            {manualRecEdit
-                              ? (commentsLang === 'ID' ? 'Kunci Teks' : 'Lock Editing')
-                              : (commentsLang === 'ID' ? 'Edit Manual' : 'Edit Manual')}
+                            Bahasa
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleLanguageSwitch('EN')}
+                            className={`px-3 py-1 text-xs font-bold rounded ${
+                              commentsLang === 'EN' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            English
                           </button>
                         </div>
 
-                        {/* Save Assessment button moved up in the same line at far right position */}
+                        {/* Save Caption button moved up in the same line at far right position */}
                         <button
                           onClick={handleSaveAssessment}
                           disabled={savingCaption}
-                          className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50 ml-auto"
+                          className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50"
                         >
                           {savingCaption ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                          <span>{commentsLang === 'ID' ? 'Simpan Penilaian' : 'Save Assessment'}</span>
+                          <span>{commentsLang === 'ID' ? 'Simpan Caption' : 'Save Caption'}</span>
                         </button>
                       </div>
                     </div>

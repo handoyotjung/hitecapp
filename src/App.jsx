@@ -75,6 +75,25 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Sync active user session into whitelist_users for Admin Panel live monitoring
+  useEffect(() => {
+    if (user && user.email) {
+      try {
+        const cleanE = user.email.trim().toLowerCase();
+        const rawStore = localStorage.getItem('hitecmedia_mock_db');
+        let store = rawStore ? JSON.parse(rawStore) : {};
+        if (!store.whitelist_users) store.whitelist_users = {};
+        const u = store.whitelist_users[cleanE] || { role: user.role || 'user', plan: 'starter' };
+        u.session_token = u.session_token || 'tok_' + Math.random().toString(36).substring(2);
+        u.session_device_name = u.session_device_name || (navigator.userAgent.includes('Win') ? 'Windows PC - Chrome' : 'Assessor Device');
+        u.session_ip_address = u.session_ip_address || '127.0.0.1';
+        u.session_login_at = u.session_login_at || new Date().toISOString();
+        store.whitelist_users[cleanE] = u;
+        localStorage.setItem('hitecmedia_mock_db', JSON.stringify(store));
+      } catch (e) {}
+    }
+  }, [user]);
+
   // Periodic liveness check: verify session token still valid every 30 seconds
   useEffect(() => {
     if (!user || !user.token) return;

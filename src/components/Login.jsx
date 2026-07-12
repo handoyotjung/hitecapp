@@ -101,9 +101,6 @@ export default function Login({ onLoginSuccess, errorOverride }) {
           <p className="mt-1 text-xs font-bold text-emerald-400 uppercase tracking-wider">
             PT Safety Indonesia Utama
           </p>
-          <p className="mt-0.5 text-xs text-neutral-400">
-            ATEX Assessment & Compliance Services
-          </p>
         </div>
 
         {error && (
@@ -117,7 +114,7 @@ export default function Login({ onLoginSuccess, errorOverride }) {
         )}
 
         <div className="mt-6 space-y-5">
-          <form onSubmit={handleEmailLogin} className="space-y-4">
+          <form onSubmit={handleEmailLogin} className="space-y-4" autoComplete="off">
             <div>
               <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
               <div className="relative">
@@ -125,7 +122,8 @@ export default function Login({ onLoginSuccess, errorOverride }) {
                 <input
                   type="email"
                   required
-                  placeholder="assessor@hitec.id"
+                  autoComplete="off"
+                  placeholder=""
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-xl border border-neutral-800 bg-neutral-900/80 pl-10 pr-4 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500 transition-colors placeholder-neutral-600"
@@ -140,7 +138,8 @@ export default function Login({ onLoginSuccess, errorOverride }) {
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  placeholder=""
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl border border-neutral-800 bg-neutral-900/80 pl-10 pr-10 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500 transition-colors placeholder-neutral-600"
@@ -161,22 +160,24 @@ export default function Login({ onLoginSuccess, errorOverride }) {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 accent-emerald-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500/20"
                 />
-                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors select-none">Remember Me</span>
+                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">Remember device</span>
               </label>
-              <span className="text-xs text-emerald-400/80 font-medium">1 Active Session Guard</span>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/30 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+              className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 hover:from-emerald-500 hover:to-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50 transition-all active:scale-[0.99]"
             >
               {loading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Verifying Session...</span>
+                </div>
               ) : (
-                <span>Sign In</span>
+                "Sign In"
               )}
             </button>
           </form>
@@ -184,7 +185,7 @@ export default function Login({ onLoginSuccess, errorOverride }) {
 
         <div className="mt-8 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-          <span>© 2026 HITEC Solution • Enterprise Security</span>
+          <span>© 2026 HITEC Solution</span>
         </div>
       </div>
 

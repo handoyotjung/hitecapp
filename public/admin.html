@@ -228,11 +228,7 @@
     // Admin Core logic & default store defined first to avoid Temporal Dead Zone errors
     var defaultMockStore = {
       whitelist_users: {
-        "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
-        "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
-        "dummy@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "dummypassword", created_at: "2026-01-01" },
-        "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2026-01-01" },
-        "johan@example.com": { role: "user", company_id: "co_hitec", plan: "starter", password: "userpassword", created_at: "2026-01-01" }
+        "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" }
       },
       plan: {
         "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
@@ -249,7 +245,7 @@
         try {
           const parsed = JSON.parse(cached);
           store = { ...store, ...parsed };
-          store.whitelist_users = { ...store.whitelist_users, ...(parsed.whitelist_users || {}) };
+          store.whitelist_users = parsed.whitelist_users || {};
         } catch (e) {}
       }
       const oldCached = localStorage.getItem("hitec_store_v1");
