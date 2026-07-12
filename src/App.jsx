@@ -3,7 +3,7 @@ import { auth, db, onAuthStateChanged, signOut, doc, getDoc } from './firebase';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import SecurityPage from './components/SecurityPage';
-import { validateSession, getClientDeviceId, runSessionCleanupJob } from './sessionSecurity';
+import { validateSession, getClientDeviceId, runSessionCleanupJob, apiLogout, apiLogoutOtherDevices } from './sessionSecurity';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -18,16 +18,16 @@ export default function App() {
     runSessionCleanupJob();
 
     // Check localStorage session first
-    const localSessionRaw = localStorage.getItem('hitecmedia_session');
-    if (localSessionRaw) {
+    const localSession = localStorage.getItem('hitecmedia_session');
+    if (localSession) {
       try {
-        const parsed = JSON.parse(localSessionRaw);
+        const parsed = JSON.parse(localSession);
         if (parsed && parsed.email) {
           setUser(parsed);
           setLoading(false);
           return;
         }
-      } catch {
+      } catch (e) {
         // ignore
       }
     }
@@ -40,31 +40,31 @@ export default function App() {
           if (!firebaseUser.email) {
             throw new Error("Retrieve email from account failed.");
           }
-          
-          const docRef = doc(db, 'whitelist_users', firebaseUser.email.toLowerCase());
-          const docSnap = await getDoc(docRef);
-          
+
+          const userDocRef = doc(db, 'whitelist_users', firebaseUser.email.toLowerCase());
+          const docSnap = await getDoc(userDocRef);
+
           if (docSnap.exists()) {
-            const data = docSnap.data();
-            const userData = {
+            const userData = docSnap.data();
+            const sessionUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
-              role: data.role || 'user',
-              companyId: data.company_id || 'default_company'
+              role: userData.role || 'user',
+              companyId: userData.company_id || 'default_company'
             };
-            setUser(userData);
+            setUser(sessionUser);
           } else {
             await signOut(auth);
             setUser(null);
             setAuthError("Contact handoyo.tjung@gmail.com for access.");
           }
-        } catch (err) {
-          console.error("Auth sync error:", err);
+        } catch (error) {
+          console.error("Auth sync error:", error);
           await signOut(auth);
           setUser(null);
-          setAuthError(err.message || "Failed to verify account permissions.");
+          setAuthError(error.message || "Failed to verify account permissions.");
         }
       } else {
         setUser(null);
@@ -75,33 +75,39 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Periodic Single Active Session Middleware check (AUTO FORCE LOGOUT)
+  // Periodic liveness check: verify session token still valid every 30 seconds
   useEffect(() => {
     if (!user || !user.token) return;
-
     const interval = setInterval(async () => {
       const res = await validateSession({
         token: user.token,
         device_id: getClientDeviceId()
       });
-
       if (res.status === 403) {
         setForceLogoutNotice("Session terminated: Another device has logged into this account.");
-        handleLogout();
+        handleLogout(true);
       }
     }, 30000);
-
     return () => clearInterval(interval);
   }, [user]);
 
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
+  const handleLoginSuccess = (sessionData) => {
+    setUser(sessionData);
     setViewMode('dashboard');
     setForceLogoutNotice(null);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (silent = false) => {
+    if (silent !== true) {
+      const confirmed = window.confirm("Are u sure want to logout from this device?");
+      if (!confirmed) return;
+    }
+
     try {
+      if (user && user.email) {
+        await apiLogoutOtherDevices({ email: user.email });
+        await apiLogout({ email: user.email });
+      }
       await signOut(auth);
       localStorage.removeItem('hitecmedia_session');
       setUser(null);

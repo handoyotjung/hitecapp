@@ -1036,15 +1036,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           </div>
 
           <button
-            onClick={onOpenSecurity}
-            title="Profile & Enterprise Security Sessions"
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-semibold text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all active:scale-[0.98]"
-          >
-            <Shield className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Security</span>
-          </button>
-
-          <button
             onClick={onLogout}
             title="Logout"
             className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950/40 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-semibold text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 transition-all active:scale-[0.98]"
@@ -1405,11 +1396,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-sm">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <label className="text-xs font-bold text-slate-200 uppercase tracking-wide">
-                            OBSERVATION / OBSERVASI
+                          <label className="text-xs font-bold text-white uppercase tracking-wide">
+                            {commentsLang === 'ID' ? 'OBSERVASI (TEMUAN INSPEKSI)' : 'OBSERVATION (INSPECTION FINDING)'}
                           </label>
-                          <span className="text-[11px] text-slate-400">
-                            ({commentsText.split('\n').filter(Boolean).length}/5 lines)
+                          <span className="text-[11px] text-white/80 font-medium">
+                            ({commentsText.split('\n').filter(Boolean).length}/5 {commentsLang === 'ID' ? 'baris' : 'lines'})
                           </span>
                         </div>
 
@@ -1446,12 +1437,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         rows={5}
                         value={commentsText}
                         onChange={(e) => {
-                          const val = e.target.value;
-                          const lines = val.split('\n');
-                          if (lines.length > 5) {
-                            setCommentsText(lines.slice(0, 5).join('\n'));
+                          const lines = e.target.value.split('\n');
+                          if (lines.length <= 5) {
+                            setCommentsText(e.target.value);
                           } else {
-                            setCommentsText(val);
+                            setCommentsText(lines.slice(0, 5).join('\n'));
                           }
                         }}
                         placeholder={
@@ -1459,7 +1449,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             ? "1. APAR tekanan di zona merah\n2. Segel rusak"
                             : "1. Extinguisher pressure in red zone\n2. Seal broken"
                         }
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-none leading-relaxed"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none leading-relaxed"
                       />
 
                       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
@@ -1471,7 +1461,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1 text-xs font-semibold text-white transition-all disabled:opacity-50"
                           >
                             {aiGrammarChecking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                            <span>AI Grammar Check</span>
+                            <span>{commentsLang === 'ID' ? 'Periksa Tata Bahasa AI' : 'AI Grammar Check'}</span>
                           </button>
 
                           {commentsLang === 'ID' ? (
@@ -1480,7 +1470,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 type="button"
                                 onClick={() => handleAiGrammarCheck('Baku', 'ID')}
                                 disabled={aiGrammarChecking}
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
                               >
                                 Baku
                               </button>
@@ -1488,7 +1478,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 type="button"
                                 onClick={() => handleAiGrammarCheck('Teknis (ATEX NFPA oriented)', 'ID')}
                                 disabled={aiGrammarChecking}
-                                className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-900/50 hover:text-white transition-colors"
+                                className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-900/50 transition-colors"
                               >
                                 Teknis (ATEX NFPA oriented)
                               </button>
@@ -1496,7 +1486,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 type="button"
                                 onClick={() => handleAiGrammarCheck('Profesional', 'ID')}
                                 disabled={aiGrammarChecking}
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
                               >
                                 Profesional
                               </button>
@@ -1507,7 +1497,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 type="button"
                                 onClick={() => handleAiGrammarCheck('Baku', 'EN')}
                                 disabled={aiGrammarChecking}
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
                               >
                                 Standard
                               </button>
@@ -1515,7 +1505,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 type="button"
                                 onClick={() => handleAiGrammarCheck('Technical (ATEX NFPA)', 'EN')}
                                 disabled={aiGrammarChecking}
-                                className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-900/50 hover:text-white transition-colors"
+                                className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-900/50 transition-colors"
                               >
                                 Technical (ATEX NFPA)
                               </button>
@@ -1523,7 +1513,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 type="button"
                                 onClick={() => handleAiGrammarCheck('Professional', 'EN')}
                                 disabled={aiGrammarChecking}
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
                               >
                                 Professional
                               </button>
@@ -1535,18 +1525,24 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
                     {/* CARD B: ASSESSOR RECOMMENDATION - AI Fire Safety Assessor */}
                     <div className="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-4 shadow-sm">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2 mb-2.5">
                         <div className="flex items-center gap-2">
-                          <label className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
-                            RECOMMENDATION - AI Fire Safety Assessor
+                          <label className="text-xs font-bold text-white uppercase tracking-wide">
+                            {commentsLang === 'ID'
+                              ? 'REKOMENDASI - AI FIRE SAFETY ASSESSOR'
+                              : 'RECOMMENDATION - AI FIRE SAFETY ASSESSOR'}
                           </label>
                         </div>
-                      </div>
 
-                      {/* Standard Certification Badge */}
-                      <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-700/50 px-3 py-1 text-[11px] font-semibold text-emerald-300">
-                        <Shield className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>Powered by NFPA 10, NFPA 25, SNI 03-3985-2000</span>
+                        {/* Standard Certification Badge moved to right side of AI Fire Safety Assessor */}
+                        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-700/50 px-3 py-1 text-[11px] font-semibold text-white">
+                          <Shield className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                          <span>
+                            {commentsLang === 'ID'
+                              ? 'Didukung oleh NFPA 10, NFPA 25, SNI 03-3985-2000'
+                              : 'Powered by NFPA 10, NFPA 25, SNI 03-3985-2000'}
+                          </span>
+                        </div>
                       </div>
 
                       <textarea
@@ -1563,10 +1559,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             ? "[CRITICAL] Ganti APAR karena tekanan di zona merah. Ref: SNI 03-3985-2000 Pasal 5.2"
                             : "[CRITICAL] Replace fire extinguisher immediately. Ref: NFPA 10 Sec 6.1.3.1"
                         }
-                        className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors resize-none leading-relaxed ${
+                        className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-white font-medium outline-none transition-colors resize-none leading-relaxed ${
                           manualRecEdit
-                            ? 'border-emerald-500 bg-slate-950 text-slate-100'
-                            : 'border-slate-800 bg-slate-950/60 text-slate-300 cursor-default'
+                            ? 'border-emerald-500 bg-slate-950 text-white'
+                            : 'border-slate-800 bg-slate-950/60 text-white cursor-default'
                         }`}
                       />
 
@@ -1579,16 +1575,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
                           >
                             {aiGeneratingRec ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                            <span>Generate Recommendation</span>
+                            <span>{commentsLang === 'ID' ? 'Buat Rekomendasi' : 'Generate Recommendation'}</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={handleGenerateRecommendation}
                             disabled={aiGeneratingRec}
-                            className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors"
+                            className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-white transition-colors"
                           >
-                            Regenerate
+                            {commentsLang === 'ID' ? 'Buat Ulang' : 'Regenerate'}
                           </button>
 
                           <button
@@ -1596,11 +1592,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             onClick={() => setManualRecEdit(!manualRecEdit)}
                             className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                               manualRecEdit
-                                ? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
-                                : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
+                                ? 'border-amber-500/50 bg-amber-500/10 text-white'
+                                : 'border-slate-700 bg-slate-900 text-white hover:bg-slate-800'
                             }`}
                           >
-                            {manualRecEdit ? "Lock Editing" : "Edit Manual"}
+                            {manualRecEdit
+                              ? (commentsLang === 'ID' ? 'Kunci Teks' : 'Lock Editing')
+                              : (commentsLang === 'ID' ? 'Edit Manual' : 'Edit Manual')}
                           </button>
                         </div>
 
@@ -1611,7 +1609,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50 ml-auto"
                         >
                           {savingCaption ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                          <span>Save Assessment</span>
+                          <span>{commentsLang === 'ID' ? 'Simpan Penilaian' : 'Save Assessment'}</span>
                         </button>
                       </div>
                     </div>

@@ -129,6 +129,48 @@
         </div>
       </div>
 
+      <!-- FULL WIDTH ROW: Live Online Assessor Sessions -->
+      <div class="lg:col-span-3 space-y-6">
+        <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Live Online Assessor Sessions (Enterprise Active Sessions)
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Monitor real-time active logins across all assessor accounts. Enforces 1 active session per account.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span id="active-sessions-count" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400 border border-emerald-500/30">
+                <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                0 Online
+              </span>
+              <button onclick="adminForceLogoutAllSessions()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md">
+                Terminate All Sessions
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                  <th class="pb-3 pr-2">Assessor Account</th>
+                  <th class="pb-3 px-2">Role</th>
+                  <th class="pb-3 px-2">Device & Browser</th>
+                  <th class="pb-3 px-2">IP Address</th>
+                  <th class="pb-3 px-2">Login Time / Last Activity</th>
+                  <th class="pb-3 pl-2 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="online-sessions-body" class="divide-y divide-slate-800/60">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- FULL WIDTH ROW: Security Events & Email Alerts (admin@hitec.id) -->
       <div class="lg:col-span-3 space-y-6">
         <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col">
@@ -293,7 +335,165 @@
     function initAdminPanel() {
       document.getElementById('user-expires').value = '';
       renderUsers();
+      renderOnlineSessions();
       loadEmailAlerts();
+    }
+
+    function renderOnlineSessions() {
+      const store = loadStore();
+      const tbody = document.getElementById('online-sessions-body');
+      const countEl = document.getElementById('active-sessions-count');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const users = store.whitelist_users || {};
+      const activeEmailsSet = new Set();
+
+      // 1. Check whitelist_users with active session_token
+      Object.keys(users).forEach(e => {
+        if (users[e] && users[e].session_token) {
+          activeEmailsSet.add(e.toLowerCase());
+        }
+      });
+
+      // 2. Check hitec_user_sessions_v1 table
+      try {
+        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
+        if (rawSessions) {
+          const sessions = JSON.parse(rawSessions);
+          sessions.forEach(s => {
+            if (s && s.status === 'ACTIVE' && s.user_id) {
+              activeEmailsSet.add(s.user_id.toLowerCase());
+            }
+          });
+        }
+      } catch (e) {}
+
+      // 3. Check current browser active hitecmedia_session
+      try {
+        const currentSessionRaw = localStorage.getItem('hitecmedia_session');
+        if (currentSessionRaw) {
+          const currentSession = JSON.parse(currentSessionRaw);
+          if (currentSession && currentSession.email) {
+            const cleanE = currentSession.email.toLowerCase();
+            activeEmailsSet.add(cleanE);
+            // Ensure whitelist user has session_token set
+            if (users[cleanE] && !users[cleanE].session_token) {
+              users[cleanE].session_token = currentSession.token || 'active_local_session';
+              users[cleanE].session_login_at = users[cleanE].session_login_at || new Date().toISOString();
+              saveStore(store);
+            }
+          }
+        }
+      } catch (e) {}
+
+      const activeEmails = Array.from(activeEmailsSet);
+
+      if (countEl) {
+        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${activeEmails.length} Online`;
+      }
+
+      if (activeEmails.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-400 font-medium">
+              No assessors are currently logged in online.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      activeEmails.forEach(email => {
+        const u = users[email] || { role: 'user' };
+        const roleBadge = u.role === 'super_admin' 
+          ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Super Admin</span>'
+          : u.role === 'admin'
+          ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Admin</span>'
+          : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
+
+        const deviceName = u.session_device_name || 'Windows PC - Assessor Device';
+        const ipAddress = u.session_ip_address || '127.0.0.1';
+        const loginAt = u.session_login_at ? new Date(u.session_login_at).toLocaleString() : 'Active Now';
+
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors';
+        tr.innerHTML = `
+          <td class="py-3.5 pr-2">
+            <p class="font-bold text-white">${email}</p>
+          </td>
+          <td class="py-3.5 px-2">
+            ${roleBadge}
+          </td>
+          <td class="py-3.5 px-2 font-medium text-slate-300">
+            ${deviceName}
+          </td>
+          <td class="py-3.5 px-2 font-mono text-emerald-400">
+            ${ipAddress}
+          </td>
+          <td class="py-3.5 px-2 text-slate-400">
+            ${loginAt}
+          </td>
+          <td class="py-3.5 pl-2 text-right">
+            <button onclick="adminForceLogoutSession('${email}')" class="rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-600 px-3 py-1 text-xs font-bold text-rose-400 hover:text-white transition-all">
+              Force Logout
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function adminForceLogoutSession(email) {
+      if (!confirm(`Are you sure you want to terminate the active online session for ${email}?`)) return;
+      const store = loadStore();
+      if (store.whitelist_users && store.whitelist_users[email]) {
+        store.whitelist_users[email].session_token = null;
+      }
+      saveStore(store);
+
+      try {
+        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
+        if (rawSessions) {
+          const sessions = JSON.parse(rawSessions);
+          sessions.forEach(s => {
+            if (s.user_id === email && s.status === 'ACTIVE') {
+              s.status = 'FORCED_LOGOUT';
+              s.logout_at = new Date().toISOString();
+            }
+          });
+          localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(sessions));
+        }
+      } catch (e) {}
+
+      renderOnlineSessions();
+    }
+
+    function adminForceLogoutAllSessions() {
+      if (!confirm("Are you sure you want to terminate all active assessor sessions?")) return;
+      const store = loadStore();
+      Object.keys(store.whitelist_users || {}).forEach(email => {
+        if (store.whitelist_users[email]) {
+          store.whitelist_users[email].session_token = null;
+        }
+      });
+      saveStore(store);
+
+      try {
+        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
+        if (rawSessions) {
+          const sessions = JSON.parse(rawSessions);
+          sessions.forEach(s => {
+            if (s.status === 'ACTIVE') {
+              s.status = 'FORCED_LOGOUT';
+              s.logout_at = new Date().toISOString();
+            }
+          });
+          localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(sessions));
+        }
+      } catch (e) {}
+
+      renderOnlineSessions();
     }
 
     function renderUsers() {
