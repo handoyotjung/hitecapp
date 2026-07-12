@@ -981,17 +981,44 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         }))
       ];
       
+      // MANDATORY PRE-CONDITION: Frontend converts all image files to base64 before export call
+      const urlToBase64 = async (url) => {
+        if (!url) return '';
+        if (url.startsWith('data:image/')) return url;
+        try {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          return await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return '';
+        }
+      };
+
+      const photosWithBase64 = await Promise.all(photosWithUrls.map(async (p) => {
+        const base64Str = p.base64 || await urlToBase64(p.localUrl || p.url || p.thumbnailUrl);
+        return {
+          ...p,
+          base64: base64Str
+        };
+      }));
+
       const response = await exportFn({ 
         project_id: selectedProject.id,
         project_name: selectedProject.name || 'Project',
         selected_photos: selectedPhotos,
-        photos_data: photosWithUrls
+        photos_data: photosWithBase64,
+        photos: photosWithBase64
       });
-      const { downloadUrl } = response.data;
+      const { downloadUrl, valid } = response.data || {};
       
       if (downloadUrl) {
         window.open(downloadUrl, '_blank');
-      } else if (!isMockMode) {
+      } else if (!valid && !isMockMode && downloadUrl !== "") {
         throw new Error("No download URL returned.");
       }
     } catch (err) {
