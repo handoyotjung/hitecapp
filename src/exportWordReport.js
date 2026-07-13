@@ -13,7 +13,92 @@ import {
 } from 'docx';
 import { saveAs } from 'file-saver';
 
-// SAFE BASE64 TO BYTES CONVERTER
+// HELPER 1: 2 COLUMN TABLE (70% / 30%)
+function createTwoColTable(label, value, labelColor, valueColor) {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 70, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: String(label || ''),
+                    color: "FFFFFF",
+                    size: 22
+                  })
+                ]
+              })
+            ],
+            shading: { fill: labelColor }
+          }),
+          new TableCell({
+            width: { size: 30, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: String(value || ''),
+                    color: "FFFFFF",
+                    bold: true,
+                    size: 22
+                  })
+                ]
+              })
+            ],
+            shading: { fill: valueColor }
+          })
+        ]
+      })
+    ]
+  });
+}
+
+// HELPER 2: GET IMAGE SIZE FOR ASPECT RATIO
+function getImageSize(bytes) {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.width || 500, height: img.height || 300 });
+      img.onerror = () => resolve({ width: 500, height: 300 });
+      const blob = new Blob([bytes]);
+      img.src = URL.createObjectURL(blob);
+    } catch {
+      resolve({ width: 500, height: 300 });
+    }
+  });
+}
+
+// HELPER 3: DARK ROW & BULLET
+function createDarkRow(text, bold = false) {
+  return new Paragraph({
+    children: [
+      new TextRun({
+        text: String(text || ''),
+        color: "FFFFFF",
+        bold: bold,
+        size: 22
+      })
+    ]
+  });
+}
+
+function createDarkBullet(text) {
+  return new Paragraph({
+    children: [
+      new TextRun({
+        text: `- ${String(text || '')}`,
+        color: "FFFFFF",
+        size: 22
+      })
+    ]
+  });
+}
+
+// HELPER 4: SAFE BASE64 TO BYTES
 function base64ToBytes(base64Str) {
   if (!base64Str) return new Uint8Array();
   const parts = base64Str.split(',');
@@ -31,7 +116,7 @@ function base64ToBytes(base64Str) {
   }
 }
 
-// SAFE URL TO BASE64 CONVERTER IF BASE64 NOT CACHED
+// HELPER 5: SAFE URL TO BASE64 CONVERTER IF BASE64 NOT CACHED
 async function ensurePhotoBase64(photo) {
   if (photo.annotatedBase64) return photo.annotatedBase64;
   if (photo.base64) return photo.base64;
@@ -50,120 +135,6 @@ async function ensurePhotoBase64(photo) {
   } catch {
     return '';
   }
-}
-
-// HELPER FUNCTIONS FOR WORD DOCX STRUCTURE
-function createDarkRow(text, bold = false) {
-  return new Paragraph({
-    children: [
-      new TextRun({
-        text: String(text || ''),
-        color: "FFFFFF",
-        bold: bold,
-        size: 22
-      })
-    ],
-    shading: {
-      fill: "2B2B2B"
-    }
-  });
-}
-
-function createDarkBullet(text) {
-  return new Paragraph({
-    children: [
-      new TextRun({
-        text: `- ${String(text || '')}`,
-        color: "FFFFFF",
-        size: 22
-      })
-    ],
-    shading: {
-      fill: "2B2B2B"
-    }
-  });
-}
-
-function createGradeTable(label, value) {
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: String(label || ''),
-                    color: "FFFFFF",
-                    size: 22
-                  })
-                ]
-              })
-            ],
-            shading: { fill: "404040" }
-          }),
-          new TableCell({
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: String(value || ''),
-                    color: "FFFFFF",
-                    bold: true,
-                    size: 22
-                  })
-                ]
-              })
-            ],
-            shading: { fill: "7A7A00" }
-          })
-        ]
-      })
-    ]
-  });
-}
-
-function createStatusTable(label, value) {
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: String(label || ''),
-                    color: "FFFFFF",
-                    size: 22
-                  })
-                ]
-              })
-            ],
-            shading: { fill: "404040" }
-          }),
-          new TableCell({
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: String(value || ''),
-                    color: "FFFFFF",
-                    bold: true,
-                    size: 22
-                  })
-                ]
-              })
-            ],
-            shading: { fill: "404040" }
-          })
-        ]
-      })
-    ]
-  });
 }
 
 export async function handleExportWord(project, queue = [], selectedPhotos = []) {
@@ -195,20 +166,29 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
 
   // Use for...of loop to avoid UI hangs
   for (const photo of photosToExport) {
+    // 1. GET IMAGE DIMENSIONS FOR ASPECT RATIO
+    const rawBase64 = photo.annotatedBase64 || photo.base64 || await ensurePhotoBase64(photo);
+    const imgData = base64ToBytes(rawBase64);
+    const { width, height } = await getImageSize(imgData);
+    const maxWidth = 500;
+    const ratio = (width > 0 && height > 0) ? (height / width) : 0.6;
+    const finalWidth = Math.min(width || maxWidth, maxWidth);
+    const finalHeight = Math.round(finalWidth * ratio);
+
     const gradeShort = photo.grade ? photo.grade.split(' - ')[0] : 'F2';
 
-    // 1. IMAGE (centered, full width 468x260)
-    const rawBase64 = photo.annotatedBase64 || photo.base64 || await ensurePhotoBase64(photo);
-    const imgBytes = base64ToBytes(rawBase64);
+    // 2. BUILD CONTENT FOR 1 PHOTO
+    const photoContent = [];
 
-    if (imgBytes && imgBytes.length > 0) {
-      const imgType = (imgBytes[0] === 0x89 && imgBytes[1] === 0x50) ? "png" : "jpg";
-      docChildren.push(
+    // IMAGE
+    if (imgData && imgData.length > 0) {
+      const imgType = (imgData[0] === 0x89 && imgData[1] === 0x50) ? "png" : "jpg";
+      photoContent.push(
         new Paragraph({
           children: [
             new ImageRun({
-              data: imgBytes,
-              transformation: { width: 468, height: 260 },
+              data: imgData,
+              transformation: { width: finalWidth, height: finalHeight },
               type: imgType
             })
           ],
@@ -219,57 +199,74 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
 
     const filenameText = photo.filename || 'IMG.jpg';
     const dateText = photo.date || new Date().toISOString().split('T')[0];
-    const standardsText = photo.standards || photo.standard || 'ATEX Directive 2014/34/EU';
-    const locationText = photo.location || photo.area || 'Site Area';
-    const komentarText = photo.komentar || photo.caption || photo.observation || 'No comments';
+    const standardsText = photo.standards || photo.standard || '-';
+    const locationText = photo.location || project.location || 'Site';
 
+    photoContent.push(createDarkRow(`${filenameText}, ${dateText}`, true));
+    photoContent.push(createDarkRow(`Standard references ${standardsText}`));
+    photoContent.push(createDarkRow(`Location: ${locationText}`, true));
+
+    photoContent.push(createDarkRow(isEnglish ? "Comments:" : "KOMENTAR:", true));
+    const komLines = typeof (photo.komentar || photo.caption || photo.observation) === 'string'
+      ? (photo.komentar || photo.caption || photo.observation).split('\n').map(l => l.trim()).filter(Boolean)
+      : [];
+    const finalKomLines = komLines.length > 0 ? komLines : ["No comments noted."];
+    finalKomLines.forEach(line => {
+      if (line) photoContent.push(createDarkBullet(line));
+    });
+
+    // GRADE TABLE 70/30
+    photoContent.push(
+      createTwoColTable(
+        isEnglish ? "Grades Priority" : "Tingkat Prioritas",
+        gradeShort,
+        "404040",
+        "7A7A00"
+      )
+    );
+
+    photoContent.push(createDarkRow(isEnglish ? "Recommendation:" : "REKOMENDASI:", true));
     let recs = photo.rekomendasi || photo.recommendation || photo.recommendations_json || photo.recommendations;
     if (typeof recs === 'string') {
       recs = recs.split('\n').map(r => r.trim()).filter(Boolean);
     }
     if (!Array.isArray(recs) || recs.length === 0) {
-      recs = [photo.rekomendasi || photo.recommendation || "No specific recommendation noted."];
+      recs = [photo.rekomendasi || photo.recommendation || "No recommendation noted."];
     }
+    recs.forEach(line => {
+      if (line) photoContent.push(createDarkBullet(line));
+    });
 
-    // 2. TITLE: {filename}, {date}
-    docChildren.push(createDarkRow(`${filenameText}, ${dateText}`, true));
-
-    // 3. STANDARDS: Standard references {standards}
-    docChildren.push(createDarkRow(`Standard references ${standardsText}`));
-
-    // 4. LOCATION: Location: {location}
-    docChildren.push(createDarkRow(`Location: ${locationText}`, true));
-
-    // 5. KOMENTAR / COMMENTS
-    docChildren.push(createDarkRow(isEnglish ? "Comments:" : "KOMENTAR:", true));
-    const komLines = typeof komentarText === 'string'
-      ? komentarText.split('\n').map(l => l.trim()).filter(Boolean)
-      : [String(komentarText)];
-    const finalKomLines = komLines.length > 0 ? komLines : ["No comments noted."];
-    for (const line of finalKomLines) {
-      docChildren.push(createDarkBullet(line));
-    }
-
-    // 6. GRADE TABLE
-    docChildren.push(
-      createGradeTable(isEnglish ? "Grades Priority" : "Tingkat Prioritas", gradeShort)
+    // STATUS TABLE 70/30
+    photoContent.push(
+      createTwoColTable(
+        isEnglish ? "Latest status" : "Status Terbaru",
+        "Open",
+        "404040",
+        "404040"
+      )
     );
 
-    // 7. REKOMENDASI / RECOMMENDATION
-    docChildren.push(createDarkRow(isEnglish ? "Recommendation:" : "REKOMENDASI:", true));
-    for (const rec of recs) {
-      docChildren.push(createDarkBullet(rec));
+    // 3. WRAP EVERYTHING IN 1 DARK CONTAINER TABLE WITH 10PT PADDING
+    const containerTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              children: photoContent,
+              shading: { fill: "2B2B2B" },
+              margins: { top: 144, bottom: 144, left: 144, right: 144 } // ~10pt padding
+            })
+          ]
+        })
+      ]
+    });
+    docChildren.push(containerTable);
+
+    if (photo !== photosToExport[photosToExport.length - 1]) {
+      docChildren.push(new Paragraph({ children: [new PageBreak()] }));
     }
-
-    // 8. STATUS TABLE
-    docChildren.push(createStatusTable(isEnglish ? "Latest status" : "Status Terbaru", "Open"));
-
-    // 9. PAGE BREAK after each photo
-    docChildren.push(
-      new Paragraph({
-        children: [new PageBreak()]
-      })
-    );
   }
 
   const doc = new Document({
