@@ -15,6 +15,7 @@ import {
 import UploadZone from './UploadZone';
 import { UpgradeModal } from './UpgradeModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck } from '../aiAssessor';
+import AnnotatedImageCanvas from './AnnotatedImageCanvas';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -964,6 +965,31 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
   const handleSaveCaption = handleSaveAssessment;
 
+  const handleSaveAnnotatedImage = async (photo, dataURL, annotationsObj) => {
+    if (!photo) return;
+    const updatePayload = {
+      annotatedBase64: dataURL,
+      annotations: annotationsObj
+    };
+    setProjectPhotos(prev => prev.map(p => 
+      (p.id && p.id === photo.id) || p.filename === photo.filename ? { ...p, ...updatePayload } : p
+    ));
+    if (selectedProject) {
+      const updatedPhotos = (selectedProject.photos || []).map(p =>
+        (p.id && p.id === photo.id) || p.filename === photo.filename ? { ...p, ...updatePayload } : p
+      );
+      setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
+      updateDoc(doc(db, 'projects', selectedProject.id), { photos: updatedPhotos }).catch(() => {});
+    }
+    if (photo.id) {
+      try {
+        await updateDoc(doc(db, 'photos', photo.id), updatePayload);
+      } catch (e) {
+        console.error("Error saving annotations to Firestore:", e);
+      }
+    }
+  };
+
   const handleExport = async (format) => {
     if (!selectedProject) return;
     setExportError(null);
@@ -1450,20 +1476,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           <div className={`flex-1 flex-col overflow-hidden p-4 md:p-6 ${
             activeTab === 'editor' ? 'flex' : 'hidden md:flex'
           }`}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Caption Editor</h2>
-              <button
-                type="button"
-                onClick={handleRefreshPhotoOrder}
-                disabled={!selectedProject || projectPhotos.length === 0}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-all active:scale-95 disabled:opacity-40"
-                title="Sync preview order with updated photo list"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                <span>Refresh</span>
-              </button>
-            </div>
-
             {!selectedProject ? (
               <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600">
                 <Folder className="h-10 w-10 stroke-1 mb-2 text-slate-500" />
@@ -1484,34 +1496,39 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   </div>
                 ) : (
                   <>
-                    {/* Carousel Viewer (Height half of width size -> aspect-[2/1]) */}
-                    <div className="w-full aspect-[2/1] relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden flex items-center justify-center group shrink-0">
-                      <img 
-                        src={projectPhotos[editorIndex]?.base64 || queue.find(q => q.finalFilename === projectPhotos[editorIndex]?.filename)?.thumbnailUrl || projectPhotos[editorIndex]?.url} 
-                        alt="active editor audit" 
-                        className="max-h-full max-w-full object-contain p-2" 
+                    {/* Annotated Image Canvas with Toolbar & Navigation Overlay */}
+                    <div className="w-full relative flex flex-col group shrink-0">
+                      <AnnotatedImageCanvas
+                        photo={projectPhotos[editorIndex]}
+                        onSaveAnnotatedImage={handleSaveAnnotatedImage}
+                        stageWidth={800}
+                        stageHeight={450}
                       />
 
-                      {/* Left arrow */}
+                      {/* Left arrow overlay */}
                       <button
+                        type="button"
                         disabled={editorIndex === 0}
                         onClick={() => setEditorIndex(prev => prev - 1)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md"
+                        title="Previous photo"
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </button>
 
-                      {/* Right arrow */}
+                      {/* Right arrow overlay */}
                       <button
+                        type="button"
                         disabled={editorIndex === projectPhotos.length - 1}
                         onClick={() => setEditorIndex(prev => prev + 1)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md"
+                        title="Next photo"
                       >
                         <ChevronRight className="h-5 w-5" />
                       </button>
 
                       {/* Index badge */}
-                      <span className="absolute top-4 right-4 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400">
+                      <span className="absolute top-16 right-4 z-10 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400 pointer-events-none">
                         {editorIndex + 1} / {projectPhotos.length}
                       </span>
                     </div>

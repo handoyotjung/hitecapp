@@ -789,7 +789,7 @@ export const httpsCallable = (functionsInstance, name) => {
           });
 
           // 4. Left 45%: Image with original ratio (no stretching)
-          const rawImgSrc = photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null);
+          const rawImgSrc = photo.annotatedBase64 || photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null);
           if (rawImgSrc) {
             const dims = await getImageSizePx(rawImgSrc);
             const boxW = 4.3;
@@ -988,7 +988,7 @@ export const handleExportExcel = async (project) => {
     }
 
     // Left Col A-E: Insert Image synchronously
-    const rawBase64 = photo.base64 || "";
+    const rawBase64 = photo.annotatedBase64 || photo.base64 || "";
     const base64Parts = rawBase64.split(",");
     const pureBase64 = base64Parts.length > 1 ? base64Parts[1] : rawBase64;
     if (pureBase64) {
