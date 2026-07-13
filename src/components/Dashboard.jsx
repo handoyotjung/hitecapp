@@ -16,6 +16,7 @@ import UploadZone from './UploadZone';
 import { UpgradeModal } from './UpgradeModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
+import { handleExportWord } from '../exportWordReport';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -157,9 +158,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }, 400);
   };
 
-  // Exporters loading state
   const [exportingPPTX, setExportingPPTX] = useState(false);
   const [exportingXLSX, setExportingXLSX] = useState(false);
+  const [exportingDOCX, setExportingDOCX] = useState(false);
   const [exportError, setExportError] = useState(null);
 
   // Custom testing selection states
@@ -1082,6 +1083,20 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
   };
 
+  const onExportWordClick = async () => {
+    if (!selectedProject) return;
+    setExportError(null);
+    setExportingDOCX(true);
+    try {
+      await handleExportWord(selectedProject, queue, selectedPhotos);
+    } catch (err) {
+      console.error("Error exporting Word report:", err);
+      setExportError(`Word export failed: ${err.message || 'Error'}`);
+    } finally {
+      setExportingDOCX(false);
+    }
+  };
+
   const handleRemove = async () => {
     let photosToDelete = [];
     if (allDoneSelected) {
@@ -1673,8 +1688,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                     </div>
                   )}
 
-                  {/* 3 Square Buttons with Big Icons */}
-                  <div className="grid grid-cols-3 gap-3">
+                  {/* 4 Square Buttons with Big Icons */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {/* 1. Yellow/Blue Confirm Square Button */}
                     <button
                       type="button"
@@ -1713,7 +1728,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Powerpoint</span>
                     </button>
 
-                    {/* 3. Green Excel Square Button with Big Icon */}
+                    {/* 3. Dark Blue Word Report Square Button with Big Icon */}
+                    <button
+                      onClick={onExportWordClick}
+                      disabled={exportingDOCX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
+                      className="aspect-square sm:h-24 sm:aspect-auto rounded-2xl bg-[#1E3A8A] hover:bg-blue-800 flex flex-col items-center justify-center gap-2 p-3 text-xs font-bold text-white shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      {exportingDOCX ? (
+                        <Loader2 className="h-8 w-8 animate-spin shrink-0" />
+                      ) : (
+                        <FileText className="h-8 w-8 shrink-0 text-blue-200" />
+                      )}
+                      <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Word Report</span>
+                    </button>
+
+                    {/* 4. Green Excel Square Button with Big Icon */}
                     <button
                       onClick={() => handleExport('xlsx')}
                       disabled={exportingXLSX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
