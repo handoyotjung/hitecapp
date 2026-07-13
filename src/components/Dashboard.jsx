@@ -1480,6 +1480,96 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 })}
               </div>
             )}
+
+            {/* Publish & Export Section — Moved to Left Column below Upload Queue */}
+            {selectedProject && (
+              <div className="border-t border-slate-800 bg-slate-900/40 p-4 shrink-0">
+                <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
+                  Publish "{selectedProject.name}"
+                </h2>
+
+                {exportError && (
+                  <div className="mb-3 flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs text-rose-300">
+                    <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+                    <span>{exportError}</span>
+                  </div>
+                )}
+
+                {/* 4 Square Buttons with Big Icons */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {/* 1. Yellow/Blue Confirm Square Button */}
+                  <button
+                    type="button"
+                    onClick={() => setConfirmedExports(true)}
+                    disabled={selectedPhotos.length === 0}
+                    className={`aspect-square sm:h-20 sm:aspect-auto rounded-2xl flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold transition-all active:scale-[0.98] ${
+                      selectedPhotos.length === 0
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50'
+                        : confirmedExports
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                          : 'bg-yellow-500 hover:bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/15'
+                    }`}
+                  >
+                    <Check className="h-6 w-6 stroke-[3px] shrink-0" />
+                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">
+                      {confirmedExports ? "Confirmed" : "Confirm"} ({selectedPhotos.length})
+                    </span>
+                  </button>
+
+                  {/* 2. Red PowerPoint Square Button with Big Icon */}
+                  <button
+                    onClick={() => handleExport('pptx')}
+                    disabled={exportingPPTX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
+                    className="aspect-square sm:h-20 sm:aspect-auto rounded-2xl bg-rose-600 hover:bg-rose-500 flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold text-white shadow-lg shadow-rose-500/15 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    {exportingPPTX ? (
+                      <Loader2 className="h-6 w-6 animate-spin shrink-0" />
+                    ) : (
+                      <svg className="h-6 w-6 shrink-0" viewBox="0 0 32 32" fill="none">
+                        <rect x="2" y="4" width="28" height="24" rx="4" fill="white" fillOpacity="0.2" />
+                        <rect x="5" y="7" width="13" height="18" rx="2" fill="white" />
+                        <path d="M9 11h3.8c1.2 0 2.2.9 2.2 2.1 0 1.2-1 2.1-2.2 2.1H11v3.8H9V11zm2 2.6h1.8c.3 0 .6-.2.6-.6 0-.3-.3-.6-.6-.6H11v1.2z" fill="#e11d48"/>
+                        <path d="M21 11h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="white"/>
+                      </svg>
+                    )}
+                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Powerpoint</span>
+                  </button>
+
+                  {/* 3. Dark Blue Word Report Square Button with Big Icon */}
+                  <button
+                    onClick={onExportWordClick}
+                    disabled={exportingDOCX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
+                    className="aspect-square sm:h-20 sm:aspect-auto rounded-2xl bg-[#1E3A8A] hover:bg-blue-800 flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold text-white shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    {exportingDOCX ? (
+                      <Loader2 className="h-6 w-6 animate-spin shrink-0" />
+                    ) : (
+                      <FileText className="h-6 w-6 shrink-0 text-blue-200" />
+                    )}
+                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Word Report</span>
+                  </button>
+
+                  {/* 4. Green Excel Square Button with Big Icon */}
+                  <button
+                    onClick={() => handleExport('xlsx')}
+                    disabled={exportingXLSX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
+                    className="aspect-square sm:h-20 sm:aspect-auto rounded-2xl bg-emerald-600 hover:bg-emerald-500 flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/15 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    {exportingXLSX ? (
+                      <Loader2 className="h-6 w-6 animate-spin shrink-0" />
+                    ) : (
+                      <svg className="h-6 w-6 shrink-0" viewBox="0 0 32 32" fill="none">
+                        <rect x="2" y="4" width="28" height="24" rx="4" fill="white" fillOpacity="0.2" />
+                        <rect x="5" y="7" width="13" height="18" rx="2" fill="white" />
+                        <path d="M8.8 19l2.4-3.8-2.2-3.7h2.2l1.1 2.2 1.1-2.2h2.1l-2.2 3.7 2.4 3.8h-2.2l-1.3-2.4-1.3 2.4H8.8z" fill="#059669"/>
+                        <path d="M21 11h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="white"/>
+                      </svg>
+                    )}
+                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Excel</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1671,97 +1761,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                     </div>
                   </>
                 )}
-
-                {/* Publish & Export Section — always rendered once a project is selected,
-                    regardless of photo count. Buttons handle their own disabled state below. */}
-                <div className={`rounded-2xl border border-slate-800 bg-slate-900/40 p-4 shrink-0 ${
-                  activeTab === 'export' ? 'block' : 'hidden md:block'
-                }`}>
-                  <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
-                    Publish {selectedProject ? `"${selectedProject.name}"` : ""}
-                  </h2>
-
-                  {exportError && (
-                    <div className="mb-3 flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs text-rose-300">
-                      <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-                      <span>{exportError}</span>
-                    </div>
-                  )}
-
-                  {/* 4 Square Buttons with Big Icons */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {/* 1. Yellow/Blue Confirm Square Button */}
-                    <button
-                      type="button"
-                      onClick={() => setConfirmedExports(true)}
-                      disabled={selectedPhotos.length === 0}
-                      className={`aspect-square sm:h-24 sm:aspect-auto rounded-2xl flex flex-col items-center justify-center gap-2 p-3 text-xs font-bold transition-all active:scale-[0.98] ${
-                        selectedPhotos.length === 0
-                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50'
-                          : confirmedExports
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                            : 'bg-yellow-500 hover:bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/15'
-                      }`}
-                    >
-                      <Check className="h-8 w-8 stroke-[3px] shrink-0" />
-                      <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">
-                        {confirmedExports ? "Confirmed" : "Confirm"} ({selectedPhotos.length})
-                      </span>
-                    </button>
-
-                    {/* 2. Red PowerPoint Square Button with Big Icon */}
-                    <button
-                      onClick={() => handleExport('pptx')}
-                      disabled={exportingPPTX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
-                      className="aspect-square sm:h-24 sm:aspect-auto rounded-2xl bg-rose-600 hover:bg-rose-500 flex flex-col items-center justify-center gap-2 p-3 text-xs font-bold text-white shadow-lg shadow-rose-500/15 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      {exportingPPTX ? (
-                        <Loader2 className="h-8 w-8 animate-spin shrink-0" />
-                      ) : (
-                        <svg className="h-8 w-8 shrink-0" viewBox="0 0 32 32" fill="none">
-                          <rect x="2" y="4" width="28" height="24" rx="4" fill="white" fillOpacity="0.2" />
-                          <rect x="5" y="7" width="13" height="18" rx="2" fill="white" />
-                          <path d="M9 11h3.8c1.2 0 2.2.9 2.2 2.1 0 1.2-1 2.1-2.2 2.1H11v3.8H9V11zm2 2.6h1.8c.3 0 .6-.2.6-.6 0-.3-.3-.6-.6-.6H11v1.2z" fill="#e11d48"/>
-                          <path d="M21 11h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="white"/>
-                        </svg>
-                      )}
-                      <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Powerpoint</span>
-                    </button>
-
-                    {/* 3. Dark Blue Word Report Square Button with Big Icon */}
-                    <button
-                      onClick={onExportWordClick}
-                      disabled={exportingDOCX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
-                      className="aspect-square sm:h-24 sm:aspect-auto rounded-2xl bg-[#1E3A8A] hover:bg-blue-800 flex flex-col items-center justify-center gap-2 p-3 text-xs font-bold text-white shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      {exportingDOCX ? (
-                        <Loader2 className="h-8 w-8 animate-spin shrink-0" />
-                      ) : (
-                        <FileText className="h-8 w-8 shrink-0 text-blue-200" />
-                      )}
-                      <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Word Report</span>
-                    </button>
-
-                    {/* 4. Green Excel Square Button with Big Icon */}
-                    <button
-                      onClick={() => handleExport('xlsx')}
-                      disabled={exportingXLSX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
-                      className="aspect-square sm:h-24 sm:aspect-auto rounded-2xl bg-emerald-600 hover:bg-emerald-500 flex flex-col items-center justify-center gap-2 p-3 text-xs font-bold text-white shadow-lg shadow-emerald-500/15 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      {exportingXLSX ? (
-                        <Loader2 className="h-8 w-8 animate-spin shrink-0" />
-                      ) : (
-                        <svg className="h-8 w-8 shrink-0" viewBox="0 0 32 32" fill="none">
-                          <rect x="2" y="4" width="28" height="24" rx="4" fill="white" fillOpacity="0.2" />
-                          <rect x="5" y="7" width="13" height="18" rx="2" fill="white" />
-                          <path d="M8.8 19l2.4-3.8-2.2-3.7h2.2l1.1 2.2 1.1-2.2h2.1l-2.2 3.7 2.4 3.8h-2.2l-1.3-2.4-1.3 2.4H8.8z" fill="#059669"/>
-                          <path d="M21 11h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="white"/>
-                        </svg>
-                      )}
-                      <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Excel</span>
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
           </div>
