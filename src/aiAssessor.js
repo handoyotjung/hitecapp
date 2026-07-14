@@ -494,3 +494,220 @@ export async function aiTranslateAndGrammarCheck(text, targetLang = 'ID', sectio
 
   return translatedLines.join('\n');
 }
+
+/**
+ * AI Feedback Agent Conversational Interviewer
+ * Conducts one-open-question-at-a-time product experience interview.
+ * Understands informal Indonesian (ga, ngga, udah, lemot, ribet, mantap, exportnya, dll.).
+ * Keeps tone human, warm, and natural without mentioning backend tasks or developers.
+ */
+export async function aiFeedbackChatStep(history = [], userMessage = '', stepIndex = 0, lang = 'ID') {
+  const isId = lang === 'ID';
+
+  // Questions sequence (one open question per step)
+  const idQuestions = [
+    "Halo! Senang bisa ngobrol sebentar. Bagaimana kesan pertama Anda saat mulai menggunakan HitecApp dan proses onboarding-nya?",
+    "Bagaimana pengalaman Anda dengan alur kerja utama kami: dari Upload foto → Anotasi canvas → Buat Rekomendasi AI → hingga Export laporan?",
+    "Apakah ada bagian yang terasa membingungkan, lambat (lemot), atau kurang lancar saat Anda menggunakannya?",
+    "Adakah fitur atau kemampuan baru yang Anda harap ada di HitecApp ke depannya?",
+    "Secara keseluruhan, seberapa puas Anda dengan HitecApp sejauh ini dan ada pesan penutup?"
+  ];
+
+  const enQuestions = [
+    "Hello! Great to connect with you. What were your first impressions when starting with HitecApp and navigating the onboarding?",
+    "How has your experience been with our primary workflow: Uploading photos → Annotating canvas → Generating AI recommendations → Exporting reports?",
+    "Has anything felt confusing, slow, or cumbersome while using the application?",
+    "Is there any specific feature or capability you wish existed in HitecApp?",
+    "Overall, how satisfied are you with HitecApp so far, and any final thoughts?"
+  ];
+
+  const questions = isId ? idQuestions : enQuestions;
+
+  // Initial opening (stepIndex === 0 and no userMessage yet)
+  if (stepIndex === 0 && (!userMessage || !userMessage.trim())) {
+    return questions[0];
+  }
+
+  // If we reached the end of the interview
+  if (stepIndex >= questions.length) {
+    return isId
+      ? "Terima kasih banyak atas waktu dan masukan berharga Anda! Semua cerita Anda sangat membantu kami membuat HitecApp semakin baik dan nyaman digunakan."
+      : "Thank you so much for taking the time to share your feedback! Your insights are invaluable in helping us make HitecApp even better.";
+  }
+
+  // Acknowledge briefly what the user just said in human tone, then ask next open question
+  const msgLower = (userMessage || '').toLowerCase().trim();
+  let ack = '';
+
+  if (isId) {
+    if (msgLower.includes('lemot') || msgLower.includes('lama') || msgLower.includes('lambat') || msgLower.includes('berat') || msgLower.includes('loading')) {
+      ack = "Wah, terima kasih catatannya soal kecepatan yang terasa agak lambat ya. Kami paham sekali performa yang cepat itu penting.";
+    } else if (msgLower.includes('ribet') || msgLower.includes('susah') || msgLower.includes('bingung') || msgLower.includes('pusing')) {
+      ack = "Terima kasih sudah jujur, memang kenyamanan alur pakai itu harus simpel dan nggak bikin bingung.";
+    } else if (msgLower.includes('mantap') || msgLower.includes('keren') || msgLower.includes('bagus') || msgLower.includes('udah oke') || msgLower.includes('gampang') || msgLower.includes('mudah')) {
+      ack = "Senang sekali dengarnya kalau bagian itu terasa mudah dan membantu pengalaman Anda!";
+    } else if (msgLower.includes('ga') || msgLower.includes('ngga') || msgLower.includes('gak') || msgLower.includes('tdk') || msgLower.includes('aman') || msgLower.includes('lancar')) {
+      ack = "Sip, senang mendengarnya kalau sejauh ini terasa lancar.";
+    } else {
+      ack = "Terima kasih banyak atas poin yang Anda bagikan, masukan ini sangat berarti untuk kami.";
+    }
+    return `${ack} Nah untuk berikutnya:\n\n${questions[stepIndex]}`;
+  } else {
+    if (msgLower.includes('slow') || msgLower.includes('lag') || msgLower.includes('heavy') || msgLower.includes('loading')) {
+      ack = "Thank you for noting that performance aspect; smooth and snappy responsiveness is definitely a priority.";
+    } else if (msgLower.includes('confus') || msgLower.includes('hard') || msgLower.includes('difficult') || msgLower.includes('complicated')) {
+      ack = "We really appreciate your honesty—keeping interactions intuitive and straightforward is essential.";
+    } else if (msgLower.includes('great') || msgLower.includes('good') || msgLower.includes('smooth') || msgLower.includes('easy') || msgLower.includes('awesome')) {
+      ack = "Wonderful to hear that your experience with that part has been smooth and helpful!";
+    } else {
+      ack = "Thank you for sharing your perspective on that.";
+    }
+    return `${ack} Moving to the next area:\n\n${questions[stepIndex]}`;
+  }
+}
+
+/**
+ * AI Feedback Synthesizer
+ * Server-side / data-layer synthesis of full user feedback transcript into structured JSON.
+ * Produces developer-actionable breakdown and prompt-ready Antigravity prompt.
+ */
+export async function aiFeedbackSynthesize(history = [], userEmail = '', userPlan = 'starter', lang = 'ID') {
+  const issues = [];
+  const feature_requests = [];
+  let positiveCount = 0;
+  let negativeCount = 0;
+
+  const combinedText = history
+    .filter(m => m.role === 'user')
+    .map(m => m.text)
+    .join(' \n ');
+
+  const textLower = combinedText.toLowerCase();
+
+  // Inspect user replies for actionable issues (understanding Indonesian informal & English)
+  history.forEach(item => {
+    if (item.role !== 'user' || !item.text) return;
+    const t = item.text;
+    const l = t.toLowerCase();
+
+    // Check slowness / performance / crash / blurry
+    if (l.includes('lemot') || l.includes('lambat') || l.includes('slow') || l.includes('lag') || l.includes('berat') || l.includes('loading lama')) {
+      negativeCount++;
+      let screen = 'General Workflow';
+      if (l.includes('export') || l.includes('word') || l.includes('laporan') || l.includes('unduh')) screen = 'Export Report / Word';
+      else if (l.includes('upload') || l.includes('unggah') || l.includes('foto')) screen = 'Upload Zone';
+      else if (l.includes('canvas') || l.includes('anotasi') || l.includes('gambar')) screen = 'Annotated Canvas';
+
+      issues.push({
+        title: "Performance latency during " + screen,
+        description: t.trim(),
+        screen: screen,
+        severity: "medium"
+      });
+    }
+
+    // Check errors / crash / broken
+    if (l.includes('error') || l.includes('ga bisa') || l.includes('ngga bisa') || l.includes('gak bisa') || l.includes('pecah') || l.includes('crash') || l.includes('bug')) {
+      negativeCount++;
+      let screen = 'General Workflow';
+      if (l.includes('export') || l.includes('word') || l.includes('laporan')) screen = 'Export Report / Word';
+      else if (l.includes('upload') || l.includes('foto')) screen = 'Upload Zone';
+      else if (l.includes('canvas') || l.includes('anotasi')) screen = 'Annotated Canvas';
+
+      issues.push({
+        title: "Functional friction reported on " + screen,
+        description: t.trim(),
+        screen: screen,
+        severity: "high"
+      });
+    }
+
+    // Check confusion / cumbersome workflow
+    if (l.includes('ribet') || l.includes('bingung') || l.includes('susah') || l.includes('pusing') || l.includes('confus') || l.includes('complicated')) {
+      negativeCount++;
+      issues.push({
+        title: "UX confusion or workflow friction",
+        description: t.trim(),
+        screen: "General Workflow",
+        severity: "low"
+      });
+    }
+
+    // Check feature requests
+    if (l.includes('pengen') || l.includes('pingin') || l.includes('wish') || l.includes('tambah') || l.includes('tambahin') || l.includes('seandainya') || l.includes('kalau bisa') || l.includes('kalo bisa') || l.includes('harusnya ada')) {
+      feature_requests.push({
+        title: "User Feature Request",
+        description: t.trim()
+      });
+    }
+
+    // Check positive keywords
+    if (l.includes('mantap') || l.includes('keren') || l.includes('bagus') || l.includes('gampang') || l.includes('mudah') || l.includes('oke') || l.includes('lancar') || l.includes('great') || l.includes('good')) {
+      positiveCount++;
+    }
+  });
+
+  // Deduplicate issues by title & description snippet
+  const seenIssues = new Set();
+  const uniqueIssues = issues.filter(i => {
+    const key = `${i.screen}-${i.title}`;
+    if (seenIssues.has(key)) return false;
+    seenIssues.add(key);
+    return true;
+  });
+
+  // Derive title, summary, and satisfaction note
+  const title = uniqueIssues.length > 0
+    ? `Product Feedback: ${uniqueIssues.length} UX/Performance Item(s) Reported`
+    : feature_requests.length > 0
+      ? `Feature Enhancement Request (${feature_requests.length} Idea(s))`
+      : "Positive Experience Evaluation Session";
+
+  const summary = combinedText.length > 0
+    ? `User (${userEmail}, Plan: ${userPlan.toUpperCase()}) completed experience feedback interview. Highlighted feedback: "${combinedText.slice(0, 180)}..."`
+    : `User completed short feedback check-in.`;
+
+  let satisfaction_note = "High Satisfaction — User found workflow intuitive and responsive.";
+  if (negativeCount > positiveCount && uniqueIssues.some(i => i.severity === 'high')) {
+    satisfaction_note = "Needs Attention — Reported workflow bottleneck or functional blocker.";
+  } else if (uniqueIssues.length > 0) {
+    satisfaction_note = "Constructive Feedback — Satisfied overall with minor optimization requests.";
+  }
+
+  // Format Antigravity Prompt
+  const issuesFormatted = uniqueIssues.map((it, idx) => 
+    `${idx + 1}. [Screen: ${it.screen} | Severity: ${it.severity.toUpperCase()}] ${it.title}: "${it.description}"`
+  ).join('\n') || "No critical bugs reported.";
+
+  const frFormatted = feature_requests.map((fr, idx) =>
+    `${idx + 1}. ${fr.title}: "${fr.description}"`
+  ).join('\n') || "None explicitly requested.";
+
+  const antigravity_prompt = `Task: Resolve HitecApp product experience issues and evaluate feature enhancement proposals
+
+Context:
+Submitted by user account: ${userEmail} (${userPlan.toUpperCase()} Plan)
+Evaluation Summary: ${summary}
+Satisfaction Indicator: ${satisfaction_note}
+
+Issues to address:
+${issuesFormatted}
+
+Feature Requests to evaluate:
+${frFormatted}
+
+Acceptance criteria:
+- Address high/medium severity UI latency and friction points reported on specified screens.
+- Maintain existing dark slate + emerald HitecApp visual identity across all updated workflows.
+- Ensure feedback submission and interactions continue with zero daily photo-usage quota consumption.`;
+
+  return {
+    title,
+    summary,
+    satisfaction_note,
+    issues: uniqueIssues,
+    feature_requests,
+    antigravity_prompt
+  };
+}
+

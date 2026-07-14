@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, FolderOpen, Image as ImageIcon } from 'lucide-react';
+import { FolderOpen, Image as ImageIcon } from 'lucide-react';
 
 export default function UploadZone({ onFilesSelected }) {
   const [isDragActive, setIsDragActive] = useState(false);
@@ -119,11 +119,7 @@ export default function UploadZone({ onFilesSelected }) {
         onChange={handleFileSelect}
       />
 
-      <div className="flex flex-col items-center gap-3">
-        <div className={`rounded-xl bg-slate-900/80 p-3 border border-slate-800 text-indigo-400 hover-scale cursor-pointer ${isDragActive ? 'pulse-border' : ''}`}>
-          <UploadCloud className="h-8 w-8" />
-        </div>
-        
+      <div className="flex flex-col items-center gap-2">
         <div>
           <h3 className="text-base font-bold text-white leading-snug">
             Drag & Drop Photos

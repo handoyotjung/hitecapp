@@ -210,6 +210,73 @@
         </div>
       </div>
 
+      <!-- FULL WIDTH ROW: In-App User Feedback & AI Synthesis Backlog -->
+      <div class="lg:col-span-3 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                In-App User Feedback & AI Synthesis Backlog
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Product experience interviews and developer-actionable Antigravity synthesis from logged-in HitecApp Indonesian & English users.</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <input 
+                type="text" 
+                id="feedback-search-input" 
+                oninput="renderFeedbackSection()" 
+                placeholder="Search user or issue..." 
+                class="rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-1.5 text-xs text-slate-200 outline-none focus:border-emerald-500 transition-colors w-48"
+              />
+              <div class="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+                <button
+                  id="btn-fb-mode-list"
+                  type="button"
+                  onclick="switchFeedbackMode('list')"
+                  class="px-3 py-1 text-xs font-bold rounded transition-all bg-emerald-600 text-white"
+                >
+                  Submissions List
+                </button>
+                <button
+                  id="btn-fb-mode-aggregated"
+                  type="button"
+                  onclick="switchFeedbackMode('aggregated')"
+                  class="px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white"
+                >
+                  Aggregated Backlog
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- LIST VIEW (Most Recent First) -->
+          <div id="feedback-list-container" class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                  <th class="pb-3 pr-2">User Account</th>
+                  <th class="pb-3 px-2">Plan</th>
+                  <th class="pb-3 px-2">Timestamp</th>
+                  <th class="pb-3 px-2">Synthesis Title</th>
+                  <th class="pb-3 px-2">Issues & Feature Requests</th>
+                  <th class="pb-3 px-2">Satisfaction</th>
+                  <th class="pb-3 pl-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="feedback-tbody" class="divide-y divide-slate-800/60">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- AGGREGATED PRIORITIZED BACKLOG VIEW -->
+          <div id="feedback-aggregated-container" class="hidden space-y-6 pt-2">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -236,7 +303,33 @@
         "pro": { max_daily_photos: 300, max_file_size_kb: 1024 }
       },
       projects: [],
-      photos: []
+      photos: [],
+      feedback: [
+        {
+          id: "fb_sample_01",
+          userEmail: "budi.santoso@safety-id.co.id",
+          userId: "budi.santoso@safety-id.co.id",
+          planTier: "pro",
+          timestamp: "2026-07-14 10:15:22",
+          title: "Product Feedback: 2 UX/Performance Item(s) Reported",
+          summary: "User (budi.santoso@safety-id.co.id, Plan: PRO) reported slow Word export when canvas has high resolution images and requested dark mode toggle.",
+          satisfaction_note: "Constructive Feedback — Satisfied overall with minor optimization requests.",
+          transcript: [
+            { role: "assistant", text: "Halo! Senang bisa ngobrol sebentar. Bagaimana kesan pertama Anda saat mulai menggunakan HitecApp dan proses onboarding-nya?" },
+            { role: "user", text: "Kesan pertama mantap sih, onboarding simpel dan langsung paham." },
+            { role: "assistant", text: "Senang sekali dengarnya kalau bagian itu terasa mudah! Bagaimana pengalaman Anda dengan alur kerja utama kami: dari Upload foto → Anotasi canvas → Buat Rekomendasi AI → hingga Export laporan?" },
+            { role: "user", text: "Alur udah oke, cuma pas export word rasanya agak lemot kalau fotonya banyak resolusi tinggi." }
+          ],
+          issues: [
+            { title: "Performance latency during Export Report / Word", description: "pas export word rasanya agak lemot kalau fotonya banyak resolusi tinggi", screen: "Export Report / Word", severity: "medium" },
+            { title: "UX confusion or workflow friction", description: "kadang bingung ukuran brush canvas", screen: "Annotated Canvas", severity: "low" }
+          ],
+          feature_requests: [
+            { title: "User Feature Request", description: "Pengen ada opsi shortcut keyboard buat anotasi canvas supaya lebih cepat" }
+          ],
+          antigravity_prompt: "Task: Resolve HitecApp product experience issues and evaluate feature enhancement proposals\n\nContext:\nSubmitted by user account: budi.santoso@safety-id.co.id (PRO Plan)\nEvaluation Summary: User reported slow Word export when canvas has high resolution images.\n\nIssues to address:\n1. [Screen: Export Report / Word | Severity: MEDIUM] Performance latency during Export Report / Word: \"pas export word rasanya agak lemot kalau fotonya banyak resolusi tinggi\"\n2. [Screen: Annotated Canvas | Severity: LOW] UX confusion or workflow friction: \"kadang bingung ukuran brush canvas\"\n\nFeature Requests to evaluate:\n1. User Feature Request: \"Pengen ada opsi shortcut keyboard buat anotasi canvas supaya lebih cepat\"\n\nAcceptance criteria:\n- Optimize Word export performance for large image counts.\n- Maintain existing dark slate + emerald HitecApp visual identity across all updated workflows."
+        }
+      ]
     };
 
     function loadStore() {
@@ -247,8 +340,10 @@
           const parsed = JSON.parse(cached);
           store = { ...store, ...parsed };
           store.whitelist_users = parsed.whitelist_users || {};
+          store.feedback = parsed.feedback || defaultMockStore.feedback || [];
         } catch (e) {}
       }
+      if (!store.feedback) store.feedback = defaultMockStore.feedback;
       if (!store.whitelist_users["handoyo.tjung@gmail.com"]) {
         store.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
       }
@@ -330,6 +425,7 @@
       renderUsers();
       renderOnlineSessions();
       loadEmailAlerts();
+      renderFeedbackSection();
     }
 
     function renderOnlineSessions() {
@@ -832,6 +928,301 @@
 
     function closeEmailModal() {
       document.getElementById('email-preview-modal').classList.add('hidden');
+    }
+
+    /* ========================================================
+     * IN-APP AI FEEDBACK & SYNTHESIS BACKLOG LOGIC
+     * ======================================================== */
+    let currentFeedbackMode = 'list';
+
+    function switchFeedbackMode(mode) {
+      currentFeedbackMode = mode;
+      const btnList = document.getElementById('btn-fb-mode-list');
+      const btnAgg = document.getElementById('btn-fb-mode-aggregated');
+      const containerList = document.getElementById('feedback-list-container');
+      const containerAgg = document.getElementById('feedback-aggregated-container');
+
+      if (mode === 'list') {
+        btnList.className = 'px-3 py-1 text-xs font-bold rounded transition-all bg-emerald-600 text-white';
+        btnAgg.className = 'px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white';
+        containerList.classList.remove('hidden');
+        containerAgg.classList.add('hidden');
+      } else {
+        btnList.className = 'px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white';
+        btnAgg.className = 'px-3 py-1 text-xs font-bold rounded transition-all bg-emerald-600 text-white';
+        containerList.classList.add('hidden');
+        containerAgg.classList.remove('hidden');
+      }
+      renderFeedbackSection();
+    }
+
+    function renderFeedbackSection() {
+      const store = loadStore();
+      const feedbackList = store.feedback || [];
+      const query = (document.getElementById('feedback-search-input')?.value || '').toLowerCase().trim();
+
+      const filtered = feedbackList.filter(fb => {
+        if (!query) return true;
+        const e = (fb.userEmail || '').toLowerCase();
+        const t = (fb.title || '').toLowerCase();
+        const s = (fb.summary || '').toLowerCase();
+        return e.includes(query) || t.includes(query) || s.includes(query);
+      }).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+      if (currentFeedbackMode === 'list') {
+        renderFeedbackTable(filtered);
+      } else {
+        renderFeedbackAggregated(filtered);
+      }
+    }
+
+    function renderFeedbackTable(items) {
+      const tbody = document.getElementById('feedback-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (items.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-8 text-center text-slate-500">No user feedback submissions found.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      items.forEach(item => {
+        const issuesCount = (item.issues || []).length;
+        const frCount = (item.feature_requests || []).length;
+        const hasHigh = (item.issues || []).some(i => i.severity === 'high');
+
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-800/40 transition-colors';
+        row.innerHTML = `
+          <td class="py-3 pr-2 font-medium text-slate-200">${item.userEmail || 'Anonymous'}</td>
+          <td class="py-3 px-2">
+            <span class="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              item.planTier === 'pro' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'
+            }">${item.planTier || 'starter'}</span>
+          </td>
+          <td class="py-3 px-2 text-slate-400 whitespace-nowrap">${(item.timestamp || '').replace('T', ' ').slice(0, 16)}</td>
+          <td class="py-3 px-2 font-semibold text-slate-200">${item.title || 'Feedback Check-in'}</td>
+          <td class="py-3 px-2">
+            <div class="flex items-center gap-1.5">
+              <span class="rounded bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
+                ${issuesCount} Issue(s)
+              </span>
+              <span class="rounded bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 text-[11px] font-semibold text-indigo-400">
+                ${frCount} Feature(s)
+              </span>
+            </div>
+          </td>
+          <td class="py-3 px-2">
+            <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+              hasHigh ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+            }">${item.satisfaction_note || 'Evaluated'}</span>
+          </td>
+          <td class="py-3 pl-2 text-right">
+            <button
+              type="button"
+              onclick="toggleFeedbackDetail('${item.id}')"
+              class="rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-all active:scale-95"
+            >
+              Expand Detail
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+
+        // Expandable Detail Row
+        const detailRow = document.createElement('tr');
+        detailRow.id = `fb-detail-row-${item.id}`;
+        detailRow.className = 'hidden bg-slate-950/70 border-b border-slate-800';
+
+        const transcriptHtml = (item.transcript || []).map(m => `
+          <div class="flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}">
+            <span class="text-[10px] font-bold uppercase text-slate-500 mb-0.5">${m.role}</span>
+            <div class="rounded-xl px-3 py-2 text-xs max-w-[85%] ${
+              m.role === 'user' ? 'bg-emerald-600/30 border border-emerald-500/30 text-emerald-200' : 'bg-slate-900 border border-slate-800 text-slate-300'
+            }">${m.text}</div>
+          </div>
+        `).join('') || '<p class="text-slate-500">No chat transcript recorded.</p>';
+
+        const issuesHtml = (item.issues || []).map((iss, idx) => `
+          <div class="flex items-start justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900 p-3">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold text-white">${idx + 1}. ${iss.title}</span>
+                <span class="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">${iss.screen || 'General'}</span>
+              </div>
+              <p class="text-xs text-slate-400 italic">"${iss.description}"</p>
+            </div>
+            <span class="rounded uppercase px-2 py-0.5 text-[10px] font-bold shrink-0 ${
+              iss.severity === 'high' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+            }">${iss.severity || 'low'}</span>
+          </div>
+        `).join('') || '<p class="text-xs text-slate-500">No issues flagged.</p>';
+
+        const frHtml = (item.feature_requests || []).map((fr, idx) => `
+          <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-3">
+            <span class="text-xs font-bold text-indigo-300">${idx + 1}. ${fr.title}</span>
+            <p class="text-xs text-slate-300 mt-1">"${fr.description}"</p>
+          </div>
+        `).join('') || '<p class="text-xs text-slate-500">No feature requests recorded.</p>';
+
+        detailRow.innerHTML = `
+          <td colspan="7" class="p-4 sm:p-6 space-y-5">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Left Column: Raw Chat Transcript -->
+              <div class="space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <span>Interview Chat Transcript</span>
+                </h4>
+                <div class="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3 max-h-72 overflow-y-auto">
+                  ${transcriptHtml}
+                </div>
+              </div>
+
+              <!-- Right Column: Developer-Actionable Antigravity Prompt -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <span>Developer-Actionable Antigravity Prompt</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onclick="copyFeedbackPrompt('${item.id}')"
+                    id="btn-copy-prompt-${item.id}"
+                    class="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1 text-xs font-bold text-white transition-all active:scale-95 shadow"
+                  >
+                    Copy Antigravity Prompt
+                  </button>
+                </div>
+                <pre id="prompt-text-${item.id}" class="rounded-xl border border-slate-800 bg-slate-950 p-3.5 text-[11px] text-slate-300 font-mono whitespace-pre-wrap max-h-72 overflow-y-auto">${item.antigravity_prompt || 'No prompt generated.'}</pre>
+              </div>
+            </div>
+
+            <!-- Issues & Feature Requests Synthesis -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+              <div class="space-y-2">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Reported Issues & Friction Points</h4>
+                <div class="space-y-2">${issuesHtml}</div>
+              </div>
+              <div class="space-y-2">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Requested Features & Enhancements</h4>
+                <div class="space-y-2">${frHtml}</div>
+              </div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(detailRow);
+      });
+    }
+
+    function toggleFeedbackDetail(id) {
+      const row = document.getElementById(`fb-detail-row-${id}`);
+      if (!row) return;
+      row.classList.toggle('hidden');
+    }
+
+    function copyFeedbackPrompt(id) {
+      const textEl = document.getElementById(`prompt-text-${id}`);
+      const btnEl = document.getElementById(`btn-copy-prompt-${id}`);
+      if (!textEl) return;
+
+      navigator.clipboard.writeText(textEl.innerText).then(() => {
+        if (btnEl) {
+          const old = btnEl.innerText;
+          btnEl.innerText = 'Copied!';
+          btnEl.classList.add('bg-indigo-600');
+          setTimeout(() => {
+            btnEl.innerText = old;
+            btnEl.classList.remove('bg-indigo-600');
+          }, 1800);
+        }
+      });
+    }
+
+    function renderFeedbackAggregated(items) {
+      const container = document.getElementById('feedback-aggregated-container');
+      if (!container) return;
+
+      const allIssues = [];
+      const allFeatures = [];
+
+      items.forEach(it => {
+        (it.issues || []).forEach(iss => allIssues.push({ ...iss, userEmail: it.userEmail }));
+        (it.feature_requests || []).forEach(fr => allFeatures.push({ ...fr, userEmail: it.userEmail }));
+      });
+
+      const highIssues = allIssues.filter(i => i.severity === 'high');
+      const medIssues = allIssues.filter(i => i.severity === 'medium');
+      const lowIssues = allIssues.filter(i => i.severity === 'low');
+
+      const batchPrompt = `Task: Batch resolve HitecApp product experience issues & evaluate enhancement proposals
+
+Context: Aggregated from ${items.length} user feedback session(s)
+
+High Priority Blocker/Bug Issues:
+${highIssues.map((i, idx) => `${idx + 1}. [${i.screen}] ${i.title}: "${i.description}" (${i.userEmail})`).join('\n') || 'None'}
+
+Medium Priority Performance/Optimization Issues:
+${medIssues.map((i, idx) => `${idx + 1}. [${i.screen}] ${i.title}: "${i.description}" (${i.userEmail})`).join('\n') || 'None'}
+
+Requested Feature Enhancements:
+${allFeatures.map((f, idx) => `${idx + 1}. ${f.title}: "${f.description}" (${f.userEmail})`).join('\n') || 'None'}
+
+Acceptance Criteria:
+- Resolve high priority friction points across specified application screens.
+- Maintain existing HitecApp dark slate + emerald styling and zero photo quota consumption.`;
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+            <div>
+              <h4 class="text-sm font-bold text-emerald-400">Consolidated Batch Backlog (${allIssues.length} Issues | ${allFeatures.length} Feature Requests)</h4>
+              <p class="text-xs text-slate-300 mt-0.5">Prioritized across all Indonesian and English user feedback submissions.</p>
+            </div>
+            <button
+              type="button"
+              onclick="copyBatchPrompt()"
+              id="btn-copy-batch-prompt"
+              class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white transition-all active:scale-95 shadow"
+            >
+              Copy Batch Antigravity Prompt
+            </button>
+          </div>
+
+          <pre id="batch-prompt-content" class="hidden">${batchPrompt}</pre>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 space-y-2">
+              <h5 class="text-xs font-bold uppercase text-rose-400">High Priority (${highIssues.length})</h5>
+              ${highIssues.map(i => `<div class="rounded-lg bg-slate-900 border border-slate-800 p-2.5 text-xs text-slate-300"><p class="font-semibold text-white">${i.title}</p><p class="text-[11px] text-slate-400 mt-1">"${i.description}"</p></div>`).join('') || '<p class="text-xs text-slate-500">No high severity issues.</p>'}
+            </div>
+            <div class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-2">
+              <h5 class="text-xs font-bold uppercase text-amber-400">Medium Priority (${medIssues.length})</h5>
+              ${medIssues.map(i => `<div class="rounded-lg bg-slate-900 border border-slate-800 p-2.5 text-xs text-slate-300"><p class="font-semibold text-white">${i.title}</p><p class="text-[11px] text-slate-400 mt-1">"${i.description}"</p></div>`).join('') || '<p class="text-xs text-slate-500">No medium severity issues.</p>'}
+            </div>
+            <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 space-y-2">
+              <h5 class="text-xs font-bold uppercase text-indigo-400">Feature Requests (${allFeatures.length})</h5>
+              ${allFeatures.map(f => `<div class="rounded-lg bg-slate-900 border border-slate-800 p-2.5 text-xs text-slate-300"><p class="font-semibold text-white">${f.title}</p><p class="text-[11px] text-slate-400 mt-1">"${f.description}"</p></div>`).join('') || '<p class="text-xs text-slate-500">No feature requests.</p>'}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function copyBatchPrompt() {
+      const textEl = document.getElementById('batch-prompt-content');
+      const btnEl = document.getElementById('btn-copy-batch-prompt');
+      if (!textEl) return;
+      navigator.clipboard.writeText(textEl.innerText).then(() => {
+        if (btnEl) {
+          const old = btnEl.innerText;
+          btnEl.innerText = 'Copied!';
+          setTimeout(() => btnEl.innerText = old, 1800);
+        }
+      });
     }
   </script>
 

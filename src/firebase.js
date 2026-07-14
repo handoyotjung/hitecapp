@@ -78,7 +78,8 @@ const mockStore = {
     "pro": { max_daily_photos: 300, max_file_size_kb: 1024 }
   },
   projects: [],
-  photos: []
+  photos: [],
+  feedback: []
 };
 
 const loadMockStore = () => {
@@ -95,6 +96,9 @@ const loadMockStore = () => {
       }
       if (!Array.isArray(parsed.photos)) {
         parsed.photos = [];
+      }
+      if (!Array.isArray(parsed.feedback)) {
+        parsed.feedback = [];
       }
       return parsed;
     } catch (e) {

@@ -10,10 +10,11 @@ import {
   FolderPlus, Folder, Loader2, ArrowRight, ArrowLeft,
   Upload, FileText, CheckCircle2, AlertCircle, Trash2, 
   ChevronLeft, ChevronRight, Save, Download, FileSpreadsheet,
-  LogOut, Shield, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X
+  LogOut, Shield, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare
 } from 'lucide-react';
 import UploadZone from './UploadZone';
 import { UpgradeModal } from './UpgradeModal';
+import { FeedbackModal } from './FeedbackModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
 import { handleExportWord } from '../exportWordReport';
@@ -63,6 +64,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [dailyUploadCount, setDailyUploadCount] = useState(0);
   const [planLimits, setPlanLimits] = useState({ maxDaily: 100, maxKb: 300 }); // starter defaults
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Upload Queue state (remember queue per project)
   const [projectQueues, setProjectQueues] = useState({});
@@ -1178,6 +1180,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          <button
+            onClick={() => setShowFeedbackModal(true)}
+            title={commentsLang === 'ID' ? 'Beri Masukan / Pengalaman Pengguna' : 'Product Experience Feedback'}
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all active:scale-[0.98]"
+          >
+            <MessageSquare className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">{commentsLang === 'ID' ? 'Masukan' : 'Feedback'}</span>
+          </button>
+
           {(user.role === 'super_admin' || user.role === 'admin' || user.email?.toLowerCase() === 'handoyo.tjung@gmail.com') && (
             <a 
               href="/admin.html" 
@@ -1535,18 +1546,23 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                     <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Powerpoint</span>
                   </button>
 
-                  {/* 3. Dark Blue Word Report Square Button with Big Icon */}
+                  {/* 3. Microsoft Word Square Button with Authentic Logo & Matching Blue Color */}
                   <button
                     onClick={onExportWordClick}
                     disabled={exportingDOCX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
-                    className="aspect-square sm:h-20 sm:aspect-auto rounded-2xl bg-[#1E3A8A] hover:bg-blue-800 flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold text-white shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+                    className="aspect-square sm:h-20 sm:aspect-auto rounded-2xl bg-[#185ABD] hover:bg-[#154E9E] flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold text-white shadow-lg shadow-[#185ABD]/25 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
                   >
                     {exportingDOCX ? (
                       <Loader2 className="h-6 w-6 animate-spin shrink-0" />
                     ) : (
-                      <FileText className="h-6 w-6 shrink-0 text-blue-200" />
+                      <svg className="h-6 w-6 shrink-0" viewBox="0 0 32 32" fill="none">
+                        <rect x="2" y="4" width="28" height="24" rx="4" fill="white" fillOpacity="0.2" />
+                        <rect x="5" y="7" width="13" height="18" rx="2" fill="white" />
+                        <path d="M7.8 11.5l1.5 7.5h1.7l1.3-4.8 1.3 4.8h1.7l1.5-7.5h-1.6l-0.9 5.3-1.3-5.3h-1.4l-1.3 5.3-0.9-5.3H7.8z" fill="#185ABD"/>
+                        <path d="M21 11h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="white"/>
+                      </svg>
                     )}
-                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Word Report</span>
+                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Word</span>
                   </button>
 
                   {/* 4. Green Excel Square Button with Big Icon */}
@@ -1844,6 +1860,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         open={showUpgradeModal} 
         onClose={() => setShowUpgradeModal(false)} 
         currentLimit={planLimits.maxDaily} 
+      />
+      <FeedbackModal
+        open={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        user={user}
+        isPro={isPro}
+        lang={commentsLang}
       />
     </div>
   );
