@@ -229,22 +229,32 @@
                 placeholder="Search user or issue..." 
                 class="rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-1.5 text-xs text-slate-200 outline-none focus:border-emerald-500 transition-colors w-48"
               />
-              <div class="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+              <div class="flex items-center gap-2">
+                <div class="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+                  <button
+                    id="btn-fb-mode-list"
+                    type="button"
+                    onclick="switchFeedbackMode('list')"
+                    class="px-3 py-1 text-xs font-bold rounded transition-all bg-emerald-600 text-white"
+                  >
+                    Submissions List
+                  </button>
+                  <button
+                    id="btn-fb-mode-aggregated"
+                    type="button"
+                    onclick="switchFeedbackMode('aggregated')"
+                    class="px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white"
+                  >
+                    Aggregated Backlog
+                  </button>
+                </div>
                 <button
-                  id="btn-fb-mode-list"
                   type="button"
-                  onclick="switchFeedbackMode('list')"
-                  class="px-3 py-1 text-xs font-bold rounded transition-all bg-emerald-600 text-white"
+                  onclick="renderFeedbackSection()"
+                  title="Refresh Feedback List"
+                  class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs font-bold text-emerald-400 hover:bg-slate-800 hover:text-white transition-all"
                 >
-                  Submissions List
-                </button>
-                <button
-                  id="btn-fb-mode-aggregated"
-                  type="button"
-                  onclick="switchFeedbackMode('aggregated')"
-                  class="px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white"
-                >
-                  Aggregated Backlog
+                  ↻ Refresh
                 </button>
               </div>
             </div>
@@ -335,15 +345,34 @@
     function loadStore() {
       let store = { ...defaultMockStore, whitelist_users: { ...defaultMockStore.whitelist_users } };
       const cached = localStorage.getItem("hitecmedia_mock_db");
+      const backlog = localStorage.getItem("hitec_feedback_backlog");
+      let feedbackList = [];
+
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
           store = { ...store, ...parsed };
           store.whitelist_users = parsed.whitelist_users || {};
-          store.feedback = parsed.feedback || defaultMockStore.feedback || [];
+          if (Array.isArray(parsed.feedback) && parsed.feedback.length > 0) {
+            feedbackList = parsed.feedback;
+          }
         } catch (e) {}
       }
-      if (!store.feedback) store.feedback = defaultMockStore.feedback;
+
+      if (backlog && feedbackList.length === 0) {
+        try {
+          const parsedBacklog = JSON.parse(backlog);
+          if (Array.isArray(parsedBacklog) && parsedBacklog.length > 0) {
+            feedbackList = parsedBacklog;
+          }
+        } catch (e) {}
+      }
+
+      if (feedbackList.length === 0) {
+        feedbackList = defaultMockStore.feedback || [];
+      }
+
+      store.feedback = feedbackList;
       if (!store.whitelist_users["handoyo.tjung@gmail.com"]) {
         store.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
       }
@@ -1226,6 +1255,12 @@ Acceptance Criteria:
         }
       });
     }
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'hitecmedia_mock_db' || e.key === 'hitec_feedback_backlog') {
+        renderFeedbackSection();
+      }
+    });
   </script>
 
   <!-- Email Preview Modal -->

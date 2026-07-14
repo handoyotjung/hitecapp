@@ -1182,11 +1182,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
           <button
             onClick={() => setShowFeedbackModal(true)}
-            title={commentsLang === 'ID' ? 'Beri Masukan / Pengalaman Pengguna' : 'Product Experience Feedback'}
+            title="Give Feedback"
             className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all active:scale-[0.98]"
           >
             <MessageSquare className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">{commentsLang === 'ID' ? 'Masukan' : 'Feedback'}</span>
+            <span className="hidden sm:inline">Give Feedback</span>
           </button>
 
           {(user.role === 'super_admin' || user.role === 'admin' || user.email?.toLowerCase() === 'handoyo.tjung@gmail.com') && (
