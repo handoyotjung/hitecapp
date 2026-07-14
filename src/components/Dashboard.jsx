@@ -972,11 +972,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (!photo) return;
     const updatePayload = {
       annotatedBase64: dataURL,
+      base64: dataURL,
+      thumbnailUrl: dataURL,
+      previewUrl: dataURL,
+      url: dataURL,
       annotations: annotationsObj
     };
+
     setProjectPhotos(prev => prev.map(p => 
       (p.id && p.id === photo.id) || p.filename === photo.filename ? { ...p, ...updatePayload } : p
     ));
+
+    setQueue(prev => prev.map(q => 
+      (q.id && q.id === photo.id) || q.finalFilename === photo.filename || q.filename === photo.filename ? { ...q, ...updatePayload } : q
+    ));
+
     if (selectedProject) {
       const updatedPhotos = (selectedProject.photos || []).map(p =>
         (p.id && p.id === photo.id) || p.filename === photo.filename ? { ...p, ...updatePayload } : p
@@ -984,6 +994,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
       updateDoc(doc(db, 'projects', selectedProject.id), { photos: updatedPhotos }).catch(() => {});
     }
+
     if (photo.id) {
       try {
         await updateDoc(doc(db, 'photos', photo.id), updatePayload);
@@ -1052,10 +1063,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       };
 
       const photosWithBase64 = await Promise.all(photosWithUrls.map(async (p) => {
-        const base64Str = p.base64 || await urlToBase64(p.localUrl || p.url || p.thumbnailUrl);
+        const base64Str = p.annotatedBase64 || p.base64 || await urlToBase64(p.localUrl || p.url || p.thumbnailUrl);
         return {
           ...p,
-          base64: base64Str
+          base64: base64Str,
+          annotatedBase64: base64Str
         };
       }));
 

@@ -154,7 +154,10 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
         const matchedPhoto = project.photos.find(p => p.filename === item.finalFilename) || {};
         return {
           ...matchedPhoto,
+          ...item,
           filename: item.finalFilename,
+          annotatedBase64: item.annotatedBase64 || matchedPhoto.annotatedBase64 || item.base64 || matchedPhoto.base64 || '',
+          base64: item.base64 || matchedPhoto.base64 || item.annotatedBase64 || '',
           localUrl: item.thumbnailUrl || matchedPhoto.url || ''
         };
       });

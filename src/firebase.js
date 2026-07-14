@@ -902,7 +902,7 @@ export const httpsCallable = (functionsInstance, name) => {
             else if (recText.includes("[MINOR]")) risk = "MINOR";
 
             return {
-              base64: photo.base64 || '',
+              base64: photo.annotatedBase64 || photo.base64 || '',
               date: photo.date || photo.exif_date || "N/A",
               location: photo.location || photo.exif_gps || "Location Recorded",
               filename: photo.filename || "IMG.jpg",
