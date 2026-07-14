@@ -131,17 +131,9 @@ export function FeedbackModal({ open, onClose, user, isPro = false, lang = 'ID' 
               <MessageSquare className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                <span>{isId ? 'Ulasan & Pengalaman Pengguna' : 'Product Experience Feedback'}</span>
-                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
-                  AI Assessor
-                </span>
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Feedback Agent
               </h2>
-              <p className="text-xs text-slate-400">
-                {isId
-                  ? 'Ceritakan pengalaman Anda menggunakan HitecApp. Masukan Anda tidak memotong kuota foto harian.'
-                  : 'Share your experience using HitecApp. This feedback session does not consume your daily photo quota.'}
-              </p>
             </div>
           </div>
           <button

@@ -504,72 +504,108 @@ export async function aiTranslateAndGrammarCheck(text, targetLang = 'ID', sectio
 export async function aiFeedbackChatStep(history = [], userMessage = '', stepIndex = 0, lang = 'ID') {
   const isId = lang === 'ID';
 
-  // Questions sequence (one open question per step)
-  const idQuestions = [
-    "Halo! Senang bisa ngobrol sebentar. Bagaimana kesan pertama Anda saat mulai menggunakan HitecApp dan proses onboarding-nya?",
-    "Bagaimana pengalaman Anda dengan alur kerja utama kami: dari Upload foto → Anotasi canvas → Buat Rekomendasi AI → hingga Export laporan?",
-    "Apakah ada bagian yang terasa membingungkan, lambat (lemot), atau kurang lancar saat Anda menggunakannya?",
-    "Adakah fitur atau kemampuan baru yang Anda harap ada di HitecApp ke depannya?",
-    "Secara keseluruhan, seberapa puas Anda dengan HitecApp sejauh ini dan ada pesan penutup?"
-  ];
-
-  const enQuestions = [
-    "Hello! Great to connect with you. What were your first impressions when starting with HitecApp and navigating the onboarding?",
-    "How has your experience been with our primary workflow: Uploading photos → Annotating canvas → Generating AI recommendations → Exporting reports?",
-    "Has anything felt confusing, slow, or cumbersome while using the application?",
-    "Is there any specific feature or capability you wish existed in HitecApp?",
-    "Overall, how satisfied are you with HitecApp so far, and any final thoughts?"
-  ];
-
-  const questions = isId ? idQuestions : enQuestions;
-
-  // Initial opening (stepIndex === 0 and no userMessage yet)
+  // Initial opening
   if (stepIndex === 0 && (!userMessage || !userMessage.trim())) {
-    return questions[0];
-  }
-
-  // If we reached the end of the interview
-  if (stepIndex >= questions.length) {
     return isId
-      ? "Terima kasih banyak atas waktu dan masukan berharga Anda! Semua cerita Anda sangat membantu kami membuat HitecApp semakin baik dan nyaman digunakan."
-      : "Thank you so much for taking the time to share your feedback! Your insights are invaluable in helping us make HitecApp even better.";
+      ? "Halo, ada yang bisa saya bantu?"
+      : "Hello, how can I help you today?";
   }
 
-  // Acknowledge briefly what the user just said in human tone, then ask next open question
   const msgLower = (userMessage || '').toLowerCase().trim();
-  let ack = '';
 
-  if (isId) {
-    if (msgLower.includes('lemot') || msgLower.includes('lama') || msgLower.includes('lambat') || msgLower.includes('berat') || msgLower.includes('loading')) {
-      ack = "Wah, terima kasih catatannya soal kecepatan yang terasa agak lambat ya. Kami paham sekali performa yang cepat itu penting.";
-    } else if (msgLower.includes('ribet') || msgLower.includes('susah') || msgLower.includes('bingung') || msgLower.includes('pusing')) {
-      ack = "Terima kasih sudah jujur, memang kenyamanan alur pakai itu harus simpel dan nggak bikin bingung.";
-    } else if (msgLower.includes('mantap') || msgLower.includes('keren') || msgLower.includes('bagus') || msgLower.includes('udah oke') || msgLower.includes('gampang') || msgLower.includes('mudah')) {
-      ack = "Senang sekali dengarnya kalau bagian itu terasa mudah dan membantu pengalaman Anda!";
-    } else if (msgLower.includes('ga') || msgLower.includes('ngga') || msgLower.includes('gak') || msgLower.includes('tdk') || msgLower.includes('aman') || msgLower.includes('lancar')) {
-      ack = "Sip, senang mendengarnya kalau sejauh ini terasa lancar.";
-    } else {
-      ack = "Terima kasih banyak atas poin yang Anda bagikan, masukan ini sangat berarti untuk kami.";
-    }
-    return `${ack} Nah untuk berikutnya:\n\n${questions[stepIndex]}`;
-  } else {
-    if (msgLower.includes('slow') || msgLower.includes('lag') || msgLower.includes('heavy') || msgLower.includes('loading')) {
-      ack = "Thank you for noting that performance aspect; smooth and snappy responsiveness is definitely a priority.";
-    } else if (msgLower.includes('confus') || msgLower.includes('hard') || msgLower.includes('difficult') || msgLower.includes('complicated')) {
-      ack = "We really appreciate your honesty—keeping interactions intuitive and straightforward is essential.";
-    } else if (msgLower.includes('great') || msgLower.includes('good') || msgLower.includes('smooth') || msgLower.includes('easy') || msgLower.includes('awesome')) {
-      ack = "Wonderful to hear that your experience with that part has been smooth and helpful!";
-    } else {
-      ack = "Thank you for sharing your perspective on that.";
-    }
-    return `${ack} Moving to the next area:\n\n${questions[stepIndex]}`;
+  // If user indicates they are done ("tidak ada", "ngga ada", "ga ada", "cukup", "sudah", "makasih", "terima kasih", "no", "none")
+  if (
+    msgLower === 'tidak' ||
+    msgLower === 'ngga' ||
+    msgLower === 'engga' ||
+    msgLower === 'ga' ||
+    msgLower === 'gak' ||
+    msgLower === 'tidak ada' ||
+    msgLower === 'ngga ada' ||
+    msgLower === 'ga ada' ||
+    msgLower === 'sudah' ||
+    msgLower === 'udah' ||
+    msgLower === 'cukup' ||
+    msgLower.includes('terima kasih') ||
+    msgLower.includes('makasih') ||
+    msgLower === 'no' ||
+    msgLower === 'none' ||
+    msgLower.includes("that's all")
+  ) {
+    return isId
+      ? "Terima kasih banyak atas waktu dan masukan Anda! Semua catatan Anda telah kami simpan untuk direview oleh tim HitecApp. Sukses selalu!"
+      : "Thank you so much for your time and feedback! Your notes have been saved and will be reviewed by our HitecApp team. Have a wonderful day!";
   }
+
+  // Hybrid UX AI Agent: answer standard HitecApp how-to usage questions if asked
+  if (isId) {
+    if (msgLower.includes('cara upload') || msgLower.includes('bagaimana upload') || msgLower.includes('unggah foto') || msgLower.includes('masukin foto')) {
+      return "Untuk mengunggah foto, Kakak bisa klik tombol 'Select Photos' atau 'Upload Folder' di sebelah kiri atas, atau langsung drag & drop foto ke kotak upload. Apakah ada yang lain?";
+    }
+    if (msgLower.includes('cara anotasi') || msgLower.includes('cara gambar') || msgLower.includes('menandai zona')) {
+      return "Untuk memberi anotasi, pilih foto dari antrian di bawah, lalu gunakan alat gambar di canvas tengah untuk menandai zona ATEX atau area berbahaya. Apakah ada yang lain?";
+    }
+    if (msgLower.includes('cara export') || msgLower.includes('cara unduh') || msgLower.includes('download laporan') || msgLower.includes('bikin word')) {
+      return "Untuk mengunduh laporan, pastikan foto sudah dipilih di antrian, lalu klik tombol Word, Excel, atau Powerpoint di panel bawah. Apakah ada yang lain?";
+    }
+    if (msgLower.includes('kuota') || msgLower.includes('bayar') || msgLower.includes('gratis')) {
+      return "Sesi obrolan dan masukan ini sepenuhnya gratis dan tidak memotong kuota harian foto Anda. Apakah ada yang lain?";
+    }
+
+    // Default response for user feedback, issues, suggestions, or unanswered questions
+    return "Masukan Anda akan kami tampung dan direview oleh tim kami. Apakah ada yang lain?";
+  } else {
+    if (msgLower.includes('how to upload') || msgLower.includes('upload photo')) {
+      return "To upload photos, click 'Select Photos' or 'Upload Folder' in the top left, or drag & drop files directly into the upload box. Is there anything else?";
+    }
+    if (msgLower.includes('how to annotate') || msgLower.includes('draw')) {
+      return "To annotate, select a photo from the queue below and use the drawing tools on the main canvas to mark ATEX zones or hazard areas. Is there anything else?";
+    }
+    if (msgLower.includes('how to export') || msgLower.includes('download report')) {
+      return "To download reports, ensure your photos are checked in the queue, then click the Word, Excel, or Powerpoint button in the bottom panel. Is there anything else?";
+    }
+
+    // Default response for feedback or unsolved items
+    return "Your feedback will be recorded and reviewed by our team. Is there anything else?";
+  }
+}
+
+/**
+ * Helper to translate/convert Indonesian feedback expressions into clear English developer statements
+ */
+function translateIdToEnglishIssue(text = '') {
+  const t = text.trim();
+  const lower = t.toLowerCase();
+
+  let enDesc = "User feedback note: " + t;
+  if (lower.includes('export') && (lower.includes('lemot') || lower.includes('lama') || lower.includes('lambat'))) {
+    enDesc = "User experienced latency/slow performance when exporting Word reports, especially with multiple or high-resolution photos.";
+  } else if (lower.includes('upload') && (lower.includes('lemot') || lower.includes('lama') || lower.includes('error'))) {
+    enDesc = "User reported delays or errors during photo uploading.";
+  } else if (lower.includes('canvas') || lower.includes('anotasi')) {
+    if (lower.includes('shortcut')) {
+      enDesc = "User requested keyboard shortcuts for canvas annotation to speed up workflow.";
+    } else if (lower.includes('bingung') || lower.includes('ribet')) {
+      enDesc = "User found image canvas annotation controls confusing or cumbersome.";
+    } else {
+      enDesc = "User feedback regarding canvas annotation: " + t;
+    }
+  } else if (lower.includes('dark mode') || lower.includes('gelap')) {
+    enDesc = "User requested dark theme toggle or visual preference settings.";
+  } else if (lower.includes('lemot') || lower.includes('lambat') || lower.includes('berat')) {
+    enDesc = "User reported slow application responsiveness (" + t + ").";
+  } else if (lower.includes('error') || lower.includes('ga bisa') || lower.includes('ngga bisa') || lower.includes('bug')) {
+    enDesc = "User encountered functional error/bug: " + t;
+  } else if (lower.includes('pengen') || lower.includes('pingin') || lower.includes('tambah') || lower.includes('harusnya ada')) {
+    enDesc = "User requested feature enhancement: " + t;
+  }
+  return enDesc;
 }
 
 /**
  * AI Feedback Synthesizer
  * Server-side / data-layer synthesis of full user feedback transcript into structured JSON.
- * Produces developer-actionable breakdown and prompt-ready Antigravity prompt.
+ * Translates Indonesian everyday feedback into clear English developer descriptions and prompt.
  */
 export async function aiFeedbackSynthesize(history = [], userEmail = '', userPlan = 'starter', lang = 'ID') {
   const issues = [];
@@ -582,9 +618,7 @@ export async function aiFeedbackSynthesize(history = [], userEmail = '', userPla
     .map(m => m.text)
     .join(' \n ');
 
-  const textLower = combinedText.toLowerCase();
-
-  // Inspect user replies for actionable issues (understanding Indonesian informal & English)
+  // Inspect user replies for actionable issues & translate into clear English developer statements
   history.forEach(item => {
     if (item.role !== 'user' || !item.text) return;
     const t = item.text;
@@ -598,9 +632,11 @@ export async function aiFeedbackSynthesize(history = [], userEmail = '', userPla
       else if (l.includes('upload') || l.includes('unggah') || l.includes('foto')) screen = 'Upload Zone';
       else if (l.includes('canvas') || l.includes('anotasi') || l.includes('gambar')) screen = 'Annotated Canvas';
 
+      const enDesc = translateIdToEnglishIssue(t);
       issues.push({
         title: "Performance latency during " + screen,
-        description: t.trim(),
+        description: enDesc,
+        original_quote: t.trim(),
         screen: screen,
         severity: "medium"
       });
@@ -614,9 +650,11 @@ export async function aiFeedbackSynthesize(history = [], userEmail = '', userPla
       else if (l.includes('upload') || l.includes('foto')) screen = 'Upload Zone';
       else if (l.includes('canvas') || l.includes('anotasi')) screen = 'Annotated Canvas';
 
+      const enDesc = translateIdToEnglishIssue(t);
       issues.push({
         title: "Functional friction reported on " + screen,
-        description: t.trim(),
+        description: enDesc,
+        original_quote: t.trim(),
         screen: screen,
         severity: "high"
       });
@@ -625,9 +663,11 @@ export async function aiFeedbackSynthesize(history = [], userEmail = '', userPla
     // Check confusion / cumbersome workflow
     if (l.includes('ribet') || l.includes('bingung') || l.includes('susah') || l.includes('pusing') || l.includes('confus') || l.includes('complicated')) {
       negativeCount++;
+      const enDesc = translateIdToEnglishIssue(t);
       issues.push({
         title: "UX confusion or workflow friction",
-        description: t.trim(),
+        description: enDesc,
+        original_quote: t.trim(),
         screen: "General Workflow",
         severity: "low"
       });
@@ -635,9 +675,11 @@ export async function aiFeedbackSynthesize(history = [], userEmail = '', userPla
 
     // Check feature requests
     if (l.includes('pengen') || l.includes('pingin') || l.includes('wish') || l.includes('tambah') || l.includes('tambahin') || l.includes('seandainya') || l.includes('kalau bisa') || l.includes('kalo bisa') || l.includes('harusnya ada')) {
+      const enDesc = translateIdToEnglishIssue(t);
       feature_requests.push({
         title: "User Feature Request",
-        description: t.trim()
+        description: enDesc,
+        original_quote: t.trim()
       });
     }
 
@@ -656,15 +698,15 @@ export async function aiFeedbackSynthesize(history = [], userEmail = '', userPla
     return true;
   });
 
-  // Derive title, summary, and satisfaction note
+  // Derive title, summary, and satisfaction note (in clear English)
   const title = uniqueIssues.length > 0
-    ? `Product Feedback: ${uniqueIssues.length} UX/Performance Item(s) Reported`
+    ? `Product Feedback: ${uniqueIssues.length} Actionable Issue(s) Reported`
     : feature_requests.length > 0
       ? `Feature Enhancement Request (${feature_requests.length} Idea(s))`
       : "Positive Experience Evaluation Session";
 
   const summary = combinedText.length > 0
-    ? `User (${userEmail}, Plan: ${userPlan.toUpperCase()}) completed experience feedback interview. Highlighted feedback: "${combinedText.slice(0, 180)}..."`
+    ? `User (${userEmail}, Plan: ${userPlan.toUpperCase()}) completed product experience interview. Translated key feedback into English for developer tracking.`
     : `User completed short feedback check-in.`;
 
   let satisfaction_note = "High Satisfaction — User found workflow intuitive and responsive.";
@@ -674,32 +716,32 @@ export async function aiFeedbackSynthesize(history = [], userEmail = '', userPla
     satisfaction_note = "Constructive Feedback — Satisfied overall with minor optimization requests.";
   }
 
-  // Format Antigravity Prompt
+  // Format Antigravity Prompt (100% English developer prompt with translated descriptions)
   const issuesFormatted = uniqueIssues.map((it, idx) => 
-    `${idx + 1}. [Screen: ${it.screen} | Severity: ${it.severity.toUpperCase()}] ${it.title}: "${it.description}"`
+    `${idx + 1}. [Screen: ${it.screen} | Severity: ${it.severity.toUpperCase()}] ${it.title}:\n   - English Actionable Description: ${it.description}\n   - Original User Quote (ID): "${it.original_quote || it.description}"`
   ).join('\n') || "No critical bugs reported.";
 
   const frFormatted = feature_requests.map((fr, idx) =>
-    `${idx + 1}. ${fr.title}: "${fr.description}"`
+    `${idx + 1}. ${fr.title}:\n   - English Actionable Description: ${fr.description}\n   - Original User Quote (ID): "${fr.original_quote || fr.description}"`
   ).join('\n') || "None explicitly requested.";
 
-  const antigravity_prompt = `Task: Resolve HitecApp product experience issues and evaluate feature enhancement proposals
+  const antigravity_prompt = `Task: Fix reported bugs, performance issues, and evaluate user feature requests in HitecApp
 
 Context:
 Submitted by user account: ${userEmail} (${userPlan.toUpperCase()} Plan)
 Evaluation Summary: ${summary}
 Satisfaction Indicator: ${satisfaction_note}
 
-Issues to address:
+Issues to Fix:
 ${issuesFormatted}
 
-Feature Requests to evaluate:
+Feature Requests to Implement:
 ${frFormatted}
 
-Acceptance criteria:
-- Address high/medium severity UI latency and friction points reported on specified screens.
-- Maintain existing dark slate + emerald HitecApp visual identity across all updated workflows.
-- Ensure feedback submission and interactions continue with zero daily photo-usage quota consumption.`;
+Acceptance Criteria:
+- Fix reported high/medium severity bugs and latency issues on specified application screens.
+- Implement or evaluate requested UX improvements without breaking existing HitecApp dark slate + emerald styling.
+- Ensure all user workflows remain quota-safe where required.`;
 
   return {
     title,
