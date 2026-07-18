@@ -5,7 +5,10 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
   const isSaved = Boolean(isConfirmed);
 
   return (
-    <div className="publish-bar-container publish-section w-full border-t border-slate-800 bg-slate-950/98 backdrop-blur shrink-0 p-3 z-30 sticky bottom-0 left-0 right-0">
+    <footer 
+      className="publish-bar-container publish-section w-full border-t border-slate-800 bg-[#020617] shrink-0 p-3 pb-safe z-50 sticky bottom-0 left-0 right-0 shadow-2xl"
+      style={{ position: 'sticky', bottom: 0, backgroundColor: '#020617', zIndex: 50, flexShrink: 0 }}
+    >
       {/* Arranged side-by-side in a single row */}
       <div className="grid grid-cols-4 gap-1.5 w-full">
         {/* 1. Save / Selected Button */}
@@ -72,6 +75,6 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
           <span className="truncate">DOC</span>
         </button>
       </div>
-    </div>
+    </footer>
   );
 }

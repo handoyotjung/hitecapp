@@ -1543,7 +1543,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const isPro = planLimits.maxDaily === 300;
 
   return (
-    <div className="flex h-screen flex-col bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="flex h-screen h-[100dvh] max-h-[100dvh] flex-col bg-slate-950 text-slate-100 overflow-hidden">
       {/* Navbar using standalone Header and AuthProvider */}
       <AuthProvider value={{
         user: {
@@ -1574,7 +1574,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         }`}>
           {/* Left Side: Projects and Uploads */}
           <div className={`column-container left-column flex flex-col justify-between ${isMobileMode ? 'w-full md:w-full' : 'w-[100vw] md:w-1/2'} h-full shrink-0 border-r border-[#2B2B2B] bg-slate-950/20 overflow-hidden relative min-w-0`}>
-          <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-y-auto flex flex-col min-h-0 w-full min-w-0 left-column-scroll">
+          <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-hidden flex flex-col min-h-0 w-full min-w-0">
           
           {/* Company & City Section Above Project Section */}
           <div className="p-4 border-b border-slate-800 bg-slate-900/10 shrink-0">
