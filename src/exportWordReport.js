@@ -141,7 +141,7 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
   if (!project || !project.photos || project.photos.length === 0) return;
 
   const docChildren = [];
-  const isEnglish = project.language === 'English' || project.language === 'EN' || project.lang === 'EN';
+  const isEnglish = !(project.language === 'ID' || project.language === 'Bahasa' || project.language === 'Bahasa Indonesia' || project.lang === 'ID');
 
   // Order exported photos strictly matching queue or selected list
   let photosToExport = project.photos || [];
@@ -200,7 +200,7 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
       );
     }
 
-    const filenameText = photo.filename || 'IMG.jpg';
+    const filenameText = photo.title || photo.asset_title || photo.filename || 'IMG.jpg';
     const dateText = photo.date || new Date().toISOString().split('T')[0];
     const standardsText = photo.standards || photo.standard || '-';
     const locationText = photo.location || project.location || 'Site';

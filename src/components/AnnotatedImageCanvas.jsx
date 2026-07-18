@@ -41,7 +41,8 @@ export default function AnnotatedImageCanvas({
   photo,
   onSaveAnnotatedImage,
   stageWidth = 800,
-  stageHeight = 450
+  stageHeight = 450,
+  photoCounter = ''
 }) {
   const [tool, setTool] = useState('select'); // 'doodle', 'arrow', 'rect', 'select'
   const [lines, setLines] = useState([]);
@@ -142,9 +143,9 @@ export default function AnnotatedImageCanvas({
   const imageSrc = photo?.annotatedBase64 || photo?.base64 || photo?.url || photo?.thumbnailUrl;
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full justify-start">
       {/* TOOLBAR BAR (Same row as filename on left, annotation tools centered, Save Image on right) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5 shrink-0">
         {/* Left: Filename */}
         <div className="text-xs font-bold text-slate-300 uppercase tracking-wider truncate max-w-[150px] md:max-w-[200px]">
           {photo?.filename || "Preview"}
@@ -258,6 +259,13 @@ export default function AnnotatedImageCanvas({
           tool !== 'select' ? 'cursor-crosshair' : 'cursor-default'
         }`}
       >
+        {/* Photo counter overlay positioned absolutely in the top-right corner of actual image container, vertically aligned right underneath the Save Image button */}
+        {photoCounter && (
+          <div className="absolute top-3 right-3 z-20 rounded-full bg-slate-950/85 border border-slate-800/90 px-3 py-1 text-[11px] font-bold text-slate-300 backdrop-blur shadow-md pointer-events-none">
+            {photoCounter}
+          </div>
+        )}
+
         <Stage
           width={stageWidth}
           height={stageHeight}

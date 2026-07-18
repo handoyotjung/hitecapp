@@ -132,12 +132,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
   // Fire Safety Assessor UI State
   const [commentsText, setCommentsText] = useState('');
-  const [commentsLang, setCommentsLang] = useState('ID');
+  const [commentsLang, setCommentsLang] = useState('EN');
   const [recommendations, setRecommendations] = useState([]);
   const [recommendationsLang, setRecommendationsLang] = useState('EN');
   const [aiGrammarChecking, setAiGrammarChecking] = useState(false);
   const [aiGeneratingRec, setAiGeneratingRec] = useState(false);
   const [photoGrade, setPhotoGrade] = useState('F2 - Major');
+  const [savingGrade, setSavingGrade] = useState(false);
+  const [photoTitle, setPhotoTitle] = useState('');
+  const [photoDate, setPhotoDate] = useState('');
+  const [photoLocation, setPhotoLocation] = useState('');
   const [recMode, setRecMode] = useState('Auto'); // 'Auto' | 'Manual'
   const [aiAssistOn, setAiAssistOn] = useState(true);
   const [aiSuggestions, setAiSuggestions] = useState([]);
@@ -475,13 +479,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       const initialLang = activePhoto.recommendations_lang || 'EN';
       const isManual = Boolean(activePhoto.manualOverride);
       setCommentsText(obs);
-      setCommentsLang(activePhoto.comments_lang || 'ID');
+      setCommentsLang(activePhoto.comments_lang || 'EN');
       setRecommendations(Array.isArray(activePhoto.recommendations_json) ? activePhoto.recommendations_json : []);
       setRecommendationsLang(initialLang);
       setCaption(obs);
       setPhotoGrade(initialGrade);
+      setPhotoTitle(activePhoto.title || activePhoto.asset_title || activePhoto.filename || '');
+      setPhotoDate(activePhoto.date || activePhoto.exif_date || new Date().toISOString().split('T')[0]);
+      setPhotoLocation(activePhoto.location || selectedProject.location || 'Site');
       setRecMode(isManual ? 'Manual' : 'Auto');
-      const suggestions = getAISuggestions(obs, initialGrade, activePhoto.comments_lang || 'ID') || [];
+      const suggestions = getAISuggestions(obs, initialGrade, activePhoto.comments_lang || 'EN') || [];
       setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
       setAiSuggestedRecText(activePhoto.aiSuggestedRec || '');
     } else {
@@ -489,6 +496,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setRecommendations([]);
       setCaption('');
       setPhotoGrade('F2 - Major');
+      setPhotoTitle('');
+      setPhotoDate(new Date().toISOString().split('T')[0]);
+      setPhotoLocation(selectedProject?.location || 'Site');
       setRecMode('Auto');
       setAiSuggestions([]);
       setAiSuggestedRecText('');
@@ -499,7 +509,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   useEffect(() => {
     if (projectPhotos.length === 0 || !projectPhotos[editorIndex]) return;
     const currentLang = recommendationsLang || 'EN';
-    const suggestions = getAISuggestions(commentsText, photoGrade, commentsLang || 'ID') || [];
+    const suggestions = getAISuggestions(commentsText, photoGrade, commentsLang || 'EN') || [];
     setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
 
     if (recMode === 'Auto') {
@@ -530,9 +540,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         base64: p.base64 || p.thumbnailUrl || '',
         caption: p.comments_text || p.caption || '',
         comments_text: p.comments_text || p.caption || '',
-        comments_lang: p.comments_lang || 'ID',
+        comments_lang: p.comments_lang || 'EN',
         recommendations_json: Array.isArray(p.recommendations_json) ? p.recommendations_json : [],
-        recommendations_lang: p.recommendations_lang || 'ID',
+        recommendations_lang: p.recommendations_lang || 'EN',
         exif_date: p.exif_date || '',
         exif_gps: p.exif_gps || '',
         size_kb: p.size_kb || p.sizeKb || 0,
@@ -910,9 +920,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           base64: existing.base64 || q.thumbnailUrl || '',
           caption: existing.caption || '',
           comments_text: existing.comments_text || existing.caption || '',
-          comments_lang: existing.comments_lang || 'ID',
+          comments_lang: existing.comments_lang || 'EN',
           recommendations_json: existing.recommendations_json || [],
-          recommendations_lang: existing.recommendations_lang || 'ID',
+          recommendations_lang: existing.recommendations_lang || 'EN',
           size_kb: existing.size_kb || q.sizeKb || 0,
           created_at: existing.created_at || new Date().toISOString()
         };
@@ -1030,6 +1040,59 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
   };
 
+  const handleSaveMetadata = async () => {
+    if (projectPhotos.length === 0) return;
+    const currentPhoto = projectPhotos[editorIndex];
+    if (!currentPhoto) return;
+
+    try {
+      const payload = {
+        title: photoTitle,
+        asset_title: photoTitle,
+        date: photoDate,
+        exif_date: photoDate,
+        location: photoLocation
+      };
+      await updateDoc(doc(db, 'photos', currentPhoto.id), payload);
+      const updatedPhotos = projectPhotos.map((p, idx) => 
+        idx === editorIndex ? { ...p, ...payload } : p
+      );
+      setProjectPhotos(updatedPhotos);
+      setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
+    } catch (err) {
+      console.error("Failed to save metadata:", err);
+    }
+  };
+
+  const handleSaveGrade = async (targetGrade) => {
+    if (projectPhotos.length === 0) return;
+    const currentPhoto = projectPhotos[editorIndex];
+    if (!currentPhoto) return;
+
+    setPhotoGrade(targetGrade);
+    setSavingGrade(true);
+    try {
+      const payload = {
+        grade: targetGrade,
+        title: photoTitle,
+        asset_title: photoTitle,
+        date: photoDate,
+        exif_date: photoDate,
+        location: photoLocation
+      };
+      await updateDoc(doc(db, 'photos', currentPhoto.id), payload);
+      const updatedPhotos = projectPhotos.map((p, idx) => 
+        idx === editorIndex ? { ...p, ...payload } : p
+      );
+      setProjectPhotos(updatedPhotos);
+      setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
+    } catch (err) {
+      console.error("Failed to save grade:", err);
+    } finally {
+      setSavingGrade(false);
+    }
+  };
+
   const handleSaveAssessment = async () => {
     if (projectPhotos.length === 0) return;
     const currentPhoto = projectPhotos[editorIndex];
@@ -1044,6 +1107,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         recommendations_lang: recommendationsLang,
         caption: commentsText.substring(0, 300),
         grade: photoGrade,
+        title: photoTitle,
+        asset_title: photoTitle,
+        date: photoDate,
+        exif_date: photoDate,
+        location: photoLocation,
         manualOverride: recMode === 'Manual',
         aiSuggestedRec: aiSuggestedRecText || recommendations.join('\n')
       };
@@ -1579,6 +1647,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             )}
           </div>
           </div>
+
+          {/* Action Toolbar Relocated to Left Column (Confirm, PowerPoint, Word, Excel) */}
+          <PublishBar
+            confirmCount={selectedPhotos.length}
+            isConfirmed={confirmedExports || selectedPhotos.length > 0}
+            onExport={handlePublishBarExport}
+          />
           </div>
 
 
@@ -1639,239 +1714,278 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           <ChevronRight className="h-5 w-5" />
                         </button>
 
-                        {/* Index badge */}
+                      {/* Index badge */}
                         <span className="absolute top-4 right-4 z-10 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400 pointer-events-none">
                           {editorIndex + 1} / {projectPhotos.length}
                         </span>
                       </div>
                     </div>
 
-                    {/* Editor flex-[4] overflow-y-auto */}
                     <div className="flex-[4] flex flex-col overflow-y-auto min-h-0 gap-3 pr-1">
+                      {/* COMPACT METADATA CARD (Above Assessment Grade) */}
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm shrink-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          {/* Title / Name */}
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                              Asset Title / Name
+                            </label>
+                            <input
+                              type="text"
+                              value={photoTitle}
+                              onChange={(e) => setPhotoTitle(e.target.value)}
+                              onBlur={handleSaveMetadata}
+                              placeholder="e.g. Main Switchboard 01"
+                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                            />
+                          </div>
+
+                          {/* Inspection Date */}
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              value={photoDate}
+                              onChange={(e) => setPhotoDate(e.target.value)}
+                              onBlur={handleSaveMetadata}
+                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                            />
+                          </div>
+
+                          {/* Location */}
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                              Location
+                            </label>
+                            <input
+                              type="text"
+                              value={photoLocation}
+                              onChange={(e) => setPhotoLocation(e.target.value)}
+                              onBlur={handleSaveMetadata}
+                              placeholder="e.g. Electrical Room A"
+                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       {/* GRADE SELECTOR */}
                       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm flex items-center justify-between flex-wrap gap-2 shrink-0">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <ShieldAlert className="h-4 w-4 text-emerald-400" />
-                        <span>Assessment Grade:</span>
-                      </label>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {['F1 - Minor', 'F2 - Major', 'F3 - Critical'].map((g) => {
-                          const active = photoGrade === g;
-                          const color = g.includes('F3') ? (active ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-500/20' : 'bg-slate-950 text-rose-400 border-rose-900/40 hover:bg-rose-950/40') : g.includes('F2') ? (active ? 'bg-amber-600 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-slate-950 text-amber-400 border-amber-900/40 hover:bg-amber-950/40') : (active ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-slate-950 text-emerald-400 border-emerald-900/40 hover:bg-emerald-950/40');
-                          return (
-                            <button
-                              key={g}
-                              type="button"
-                              onClick={() => setPhotoGrade(g)}
-                              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${color}`}
-                            >
-                              {g}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* CARD A: COMMENTS / KOMENTAR */}
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-sm">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-bold text-white uppercase tracking-wide">
-                            {commentsLang === 'ID' ? 'KOMENTAR' : 'COMMENTS'}
-                          </label>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <ShieldAlert className="h-4 w-4 text-emerald-400" />
+                          <span>Assessment Grade:</span>
+                        </label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex gap-1.5 flex-wrap">
+                            {['F1 - Minor', 'F2 - Major', 'F3 - Critical'].map((g) => {
+                              const active = photoGrade === g;
+                              const color = g.includes('F3') ? (active ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-500/20' : 'bg-slate-950 text-rose-400 border-rose-900/40 hover:bg-rose-950/40') : g.includes('F2') ? (active ? 'bg-amber-600 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-slate-950 text-amber-400 border-amber-900/40 hover:bg-amber-950/40') : (active ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-slate-950 text-emerald-400 border-emerald-900/40 hover:bg-emerald-950/40');
+                              return (
+                                <button
+                                  key={g}
+                                  type="button"
+                                  onClick={() => handleSaveGrade(g)}
+                                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${color}`}
+                                >
+                                  {g}
+                                </button>
+                              );
+                            })}
+                          </div>
                           <button
                             type="button"
-                            onClick={() => setAiAssistOn(!aiAssistOn)}
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors flex items-center gap-1 shadow-sm ${
-                              aiAssistOn ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400'
-                            }`}
-                            title="Toggle AI Auto-Complete & Suggestion Pills"
+                            onClick={() => handleSaveGrade(photoGrade)}
+                            disabled={savingGrade}
+                            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50 ml-2"
+                            title="Save Assessment Grade"
                           >
-                            <Sparkles className="h-3 w-3" />
-                            <span>AI Assist: {aiAssistOn ? 'ON' : 'OFF'}</span>
+                            {savingGrade ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                            <span>Save Grade</span>
                           </button>
                         </div>
+                      </div>
 
-                        <div className="flex items-center gap-2">
+                      {/* CARD A: COMMENTS / KOMENTAR */}
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm shrink-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-bold text-white uppercase tracking-wide">
+                              {commentsLang === 'ID' ? 'KOMENTAR' : 'COMMENTS'}
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setAiAssistOn(!aiAssistOn)}
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors flex items-center gap-1 shadow-sm ${
+                                aiAssistOn ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400'
+                              }`}
+                              title="Toggle AI Auto-Complete & Suggestion Pills"
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              <span>AI Assist: {aiAssistOn ? 'ON' : 'OFF'}</span>
+                            </button>
+                          </div>
+
                           <button
                             type="button"
                             onClick={() => setCommentsText('')}
                             title="Clear"
-                            className="flex items-center gap-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 text-[11px] font-bold transition-colors shadow-sm"
+                            className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-3 w-3" />
                             <span>Clear</span>
                           </button>
                         </div>
-                      </div>
 
-                      <textarea
-                        rows={3}
-                        value={commentsText}
-                        onChange={(e) => {
-                          const lines = e.target.value.split('\n');
-                          if (lines.length <= 3) {
-                            setCommentsText(e.target.value);
-                          } else {
-                            setCommentsText(lines.slice(0, 3).join('\n'));
-                          }
-                        }}
-                        placeholder=""
-                        className="comments-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none h-[calc(3*1.5rem)] leading-relaxed overflow-y-auto"
-                      />
+                        <textarea
+                          rows={3}
+                          value={commentsText}
+                          onChange={(e) => {
+                            const lines = e.target.value.split('\n');
+                            if (lines.length <= 3) {
+                              setCommentsText(e.target.value);
+                            } else {
+                              setCommentsText(lines.slice(0, 3).join('\n'));
+                            }
+                          }}
+                          placeholder={commentsLang === 'ID' ? 'Tulis komentar observasi...' : 'Write observation comments...'}
+                          className="comments-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-none h-[calc(3*1.4rem)] leading-relaxed overflow-y-auto"
+                        />
 
-                      {aiAssistOn && aiSuggestions.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-slate-800/80">
-                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                            <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
-                            <span>AI Suggestions (Click to insert):</span>
+                        {aiAssistOn && aiSuggestions.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-slate-800/80">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
+                              <span>AI Suggestions (Click to insert):</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {aiSuggestions.map((pill, pIdx) => (
+                                <button
+                                  key={pIdx}
+                                  type="button"
+                                  onClick={() => {
+                                    const newLines = commentsText ? (commentsText + '\n' + pill) : pill;
+                                    const splitted = newLines.split('\n').slice(0, 3).join('\n');
+                                    setCommentsText(splitted);
+                                  }}
+                                  className="rounded-lg bg-slate-950 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 px-2 py-1 text-left text-[11px] font-medium text-slate-300 hover:text-emerald-300 transition-all max-w-full truncate"
+                                  title={pill}
+                                >
+                                  + {pill}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {aiSuggestions.map((pill, pIdx) => (
-                              <button
-                                key={pIdx}
-                                type="button"
-                                onClick={() => {
-                                  const newLines = commentsText ? (commentsText + '\n' + pill) : pill;
-                                  const splitted = newLines.split('\n').slice(0, 3).join('\n');
-                                  setCommentsText(splitted);
-                                }}
-                                className="rounded-lg bg-slate-950 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 px-2.5 py-1 text-left text-xs font-medium text-slate-300 hover:text-emerald-300 transition-all max-w-full truncate"
-                                title={pill}
-                              >
-                                + {pill}
-                              </button>
-                            ))}
+                        )}
+                      </div>
+
+                      {/* CARD B: ASSESSOR RECOMMENDATION - AI Fire Safety Assessor */}
+                      <div className="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-3 shadow-sm shrink-0">
+                        <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-bold text-white uppercase tracking-wide">
+                              {commentsLang === 'ID' ? 'REKOMENDASI AI' : 'AI RECOMMENDATION'}
+                            </label>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border flex items-center gap-1 shadow-sm ${
+                              recMode === 'Auto' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                            }`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${recMode === 'Auto' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                              <span>{recMode === 'Auto' ? 'Auto' : 'Manual Override'}</span>
+                            </span>
                           </div>
-                        </div>
-                      )}
-                    </div>
 
-                    {/* CARD B: ASSESSOR RECOMMENDATION - AI Fire Safety Assessor */}
-                    <div className="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-4 shadow-sm">
-                      <div className="flex items-center justify-between flex-wrap gap-2 mb-2.5">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-bold text-white uppercase tracking-wide">
-                            {commentsLang === 'ID'
-                              ? 'REKOMENDASI AI'
-                              : 'AI RECOMMENDATION'}
-                          </label>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border flex items-center gap-1 shadow-sm ${
-                            recMode === 'Auto' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                          }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${recMode === 'Auto' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                            <span>{recMode === 'Auto' ? 'Auto' : 'Manual Override'}</span>
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setRecommendations([])}
+                            title="Clear"
+                            className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm"
+                          >
+                            <X className="h-3 w-3" />
+                            <span>Clear</span>
+                          </button>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setRecommendations([])}
-                          title="Clear"
-                          className="flex items-center gap-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 text-[11px] font-bold transition-colors shadow-sm"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                          <span>Clear</span>
-                        </button>
+                        <textarea
+                          rows={3}
+                          value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
+                          onChange={(e) => {
+                            const lines = e.target.value.split('\n');
+                            if (lines.length <= 3) {
+                              setRecommendations(lines);
+                            } else {
+                              setRecommendations(lines.slice(0, 3));
+                            }
+                            if (recMode === 'Auto') setRecMode('Manual');
+                          }}
+                          placeholder={commentsLang === 'ID' ? 'Rekomendasi tindakan mitigasi...' : 'Mitigation recommendation actions...'}
+                          className="ai-recommendation-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-none h-[calc(3*1.4rem)] leading-relaxed overflow-y-auto"
+                        />
+
+                        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={handleGenerateRecommendation}
+                              disabled={aiGeneratingRec}
+                              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white transition-all disabled:opacity-50 shadow-sm"
+                              title="Regenerate recommendation based on current comment and grade"
+                            >
+                              {aiGeneratingRec ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                              <span>{commentsLang === 'ID' ? 'Regenerate' : 'Regenerate'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRecMode(prev => prev === 'Auto' ? 'Manual' : 'Auto')}
+                              className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all shadow-sm ${
+                                recMode === 'Manual' ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500 hover:text-white' : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-600'
+                              }`}
+                              title="Toggle between Auto-fill and Manual Override mode"
+                            >
+                              <span>{recMode === 'Manual' ? 'Edit Manually (Active)' : 'Edit Manually'}</span>
+                            </button>
+                          </div>
+
+                          <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5" title="Auto Translate & Grammar Check all texts">
+                            <button
+                              type="button"
+                              onClick={() => handleLanguageSwitch('ID')}
+                              className={`px-2.5 py-1 text-xs font-bold rounded transition-all ${
+                                commentsLang === 'ID' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              Bahasa
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleLanguageSwitch('EN')}
+                              className={`px-2.5 py-1 text-xs font-bold rounded transition-all ${
+                                commentsLang === 'EN' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              English
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={handleSaveAssessment}
+                            disabled={savingCaption}
+                            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50"
+                          >
+                            {savingCaption ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                            <span>{commentsLang === 'ID' ? 'Simpan Caption' : 'Save Caption'}</span>
+                          </button>
+                        </div>
                       </div>
-
-                      <textarea
-                        rows={3}
-                        value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
-                        onChange={(e) => {
-                          const lines = e.target.value.split('\n');
-                          if (lines.length <= 3) {
-                            setRecommendations(lines);
-                          } else {
-                            setRecommendations(lines.slice(0, 3));
-                          }
-                          if (recMode === 'Auto') setRecMode('Manual');
-                        }}
-                        placeholder=""
-                        className="ai-recommendation-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none h-[calc(3*1.5rem)] leading-relaxed overflow-y-auto"
-                      />
-
-                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={handleGenerateRecommendation}
-                            disabled={aiGeneratingRec}
-                            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50 shadow-sm"
-                            title="Regenerate recommendation based on current comment and grade"
-                          >
-                            {aiGeneratingRec ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                            <span>{commentsLang === 'ID' ? 'Regenerate' : 'Regenerate'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setRecMode(prev => prev === 'Auto' ? 'Manual' : 'Auto')}
-                            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all shadow-sm ${
-                              recMode === 'Manual' ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500 hover:text-white' : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-600'
-                            }`}
-                            title="Toggle between Auto-fill and Manual Override mode"
-                          >
-                            <span>{recMode === 'Manual' ? 'Edit Manually (Active)' : 'Edit Manually'}</span>
-                          </button>
-                        </div>
-
-                        {/* Unified Language Toggle Bahasa / English in the middle */}
-                        <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5" title="Auto Translate & Grammar Check all Comments & Recommendation texts">
-                          <button
-                            type="button"
-                            onClick={() => handleLanguageSwitch('ID')}
-                            className={`px-3 py-1 text-xs font-bold rounded transition-all ${
-                              commentsLang === 'ID' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            Bahasa
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleLanguageSwitch('EN')}
-                            className={`px-3 py-1 text-xs font-bold rounded transition-all ${
-                              commentsLang === 'EN' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            English
-                          </button>
-                        </div>
-
-                        {/* Save Caption button moved up in the same line at far right position */}
-                        <button
-                          onClick={handleSaveAssessment}
-                          disabled={savingCaption}
-                          className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50"
-                        >
-                          {savingCaption ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                          <span>{commentsLang === 'ID' ? 'Simpan Caption' : 'Save Caption'}</span>
-                        </button>
-                      </div>
-                    </div>
                     </div>
                   </>
                 )}
               </div>
             )}
-            </div>
-            {!isMobileUser && (
-              <PublishBar
-                position="relative"
-                confirmCount={selectedPhotos.length}
-                onExport={handlePublishBarExport}
-              />
-            )}
+          </div>
           </div>
         </div>
       </div>
-
-      {isMobileUser && (
-        <PublishBar
-          position="fixed"
-          confirmCount={selectedPhotos.length}
-          onExport={handlePublishBarExport}
-        />
-      )}
 
       {/* Mobile Tab bar footer (highly compact responsive overlay) */}
       {!isMobileUser && (
@@ -1960,7 +2074,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         onClose={() => setShowFeedbackModal(false)}
         user={user}
         isPro={isPro}
-        lang={commentsLang}
+        lang="EN"
       />
     </div>
   );

@@ -16,7 +16,7 @@ export { COMPANY_PROFILE, getAIOrientationPrompt };
  * AI Observation Assessor
  * Observes photos as a world-class dust and fire safety lead assessor (PT Safety Indonesia Utama)
  */
-export async function aiObservationAssessor(photoObj, text, lang = 'ID') {
+export async function aiObservationAssessor(photoObj, text, lang = 'EN') {
   if (!text || !text.trim()) {
     if (lang === 'ID') {
       return {
@@ -95,7 +95,7 @@ export async function aiObservationAssessor(photoObj, text, lang = 'ID') {
   return { observations };
 }
 
-export async function aiGrammarCheck(text, lang = 'ID', style = 'Baku') {
+export async function aiGrammarCheck(text, lang = 'EN', style = 'Baku') {
   if (!text || !text.trim()) {
     if (lang === 'ID') {
       if (style.includes('ATEX') || style.includes('Teknis')) {
@@ -309,7 +309,7 @@ export async function aiGrammarCheck(text, lang = 'ID', style = 'Baku') {
  * Generates professional recommendations oriented to PT Safety Indonesia Utama dust & fire safety services.
  * Strictly removes standard reference citations (e.g. NFPA, SNI).
  */
-export async function aiGenerateRecommendation(photoObj, commentsText, lang = 'ID', style = 'Baku') {
+export async function aiGenerateRecommendation(photoObj, commentsText, lang = 'EN', style = 'Baku') {
   const text = (commentsText || '').toLowerCase().trim();
 
   const recs = [];
@@ -402,7 +402,7 @@ export async function aiGenerateRecommendation(photoObj, commentsText, lang = 'I
  * AI Translator & Grammar Corrector
  * Translates and corrects grammar/spelling of Observation or Recommendation text between Bahasa Indonesia and English.
  */
-export async function aiTranslateAndGrammarCheck(text, targetLang = 'ID', sectionType = 'observation') {
+export async function aiTranslateAndGrammarCheck(text, targetLang = 'EN', sectionType = 'observation') {
   if (!text || !text.trim()) return '';
 
   const lines = text
@@ -842,13 +842,13 @@ export function getStoredCommentsTraining() {
   ];
 }
 
-export async function generateRecommendation(commentText, grade = 'F2', language = 'ID') {
+export async function generateRecommendation(commentText, grade = 'F2', language = 'EN') {
   if (!commentText || !grade) return "";
   const gradeShort = (grade || 'F2').split(' - ')[0].trim(); // e.g. F2
   const keywords = extractKeywords(commentText);
   const allRules = getStoredRules();
 
-  const isEng = language === 'English' || language === 'EN' || language === 'en';
+  const isEng = !(language === 'ID' || language === 'id' || language === 'Bahasa' || language === 'Bahasa Indonesia');
   const targetLang = isEng ? 'English' : 'ID';
 
   let recs = [];
@@ -886,9 +886,9 @@ export async function generateRecommendation(commentText, grade = 'F2', language
   return [...new Set(recs)].join('\n');
 }
 
-export function getAISuggestions(commentText, grade = 'F2', language = 'ID') {
+export function getAISuggestions(commentText, grade = 'F2', language = 'EN') {
   const gradeShort = (grade || 'F2').split(' - ')[0].trim();
-  const isEng = language === 'English' || language === 'EN' || language === 'en';
+  const isEng = !(language === 'ID' || language === 'id' || language === 'Bahasa' || language === 'Bahasa Indonesia');
   const targetLang = isEng ? 'English' : 'ID';
   const training = getStoredCommentsTraining();
 
@@ -953,7 +953,7 @@ export async function learnComment(user, project, photo) {
           phrase: commentText.trim(),
           keyword: kw,
           grade: gradeShort,
-          language: project?.language || 'ID',
+          language: project?.language || 'EN',
           frequency: 1
         });
       }
@@ -969,7 +969,7 @@ export async function learnComment(user, project, photo) {
         const storedRules = getStoredRules();
         let newRules = [...storedRules];
         for (const kw of keywords) {
-          const ruleIdx = newRules.findIndex(r => r.grade === gradeShort && r.keyword.toLowerCase() === kw.toLowerCase() && r.language === (project?.language || 'ID'));
+          const ruleIdx = newRules.findIndex(r => r.grade === gradeShort && r.keyword.toLowerCase() === kw.toLowerCase() && r.language === (project?.language || 'EN'));
           if (ruleIdx >= 0) {
             if (manualOverride) {
               newRules[ruleIdx].recommendation_template = recommendationText;
@@ -980,7 +980,7 @@ export async function learnComment(user, project, photo) {
               keyword: kw,
               recommendation_template: recommendationText,
               priority: 1,
-              language: project?.language || 'ID'
+              language: project?.language || 'EN'
             });
           }
         }
