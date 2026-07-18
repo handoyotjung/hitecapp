@@ -1,58 +1,75 @@
 import React from 'react';
-import { CheckCircle2, Presentation, FileText, Table, Check } from 'lucide-react';
+import { Save, CheckCircle2, FileDown, Presentation, FileText } from 'lucide-react';
 
 export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport }) {
-  const activeConfirmed = isConfirmed || confirmCount > 0;
+  const isSaved = Boolean(isConfirmed);
 
   return (
     <div className="publish-bar-container w-full border-t border-slate-800 bg-slate-950/95 backdrop-blur shrink-0 p-3 z-20">
-      <div className="grid grid-cols-2 gap-2.5 w-full">
-        {/* 1. Confirm Button (Dynamic Vibrant Yellow when confirmed / active count > 0) */}
+      {/* Arranged side-by-side in a single row */}
+      <div className="grid grid-cols-4 gap-1.5 w-full">
+        {/* 1. Save / Selected Button */}
         <button
           type="button"
-          onClick={() => onExport('confirm')}
-          className={`px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all active:scale-95 shadow-sm truncate ${
-            activeConfirmed
-              ? 'bg-[#FFD700] hover:bg-[#FBC02D] text-slate-950 border border-[#FBC02D] shadow-lg shadow-yellow-500/20 font-extrabold'
-              : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
+          onClick={() => !isSaved && onExport('confirm')}
+          disabled={isSaved}
+          className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
+            isSaved
+              ? 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
+              : 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold'
           }`}
-          title="Confirm selected photos for report export"
+          title={isSaved ? "Photos selected and confirmed" : "Save and confirm selected photos"}
         >
-          {activeConfirmed ? <CheckCircle2 className="h-4 w-4 shrink-0 text-slate-950" /> : <Check className="h-4 w-4 shrink-0" />}
-          <span className="truncate">{activeConfirmed ? `Confirmed (${confirmCount})` : `Confirm (${confirmCount})`}</span>
+          {isSaved ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Save className="h-4 w-4 shrink-0" />}
+          <span className="truncate">{isSaved ? `Selected (${confirmCount})` : (confirmCount > 0 ? `Save (${confirmCount})` : 'Save')}</span>
         </button>
 
-        {/* 2. Power Point Button (Microsoft PowerPoint Red/Orange #D04423) */}
+        {/* 2. PDF Button (Magenta #D9008D when active, muted when Active Save) */}
         <button
           type="button"
-          onClick={() => onExport('ppt')}
-          className="bg-[#D04423] hover:bg-[#B8381C] text-white px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all active:scale-95 shadow-md shadow-[#D04423]/25 border border-transparent truncate"
-          title="Export report to Microsoft PowerPoint (.pptx)"
+          onClick={() => isSaved && onExport('pdf')}
+          disabled={!isSaved}
+          className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs transition-all truncate ${
+            isSaved
+              ? 'bg-[#D9008D] hover:bg-[#B50075] text-white font-bold border border-transparent shadow-md shadow-[#D9008D]/25 active:scale-95 cursor-pointer'
+              : 'bg-slate-900 border border-slate-800 text-slate-500 font-bold opacity-60 cursor-not-allowed shadow-none'
+          }`}
+          title={isSaved ? "Export report to PDF (.pdf)" : "Save changes before exporting"}
+        >
+          <FileDown className={`h-4 w-4 shrink-0 ${isSaved ? 'text-white' : 'text-slate-500'}`} />
+          <span className="truncate">PDF</span>
+        </button>
+
+        {/* 3. PPT Button (Red #D04423 when active, muted when Active Save) */}
+        <button
+          type="button"
+          onClick={() => isSaved && onExport('ppt')}
+          disabled={!isSaved}
+          className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
+            isSaved
+              ? 'bg-[#D04423] hover:bg-[#B8381C] text-white shadow-md shadow-[#D04423]/25 border border-transparent active:scale-95 cursor-pointer'
+              : 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
+          }`}
+          title={isSaved ? "Export report to Microsoft PowerPoint (.pptx)" : "Save changes before exporting"}
         >
           <Presentation className="h-4 w-4 shrink-0" />
-          <span className="truncate">Power Point</span>
+          <span className="truncate">PPT</span>
         </button>
 
-        {/* 3. Word Button (Microsoft Word Blue #185ABD) */}
+        {/* 4. DOC Button (Blue #185ABD when active, muted when Active Save) */}
         <button
           type="button"
-          onClick={() => onExport('word')}
-          className="bg-[#185ABD] hover:bg-[#144796] text-white px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all active:scale-95 shadow-md shadow-[#185ABD]/25 border border-transparent truncate"
-          title="Export report to Microsoft Word (.docx)"
+          onClick={() => isSaved && onExport('word')}
+          disabled={!isSaved}
+          className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
+            isSaved
+              ? 'bg-[#185ABD] hover:bg-[#144796] text-white shadow-md shadow-[#185ABD]/25 border border-transparent active:scale-95 cursor-pointer'
+              : 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
+          }`}
+          title={isSaved ? "Export report to Microsoft Word (.docx)" : "Save changes before exporting"}
         >
           <FileText className="h-4 w-4 shrink-0" />
-          <span className="truncate">Word</span>
-        </button>
-
-        {/* 4. Excel Button (Microsoft Excel Green #107C41) */}
-        <button
-          type="button"
-          onClick={() => onExport('excel')}
-          className="bg-[#107C41] hover:bg-[#0C5E31] text-white px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all active:scale-95 shadow-md shadow-[#107C41]/25 border border-transparent truncate"
-          title="Export report to Microsoft Excel (.xlsx)"
-        >
-          <Table className="h-4 w-4 shrink-0" />
-          <span className="truncate">Excel</span>
+          <span className="truncate">DOC</span>
         </button>
       </div>
     </div>

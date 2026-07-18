@@ -67,6 +67,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   }, []);
 
   const isMobileUser = isMobileViewport && user?.role === 'user';
+  const isMobileMode = (user?.viewMode || localStorage.getItem('hitec_view_mode')) === 'Mobile';
 
 
   const handleTouchStart = (e) => {
@@ -218,6 +219,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [confirmedExports, setConfirmedExports] = useState(false);
   const [alertPopup, setAlertPopup] = useState(null);
+  const [companyName, setCompanyName] = useState(() => localStorage.getItem('hitec_company_name') || '');
+  const [cityName, setCityName] = useState(() => localStorage.getItem('hitec_city_name') || '');
+
+  useEffect(() => {
+    setConfirmedExports(false);
+  }, [projectPhotos.length, selectedProject?.id]);
 
   // Worker pool ref — persists across renders without causing re-renders
   const workerPoolRef = useRef(null);
@@ -1173,6 +1180,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
   };
 
+  const getExportFileName = (extension) => {
+    const company = companyName.trim() ? companyName.trim().replace(/[\\/:*?"<>|]/g, "_") : (selectedProject?.name || "Company").replace(/[\\/:*?"<>|]/g, "_");
+    const city = cityName.trim() ? cityName.trim().replace(/[\\/:*?"<>|]/g, "_") : "City";
+    const year = new Date().getFullYear();
+    const ext = extension.replace(/^\./, '');
+    return `${company}_${city}_${year}.${ext}`;
+  };
+
   const handleExport = async (format) => {
     if (!selectedProject) return;
     setExportError(null);
@@ -1183,8 +1198,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
 
     try {
-      // Call python functions (HTTPS callables)
-      const functionName = format === 'pptx' ? 'exportPPTX' : 'exportXLSX';
+      // Call python functions (HTTPS callables mapped to PDF output)
+      const functionName = format === 'pptx' ? 'exportPPTX' : 'exportPDF';
       const exportFn = httpsCallable(functions, functionName);
 
       // Order exported photos strictly based on their row number / position in the queue list
@@ -1232,18 +1247,27 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       };
 
       const photosWithBase64 = await Promise.all(photosWithUrls.map(async (p) => {
-        const base64Str = p.annotatedBase64 || p.base64 || await urlToBase64(p.localUrl || p.url || p.thumbnailUrl);
+        const rawBase64Str = p.base64 || await urlToBase64(p.localUrl || p.url || p.thumbnailUrl);
+        const base64Str = isMobileMode ? rawBase64Str : (p.annotatedBase64 || rawBase64Str);
         return {
           ...p,
-          base64: base64Str,
-          annotatedBase64: base64Str
+          base64: rawBase64Str,
+          annotatedBase64: isMobileMode ? rawBase64Str : (p.annotatedBase64 || rawBase64Str),
+          caption: isMobileMode ? "" : (p.caption || ""),
+          comments: isMobileMode ? "" : (p.comments || p.caption || ""),
+          recommendation: isMobileMode ? "" : (p.recommendation || ""),
+          recommendations: isMobileMode ? [] : (p.recommendations || [])
         };
       }));
 
       const response = await exportFn({ 
         project_id: selectedProject.id,
         project_name: selectedProject.name || 'Project',
+        company_name: companyName,
+        city_name: cityName,
+        export_filename: getExportFileName(format === 'pptx' ? 'pptx' : 'pdf'),
         selected_photos: selectedPhotos,
+        view_mode: isMobileMode ? 'Mobile' : 'Desktop',
         photos_data: photosWithBase64,
         photos: photosWithBase64
       });
@@ -1271,7 +1295,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     setExportError(null);
     setExportingDOCX(true);
     try {
-      await handleExportWord(selectedProject, queue, selectedPhotos);
+      await handleExportWord(selectedProject, queue, selectedPhotos, getExportFileName('docx'), isMobileMode ? 'Mobile' : 'Desktop');
     } catch (err) {
       console.error("Error exporting Word report:", err);
       setExportError(`Word export failed: ${err.message || 'Error'}`);
@@ -1281,14 +1305,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   };
 
   const handlePublishBarExport = (key) => {
-    if (key === 'confirm') {
+    if (key === 'confirm' || key === 'save') {
       setConfirmedExports(true);
     } else if (key === 'ppt') {
       handleExport('pptx');
-    } else if (key === 'word') {
+    } else if (key === 'word' || key === 'doc') {
       onExportWordClick();
-    } else if (key === 'excel') {
-      handleExport('xlsx');
+    } else if (key === 'excel' || key === 'pdf') {
+      handleExport('pdf');
     }
   };
 
@@ -1376,13 +1400,45 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className={`w-[200vw] md:w-full h-full flex transition-transform duration-300 ease-in-out md:translate-x-0 md:transition-none ${
-          activeTab !== 'upload' && activeTab !== 'export' ? '-translate-x-[100vw]' : 'translate-x-0'
+        <div className={`${isMobileMode ? 'w-full' : 'w-[200vw] md:w-full'} h-full flex transition-transform duration-300 ease-in-out md:translate-x-0 md:transition-none ${
+          !isMobileMode && activeTab !== 'upload' && activeTab !== 'export' ? '-translate-x-[100vw]' : 'translate-x-0'
         }`}>
           {/* Left Side: Projects and Uploads */}
-          <div className="column-container left-column aspect-[6/19] md:aspect-auto flex flex-col justify-between w-[100vw] md:w-1/2 h-full shrink-0 border-r border-[#2B2B2B] bg-slate-950/20 overflow-hidden relative min-w-0">
+          <div className={`column-container left-column aspect-[6/19] md:aspect-auto flex flex-col justify-between ${isMobileMode ? 'w-full md:w-full' : 'w-[100vw] md:w-1/2'} h-full shrink-0 border-r border-[#2B2B2B] bg-slate-950/20 overflow-hidden relative min-w-0`}>
           <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-y-auto flex flex-col min-h-0 w-full min-w-0 left-column-scroll">
           
+          {/* Company & City Section Above Project Section */}
+          <div className="p-4 border-b border-slate-800 bg-slate-900/10 shrink-0">
+            <div className="grid grid-cols-2 gap-2.5 w-full">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Company</label>
+                <input
+                  type="text"
+                  placeholder="Enter company name..."
+                  value={companyName}
+                  onChange={(e) => {
+                    setCompanyName(e.target.value);
+                    localStorage.setItem('hitec_company_name', e.target.value);
+                  }}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500 transition-colors"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">City</label>
+                <input
+                  type="text"
+                  placeholder="Enter city..."
+                  value={cityName}
+                  onChange={(e) => {
+                    setCityName(e.target.value);
+                    localStorage.setItem('hitec_city_name', e.target.value);
+                  }}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Project Section */}
           <div className="p-4 border-b border-slate-800 bg-slate-900/10 shrink-0">
             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Project</h2>
@@ -1651,7 +1707,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           {/* Action Toolbar Relocated to Left Column (Confirm, PowerPoint, Word, Excel) */}
           <PublishBar
             confirmCount={selectedPhotos.length}
-            isConfirmed={confirmedExports || selectedPhotos.length > 0}
+            isConfirmed={confirmedExports}
             onExport={handlePublishBarExport}
           />
           </div>
@@ -1659,6 +1715,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
           {/* Right Side: Photo Carousel Editor and Exporters */}
 
+          {!isMobileMode && (
           <div className="column-container right-column aspect-[6/19] md:aspect-auto w-[100vw] md:w-1/2 h-full shrink-0 flex flex-col overflow-hidden bg-slate-900/10">
             {/* Photo Editor Tab View / Main Pane */}
             <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6">
@@ -1984,11 +2041,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             )}
           </div>
           </div>
+          )}
         </div>
       </div>
 
       {/* Mobile Tab bar footer (highly compact responsive overlay) */}
-      {!isMobileUser && (
+      {!isMobileUser && !isMobileMode && (
         <div className="flex md:hidden h-14 shrink-0 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 items-center justify-around z-20">
           <button
             onClick={() => setActiveTab('upload')}

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { FolderOpen, Image as ImageIcon } from 'lucide-react';
+import { FolderOpen, Image as ImageIcon, Camera } from 'lucide-react';
 
 export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPhotos, photosUsed = 0, photosLimit = 100 }) {
   const [isDragActive, setIsDragActive] = useState(false);
@@ -129,7 +129,7 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
           className="flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3B3B3B] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-white transition-colors"
         >
           <FolderOpen className="w-4 h-4 flex-shrink-0 text-slate-300" />
-          <span className="truncate">Upload Folder</span>
+          <span className="truncate">Select Folder</span>
         </button>
 
         <button
@@ -138,8 +138,8 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
           disabled={isAtLimit}
           className="flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3B3B3B] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-white transition-colors"
         >
-          <ImageIcon className="w-4 h-4 flex-shrink-0 text-slate-300" />
-          <span className="truncate">Select Photos</span>
+          <Camera className="w-4 h-4 flex-shrink-0 text-slate-300" />
+          <span className="truncate">Use Camera</span>
         </button>
       </div>
 

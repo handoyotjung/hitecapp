@@ -9,6 +9,7 @@ export default function Login({ onLoginSuccess, errorOverride }) {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('hitec_view_mode') || 'Desktop');
 
   // Modal State for ACCOUNT_IN_USE
   const [accountInUseModal, setAccountInUseModal] = useState(false);
@@ -22,6 +23,9 @@ export default function Login({ onLoginSuccess, errorOverride }) {
 
   const saveSession = (userData) => {
     localStorage.setItem('hitecmedia_session', JSON.stringify(userData));
+    if (userData.viewMode) {
+      localStorage.setItem('hitec_view_mode', userData.viewMode);
+    }
   };
 
   const handleEmailLogin = async (e) => {
@@ -57,7 +61,8 @@ export default function Login({ onLoginSuccess, errorOverride }) {
         ...result.body.user,
         uid: "user_" + email.trim().toLowerCase(),
         token: result.body.token,
-        session_device_id: deviceId
+        session_device_id: deviceId,
+        viewMode: viewMode
       };
 
       saveSession(sessionData);
@@ -151,6 +156,42 @@ export default function Login({ onLoginSuccess, errorOverride }) {
                 >
                   {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
                 </button>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Viewing Mode</label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold cursor-pointer transition-all ${
+                  viewMode === 'Desktop'
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 shadow-sm shadow-emerald-500/10'
+                    : 'border-neutral-800 bg-neutral-900/80 text-slate-400 hover:border-neutral-700'
+                }`}>
+                  <input
+                    type="radio"
+                    name="viewMode"
+                    value="Desktop"
+                    checked={viewMode === 'Desktop'}
+                    onChange={() => setViewMode('Desktop')}
+                    className="hidden"
+                  />
+                  <span>Desktop</span>
+                </label>
+                <label className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold cursor-pointer transition-all ${
+                  viewMode === 'Mobile'
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 shadow-sm shadow-emerald-500/10'
+                    : 'border-neutral-800 bg-neutral-900/80 text-slate-400 hover:border-neutral-700'
+                }`}>
+                  <input
+                    type="radio"
+                    name="viewMode"
+                    value="Mobile"
+                    checked={viewMode === 'Mobile'}
+                    onChange={() => setViewMode('Mobile')}
+                    className="hidden"
+                  />
+                  <span>Mobile</span>
+                </label>
               </div>
             </div>
 

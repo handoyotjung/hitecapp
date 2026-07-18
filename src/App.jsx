@@ -35,6 +35,7 @@ export default function App() {
           setUser({
             ...parsed,
             role: role,
+            viewMode: parsed.viewMode || localStorage.getItem('hitec_view_mode') || 'Desktop',
             plan: {
               ...((typeof parsed.plan === 'object' && parsed.plan) || {}),
               dailyPhotoLimit: dailyLimit
@@ -72,6 +73,7 @@ export default function App() {
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
               role: role,
+              viewMode: userData.viewMode || localStorage.getItem('hitec_view_mode') || 'Desktop',
               plan: {
                 ...((typeof userData.plan === 'object' && userData.plan) || {}),
                 dailyPhotoLimit: dailyLimit
@@ -158,7 +160,10 @@ export default function App() {
   }, [user]);
 
   const handleLoginSuccess = (sessionData) => {
-    setUser(sessionData);
+    setUser({
+      ...sessionData,
+      viewMode: sessionData.viewMode || localStorage.getItem('hitec_view_mode') || 'Desktop'
+    });
     setViewMode('dashboard');
     setForceLogoutNotice(null);
   };

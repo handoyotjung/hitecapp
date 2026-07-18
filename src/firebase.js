@@ -4,6 +4,8 @@ import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export const fixOOXMLDrawingsExt = async (buffer, extents = []) => {
   try {
@@ -837,11 +839,14 @@ export const httpsCallable = (functionsInstance, name) => {
             fontName: "Arial", fontSize: 12, bold: true, color: "E0EEFF", align: "right"
           });
 
-          // 4. Left 45%: Image with original ratio (no stretching)
-          const rawImgSrc = photo.annotatedBase64 || photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null);
+          // 4. Image with original ratio (no stretching)
+          const isMobileMode = data.view_mode === 'Mobile';
+          const rawImgSrc = isMobileMode
+            ? (photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null))
+            : (photo.annotatedBase64 || photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null));
           if (rawImgSrc) {
             const dims = await getImageSizePx(rawImgSrc);
-            const boxW = 4.3;
+            const boxW = isMobileMode ? 9.0 : 4.3;
             const boxH = 4.25;
             const imgRatio = dims.width / dims.height;
             const boxRatio = boxW / boxH;
@@ -864,63 +869,65 @@ export const httpsCallable = (functionsInstance, name) => {
             });
           }
 
-          // Right 55%: Metadata & Findings
-          const obsText = photo.comments_text || photo.caption || "No visual defects observed.";
-          const obsLines = obsText
-            .split('\n')
-            .map(l => l.trim())
-            .filter(l => l !== '')
-            .slice(0, 5);
+          if (!isMobileMode) {
+            // Right 55%: Metadata & Findings
+            const obsText = photo.comments_text || photo.caption || "No visual defects observed.";
+            const obsLines = obsText
+              .split('\n')
+              .map(l => l.trim())
+              .filter(l => l !== '')
+              .slice(0, 5);
 
-          // 3. Remove all text after date DD-MM-YYYY
-          const dateStr = photo.exif_date || `${dd}-${mm}-20${yy}`;
-          slide.addText(`Date : ${dateStr}`, {
-            x: 4.9, y: 0.75, w: 4.7, h: 0.3,
-            fontName: "Arial", fontSize: 10, bold: true, color: "555555"
-          });
-
-          slide.addText("COMMENTS / KOMENTAR", {
-            x: 4.9, y: 1.15, w: 4.7, h: 0.3,
-            fontName: "Arial", fontSize: 13, bold: true, color: "C00000"
-          });
-
-          // 2. Do not add unnecessary bullet numbering (clean runs without trailing \n)
-          const obsRuns = obsLines.map(l => ({
-            text: l.replace(/^[\d+•\.\)\-\s]+/, '').trim(),
-            options: { bullet: true, breakLine: true, fontSize: 11, color: "333333" }
-          }));
-          slide.addText(obsRuns, {
-            x: 4.9, y: 1.45, w: 4.7, h: 1.4,
-            fontName: "Arial", valign: "top"
-          });
-
-          slide.addText("ASSESSOR RECOMMENDATION / REKOMENDASI", {
-            x: 4.9, y: 2.9, w: 4.7, h: 0.3,
-            fontName: "Arial", fontSize: 13, bold: true, color: "1F4E79"
-          });
-
-          const recRuns = recs
-            .map(r => (typeof r === 'string' ? r.trim() : ''))
-            .filter(r => r !== '')
-            .slice(0, 5)
-            .map(r => {
-              const isCrit = r.includes("[CRITICAL]");
-              const isMaj = r.includes("[MAJOR]");
-              return {
-                text: r.replace(/^[\d+•\.\)\-\s]+/, '').trim(),
-                options: {
-                  bullet: true,
-                  breakLine: true,
-                  fontSize: 11,
-                  bold: isCrit,
-                  color: isCrit ? "C00000" : isMaj ? "ED7D31" : "1F4E79"
-                }
-              };
+            // 3. Remove all text after date DD-MM-YYYY
+            const dateStr = photo.exif_date || `${dd}-${mm}-20${yy}`;
+            slide.addText(`Date : ${dateStr}`, {
+              x: 4.9, y: 0.75, w: 4.7, h: 0.3,
+              fontName: "Arial", fontSize: 10, bold: true, color: "555555"
             });
-          slide.addText(recRuns, {
-            x: 4.9, y: 3.2, w: 4.7, h: 1.8,
-            fontName: "Arial", valign: "top"
-          });
+
+            slide.addText("COMMENTS / KOMENTAR", {
+              x: 4.9, y: 1.15, w: 4.7, h: 0.3,
+              fontName: "Arial", fontSize: 13, bold: true, color: "C00000"
+            });
+
+            // 2. Do not add unnecessary bullet numbering (clean runs without trailing \n)
+            const obsRuns = obsLines.map(l => ({
+              text: l.replace(/^[\d+•\.\)\-\s]+/, '').trim(),
+              options: { bullet: true, breakLine: true, fontSize: 11, color: "333333" }
+            }));
+            slide.addText(obsRuns, {
+              x: 4.9, y: 1.45, w: 4.7, h: 1.4,
+              fontName: "Arial", valign: "top"
+            });
+
+            slide.addText("ASSESSOR RECOMMENDATION / REKOMENDASI", {
+              x: 4.9, y: 2.9, w: 4.7, h: 0.3,
+              fontName: "Arial", fontSize: 13, bold: true, color: "1F4E79"
+            });
+
+            const recRuns = recs
+              .map(r => (typeof r === 'string' ? r.trim() : ''))
+              .filter(r => r !== '')
+              .slice(0, 5)
+              .map(r => {
+                const isCrit = r.includes("[CRITICAL]");
+                const isMaj = r.includes("[MAJOR]");
+                return {
+                  text: r.replace(/^[\d+•\.\)\-\s]+/, '').trim(),
+                  options: {
+                    bullet: true,
+                    breakLine: true,
+                    fontSize: 11,
+                    bold: isCrit,
+                    color: isCrit ? "C00000" : isMaj ? "ED7D31" : "1F4E79"
+                  }
+                };
+              });
+            slide.addText(recRuns, {
+              x: 4.9, y: 3.2, w: 4.7, h: 1.8,
+              fontName: "Arial", valign: "top"
+            });
+          }
 
           // Footer
           slide.addText(`Page ${idx + 1} of ${photosToExport.length}  |  Generated: ${formattedGenTime}`, {
@@ -929,15 +936,17 @@ export const httpsCallable = (functionsInstance, name) => {
           });
         }
 
-        await pptx.writeFile({ fileName: `FSA_Report_${exportFileName}.pptx` });
+        await pptx.writeFile({ fileName: data.export_filename || `FSA_Report_${exportFileName}.pptx` });
         return { data: { downloadUrl: "" } };
       }
 
-      if (name === 'exportXLSX') {
+      if (name === 'exportPDF' || name === 'exportXLSX') {
         const photosToExport = data.photos_data || data.photos || [];
         const rawProjectName = data.project_name || data.project_id || "Project";
-        await handleExportExcel({
+        await handleExportPDF({
           name: rawProjectName,
+          export_filename: data.export_filename,
+          view_mode: data.view_mode || 'Desktop',
           photos: photosToExport.map(photo => {
             let risk = "COMPLIANT";
             const recs = photo.recommendations_json || photo.recommendations || [];
@@ -956,13 +965,102 @@ export const httpsCallable = (functionsInstance, name) => {
               risk
             };
           })
-        });
+        }, data.export_filename);
         return { data: { valid: true, downloadUrl: "" } };
       }
       return { data: { valid: true } };
     };
   }
   return fbHttpsCallable(functionsInstance, name);
+};
+
+export const handleExportPDF = async (project, customFilename = null) => {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const isMobileMode = project.view_mode === 'Mobile';
+  
+  // Header Banner
+  doc.setFillColor(31, 41, 55); // slate-800
+  doc.rect(0, 0, 210, 26, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("PT Safety Indonesia Utama - Assessment Report", 14, 12);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Project: ${project.name || "Project"}${isMobileMode ? " (Mobile Mode - Raw Photos)" : ""}`, 14, 20);
+
+  const photos = project.photos || [];
+  const tableData = photos.map((photo, idx) => {
+    if (isMobileMode) {
+      return [idx + 1, photo.filename || "IMG.jpg"];
+    }
+    return [
+      idx + 1,
+      photo.filename || "IMG.jpg",
+      photo.comments || "No visual defects observed.",
+      photo.recommendation || "No specific recommendation noted.",
+      photo.risk || "COMPLIANT"
+    ];
+  });
+
+  const headRow = isMobileMode
+    ? [["No.", "Photo Filename & Original Photo"]]
+    : [["No.", "Photo Filename", "Observation / Comments", "Recommendation", "Risk Level"]];
+
+  const colStyles = isMobileMode
+    ? { 0: { cellWidth: 15 }, 1: { cellWidth: 165 } }
+    : {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 38 },
+        2: { cellWidth: 58 },
+        3: { cellWidth: 55 },
+        4: { cellWidth: 21 }
+      };
+
+  autoTable(doc, {
+    startY: 32,
+    head: headRow,
+    body: tableData.length > 0 ? tableData : [isMobileMode ? ["-", "No data found"] : ["-", "No data found", "No completed photos recorded.", "-", "-"]],
+    headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak', valign: 'top' },
+    columnStyles: colStyles,
+    alternateRowStyles: { fillColor: [249, 250, 251] },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index === 1 && photos[data.row.index]) {
+        const photo = photos[data.row.index];
+        const base64Str = isMobileMode ? (photo.base64 || photo.annotatedBase64 || '') : (photo.annotatedBase64 || photo.base64 || '');
+        if (base64Str && base64Str.startsWith('data:image/')) {
+          data.cell.styles.minCellHeight = isMobileMode ? 100 : 28;
+          data.cell.styles.valign = 'bottom';
+        }
+      }
+    },
+    didDrawCell: (data) => {
+      if (data.section === 'body' && data.column.index === 1 && photos[data.row.index]) {
+        const photo = photos[data.row.index];
+        const base64Str = isMobileMode ? (photo.base64 || photo.annotatedBase64 || '') : (photo.annotatedBase64 || photo.base64 || '');
+        if (base64Str && base64Str.startsWith('data:image/')) {
+          try {
+            const availH = Math.max(16, data.cell.height - 8);
+            const imgW = Math.min(availH * 1.33, data.cell.width - 4);
+            const imgH = Math.min(availH, (data.cell.width - 4) * 0.75);
+            const x = data.cell.x + (data.cell.width - imgW) / 2;
+            const y = data.cell.y + 2;
+            doc.addImage(base64Str, 'JPEG', x, y, imgW, imgH);
+          } catch (e) {
+            console.error('Error drawing inline table image inside PDF:', e);
+          }
+        }
+      }
+    }
+  });
+
+  const now = new Date();
+  const yyyymmdd = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const pName = (project.name || "Project").replace(/[\\/:*?"<>|]/g, "_").trim();
+  const filename = customFilename || project.export_filename || `FSA_Report_A4_${pName}_${yyyymmdd}.pdf`;
+  doc.save(filename);
+  return { valid: true };
 };
 
 export const handleExportExcel = async (project) => {
@@ -1130,7 +1228,8 @@ export const handleExportExcel = async (project) => {
   const now = new Date();
   const yyyymmdd = now.toISOString().slice(0, 10).replace(/-/g, "");
   const pName = (project.name || "Project").replace(/[\\/:*?"<>|]/g, "_").trim();
-  saveAs(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `FSA_Report_A4_${pName}_${yyyymmdd}.xlsx`);
+  const filename = customFilename || project.export_filename || `FSA_Report_A4_${pName}_${yyyymmdd}.xlsx`;
+  saveAs(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
   return { valid: true };
 };
 

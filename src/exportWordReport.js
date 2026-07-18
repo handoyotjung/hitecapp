@@ -137,7 +137,7 @@ async function ensurePhotoBase64(photo) {
   }
 }
 
-export async function handleExportWord(project, queue = [], selectedPhotos = []) {
+export async function handleExportWord(project, queue = [], selectedPhotos = [], customFilename = null, viewMode = 'Desktop') {
   if (!project || !project.photos || project.photos.length === 0) return;
 
   const docChildren = [];
@@ -152,12 +152,13 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
     if (orderedQueue.length > 0) {
       photosToExport = orderedQueue.map(item => {
         const matchedPhoto = project.photos.find(p => p.filename === item.finalFilename) || {};
+        const rawBase = item.base64 || matchedPhoto.base64 || item.annotatedBase64 || '';
         return {
           ...matchedPhoto,
           ...item,
           filename: item.finalFilename,
-          annotatedBase64: item.annotatedBase64 || matchedPhoto.annotatedBase64 || item.base64 || matchedPhoto.base64 || '',
-          base64: item.base64 || matchedPhoto.base64 || item.annotatedBase64 || '',
+          annotatedBase64: viewMode === 'Mobile' ? rawBase : (item.annotatedBase64 || matchedPhoto.annotatedBase64 || rawBase),
+          base64: rawBase,
           localUrl: item.thumbnailUrl || matchedPhoto.url || ''
         };
       });
@@ -170,7 +171,7 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
   // Use for...of loop to avoid UI hangs
   for (const photo of photosToExport) {
     // 1. GET IMAGE DIMENSIONS FOR ASPECT RATIO
-    const rawBase64 = photo.annotatedBase64 || photo.base64 || await ensurePhotoBase64(photo);
+    const rawBase64 = viewMode === 'Mobile' ? (photo.base64 || await ensurePhotoBase64(photo)) : (photo.annotatedBase64 || photo.base64 || await ensurePhotoBase64(photo));
     const imgData = base64ToBytes(rawBase64);
     const { width, height } = await getImageSize(imgData);
     const maxWidth = 500;
@@ -206,49 +207,52 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
     const locationText = photo.location || project.location || 'Site';
 
     photoContent.push(createDarkRow(`${filenameText}, ${dateText}`, true));
-    photoContent.push(createDarkRow(`Standard references ${standardsText}`));
-    photoContent.push(createDarkRow(`Location: ${locationText}`, true));
 
-    photoContent.push(createDarkRow(isEnglish ? "Comments:" : "KOMENTAR:", true));
-    const komLines = typeof (photo.komentar || photo.caption || photo.observation) === 'string'
-      ? (photo.komentar || photo.caption || photo.observation).split('\n').map(l => l.trim()).filter(Boolean)
-      : [];
-    const finalKomLines = komLines.length > 0 ? komLines : ["No comments noted."];
-    finalKomLines.forEach(line => {
-      if (line) photoContent.push(createDarkBullet(line));
-    });
+    if (viewMode !== 'Mobile') {
+      photoContent.push(createDarkRow(`Standard references ${standardsText}`));
+      photoContent.push(createDarkRow(`Location: ${locationText}`, true));
 
-    // GRADE TABLE 70/30
-    photoContent.push(
-      createTwoColTable(
-        isEnglish ? "Grades Priority" : "Tingkat Prioritas",
-        gradeShort,
-        "404040",
-        "7A7A00"
-      )
-    );
+      photoContent.push(createDarkRow(isEnglish ? "Comments:" : "KOMENTAR:", true));
+      const komLines = typeof (photo.komentar || photo.caption || photo.observation) === 'string'
+        ? (photo.komentar || photo.caption || photo.observation).split('\n').map(l => l.trim()).filter(Boolean)
+        : [];
+      const finalKomLines = komLines.length > 0 ? komLines : ["No comments noted."];
+      finalKomLines.forEach(line => {
+        if (line) photoContent.push(createDarkBullet(line));
+      });
 
-    photoContent.push(createDarkRow(isEnglish ? "Recommendation:" : "REKOMENDASI:", true));
-    let recs = photo.rekomendasi || photo.recommendation || photo.recommendations_json || photo.recommendations;
-    if (typeof recs === 'string') {
-      recs = recs.split('\n').map(r => r.trim()).filter(Boolean);
+      // GRADE TABLE 70/30
+      photoContent.push(
+        createTwoColTable(
+          isEnglish ? "Grades Priority" : "Tingkat Prioritas",
+          gradeShort,
+          "404040",
+          "7A7A00"
+        )
+      );
+
+      photoContent.push(createDarkRow(isEnglish ? "Recommendation:" : "REKOMENDASI:", true));
+      let recs = photo.rekomendasi || photo.recommendation || photo.recommendations_json || photo.recommendations;
+      if (typeof recs === 'string') {
+        recs = recs.split('\n').map(r => r.trim()).filter(Boolean);
+      }
+      if (!Array.isArray(recs) || recs.length === 0) {
+        recs = [photo.rekomendasi || photo.recommendation || "No recommendation noted."];
+      }
+      recs.forEach(line => {
+        if (line) photoContent.push(createDarkBullet(line));
+      });
+
+      // STATUS TABLE 70/30
+      photoContent.push(
+        createTwoColTable(
+          isEnglish ? "Latest status" : "Status Terbaru",
+          "Open",
+          "404040",
+          "404040"
+        )
+      );
     }
-    if (!Array.isArray(recs) || recs.length === 0) {
-      recs = [photo.rekomendasi || photo.recommendation || "No recommendation noted."];
-    }
-    recs.forEach(line => {
-      if (line) photoContent.push(createDarkBullet(line));
-    });
-
-    // STATUS TABLE 70/30
-    photoContent.push(
-      createTwoColTable(
-        isEnglish ? "Latest status" : "Status Terbaru",
-        "Open",
-        "404040",
-        "404040"
-      )
-    );
 
     // 3. WRAP EVERYTHING IN 1 DARK CONTAINER TABLE WITH 10PT PADDING
     const containerTable = new Table({
@@ -283,5 +287,6 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [])
 
   const blob = await Packer.toBlob(doc);
   const safeName = (project.name || 'Project').replace(/[^a-zA-Z0-9_-]/g, '_');
-  saveAs(blob, `Hitec_Report_${safeName}.docx`);
+  const filename = customFilename || `Hitec_Report_${safeName}.docx`;
+  saveAs(blob, filename);
 }
