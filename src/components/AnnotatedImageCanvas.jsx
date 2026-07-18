@@ -5,10 +5,11 @@ import { Edit2, MoveUpRight, Square, Trash2, Download, Check } from 'lucide-reac
 
 function CanvasBackgroundImage({ src, stageWidth, stageHeight }) {
   const [image] = useImage(src, 'Anonymous');
-  if (!image) return null;
+  if (!image || !image.width || !image.height || !stageWidth || !stageHeight) return null;
 
   const imgRatio = image.width / image.height;
   const stageRatio = stageWidth / stageHeight;
+  if (!isFinite(imgRatio) || isNaN(imgRatio) || !isFinite(stageRatio) || isNaN(stageRatio)) return null;
 
   let drawW = stageWidth;
   let drawH = stageHeight;

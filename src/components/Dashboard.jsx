@@ -10,7 +10,7 @@ import {
   FolderPlus, Folder, Loader2, ArrowRight, ArrowLeft,
   Upload, FileText, CheckCircle2, AlertCircle, Trash2, 
   ChevronLeft, ChevronRight, Save, Download, FileSpreadsheet,
-  LogOut, Shield, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare
+  LogOut, Shield, ShieldAlert, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare
 } from 'lucide-react';
 import UploadZone from './UploadZone';
 import { UpgradeModal } from './UpgradeModal';
@@ -441,7 +441,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setCaption(obs);
       setPhotoGrade(initialGrade);
       setRecMode(isManual ? 'Manual' : 'Auto');
-      setAiSuggestions(getAISuggestions(obs, initialGrade, activePhoto.comments_lang || 'ID'));
+      const suggestions = getAISuggestions(obs, initialGrade, activePhoto.comments_lang || 'ID') || [];
+      setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
       setAiSuggestedRecText(activePhoto.aiSuggestedRec || '');
     } else {
       setCommentsText('');
@@ -458,17 +459,19 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   useEffect(() => {
     if (projectPhotos.length === 0 || !projectPhotos[editorIndex]) return;
     const currentLang = recommendationsLang || 'EN';
-    const suggestions = getAISuggestions(commentsText, photoGrade, commentsLang || 'ID');
-    setAiSuggestions(suggestions);
+    const suggestions = getAISuggestions(commentsText, photoGrade, commentsLang || 'ID') || [];
+    setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
 
     if (recMode === 'Auto') {
       let isMounted = true;
       generateRecommendation(commentsText, photoGrade, currentLang).then(recText => {
-        if (isMounted && recText !== undefined) {
-          const lines = recText.split('\n').filter(Boolean);
+        if (isMounted && recText !== undefined && recText !== null) {
+          const lines = (typeof recText === 'string' ? recText : '').split('\n').filter(Boolean);
           setRecommendations(lines);
           setAiSuggestedRecText(recText);
         }
+      }).catch(err => {
+        console.error("generateRecommendation auto error:", err);
       });
       return () => { isMounted = false; };
     }
@@ -542,6 +545,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setNewProjectName('');
       setSelectedProject(newProjObj);
       setProjects(prev => {
+        if (prev.some(p => p.id === newProjObj.id)) {
+          const updated = prev.map(p => p.id === newProjObj.id ? newProjObj : p);
+          saveProjectsToCache(user, updated);
+          return updated;
+        }
         const updated = [...prev, newProjObj];
         saveProjectsToCache(user, updated);
         return updated;
@@ -1845,7 +1853,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
                       <textarea
                         rows={5}
-                        value={recommendations.join('\n')}
+                        value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
                         onChange={(e) => {
                           const lines = e.target.value.split('\n');
                           if (lines.length <= 5) {
