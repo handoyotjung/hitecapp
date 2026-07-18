@@ -106,6 +106,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [planLimits, setPlanLimits] = useState({ maxDaily: 100, maxKb: 300 }); // starter defaults
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [connectivityModal, setConnectivityModal] = useState(null);
+  const [mobileShareModal, setMobileShareModal] = useState(null);
 
   // Upload Queue state (remember queue per project)
   const [projectQueues, setProjectQueues] = useState({});
@@ -362,19 +364,24 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
 
     // 2. Background Firestore sync
-    const q = query(
-      collection(db, 'projects'),
-      where('created_by', '==', (user.email || '').trim().toLowerCase())
-    );
+    const q = user.companyId
+      ? query(collection(db, 'projects'), where('company_id', '==', user.companyId))
+      : query(collection(db, 'projects'), where('created_by', '==', (user.email || '').trim().toLowerCase()));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const projs = [];
+      const nowMs = Date.now();
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
+        if (data.expires_at && new Date(data.expires_at).getTime() < nowMs) {
+          return;
+        }
         projs.push({
           id: docSnap.id,
           lastModified: new Date(0).toISOString(),
           ...data,
-          photos: Array.isArray(data.photos) ? data.photos : []
+          photos: Array.isArray(data.photos)
+            ? data.photos.filter(p => !p.expires_at || new Date(p.expires_at).getTime() >= nowMs)
+            : []
         });
       });
 
@@ -425,8 +432,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const photos = [];
+      const nowMs = Date.now();
       snapshot.forEach(doc => {
         const data = doc.data();
+        if (data.expires_at && new Date(data.expires_at).getTime() < nowMs) {
+          return;
+        }
         photos.push({ id: doc.id, ...data });
       });
       setProjectPhotos(prev => {
@@ -558,9 +569,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
       // 1. Save data to Firestore (projects/{projectId}) immediately with merge: true
       try {
+        const expiresIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
         await setDoc(doc(db, 'projects', selectedProject.id), {
           userId: user.uid || '',
           created_by: (user.email || '').trim().toLowerCase(),
+          company_id: user.companyId || 'hitec',
+          retention_days: 3,
+          expires_at: expiresIso,
           photos: cleanPhotos,
           lastModified: nowIso
         }, { merge: true });
@@ -588,6 +603,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (!newProjectName.trim()) return;
     try {
       const nowIso = new Date().toISOString();
+      const expiresIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
       const projectId = "proj_" + Math.random().toString(36).substring(2, 11);
       const newProjObj = {
         id: projectId,
@@ -596,6 +612,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         lastModified: nowIso,
         created_by: (user.email || '').trim().toLowerCase(),
         userId: user.uid || '',
+        company_id: user.companyId || 'hitec',
+        retention_days: 3,
+        expires_at: expiresIso,
         photos: []
       };
       await setDoc(doc(db, 'projects', projectId), newProjObj, { merge: true });
@@ -652,12 +671,29 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       return;
     }
 
+    const currentProjectPhotoCount = projectPhotos.length + queue.length;
+    let availableProjectSlots = 200 - currentProjectPhotoCount;
+    if (availableProjectSlots <= 0) {
+      alert("Project photo limit reached! A single project can hold up to 200 photos maximum.");
+      return;
+    }
+
     let currentRemaining = planLimits.maxDaily - dailyUploadCount;
     const newQueueItems = [];
     const oversizedFiles = [];
     let limitReachedHit = false;
+    let projectLimitAlertHit = false;
 
     files.forEach((file) => {
+      if (availableProjectSlots <= 0) {
+        if (!projectLimitAlertHit) {
+          alert("Project photo limit reached! Only up to 200 photos can be appended per project.");
+          projectLimitAlertHit = true;
+        }
+        return;
+      }
+      availableProjectSlots--;
+
       const sizeKb = file.size / 1024;
       const extension = file.name.split('.').pop().toLowerCase();
       const tempId = Math.random().toString(36).substring(7);
@@ -1304,16 +1340,118 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
   };
 
-  const handlePublishBarExport = (key) => {
+  const handlePublishBarExport = async (key) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setConnectivityModal({
+        show: true,
+        action: () => handlePublishBarExport(key)
+      });
+      return;
+    }
+
     if (key === 'confirm' || key === 'save') {
+      if (!selectedProject) return;
+      const nowIso = new Date().toISOString();
+      const expiresIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      
+      try {
+        await setDoc(doc(db, 'projects', selectedProject.id), {
+          status: 'active',
+          retention_days: 3,
+          expires_at: expiresIso,
+          updated_at: nowIso,
+          last_saved_by: user.email || '',
+          company_id: user.companyId || 'hitec'
+        }, { merge: true });
+      } catch (err) {
+        console.error("Error saving project to cloud:", err);
+      }
+
+      for (const p of projectPhotos) {
+        if (p.id) {
+          try {
+            await updateDoc(doc(db, 'photos', p.id), {
+              status: 'done',
+              expires_at: expiresIso,
+              retention_days: 3,
+              company_id: user.companyId || 'hitec'
+            });
+          } catch (e) {}
+        }
+      }
+
       setConfirmedExports(true);
     } else if (key === 'ppt') {
-      handleExport('pptx');
+      if (isMobileMode) {
+        setMobileShareModal({
+          show: true,
+          type: 'PPT',
+          fileName: getExportFileName('pptx'),
+          exportFn: () => handleExport('pptx')
+        });
+      } else {
+        handleExport('pptx');
+      }
     } else if (key === 'word' || key === 'doc') {
-      onExportWordClick();
+      if (isMobileMode) {
+        setMobileShareModal({
+          show: true,
+          type: 'DOC',
+          fileName: getExportFileName('docx'),
+          exportFn: () => onExportWordClick()
+        });
+      } else {
+        onExportWordClick();
+      }
     } else if (key === 'excel' || key === 'pdf') {
-      handleExport('pdf');
+      if (isMobileMode) {
+        setMobileShareModal({
+          show: true,
+          type: 'PDF',
+          fileName: getExportFileName('pdf'),
+          exportFn: () => handleExport('pdf')
+        });
+      } else {
+        handleExport('pdf');
+      }
     }
+  };
+
+  const handleWhatsAppShare = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setConnectivityModal({ show: true, action: handleWhatsAppShare });
+      return;
+    }
+    if (mobileShareModal?.exportFn) mobileShareModal.exportFn();
+    const shareTitle = `${selectedProject?.name || 'Project'} Report (${mobileShareModal?.type})`;
+    const shareText = `Here is the ${mobileShareModal?.type} inspection report for ${selectedProject?.name || 'Project'}.`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, text: shareText });
+        setMobileShareModal(null);
+        return;
+      } catch (e) {}
+    }
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareText} File: ${mobileShareModal?.fileName}`)}`, '_blank');
+    setMobileShareModal(null);
+  };
+
+  const handleGoogleDriveShare = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setConnectivityModal({ show: true, action: handleGoogleDriveShare });
+      return;
+    }
+    if (mobileShareModal?.exportFn) mobileShareModal.exportFn();
+    const shareTitle = `${selectedProject?.name || 'Project'} Report (${mobileShareModal?.type})`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, text: `Upload to Google Drive: ${mobileShareModal?.fileName}` });
+        setMobileShareModal(null);
+        return;
+      } catch (e) {}
+    }
+    window.open(`https://drive.google.com/drive/my-drive`, '_blank');
+    setMobileShareModal(null);
   };
 
   const handleRemove = async () => {
@@ -1404,7 +1542,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           !isMobileMode && activeTab !== 'upload' && activeTab !== 'export' ? '-translate-x-[100vw]' : 'translate-x-0'
         }`}>
           {/* Left Side: Projects and Uploads */}
-          <div className={`column-container left-column aspect-[6/19] md:aspect-auto flex flex-col justify-between ${isMobileMode ? 'w-full md:w-full' : 'w-[100vw] md:w-1/2'} h-full shrink-0 border-r border-[#2B2B2B] bg-slate-950/20 overflow-hidden relative min-w-0`}>
+          <div className={`column-container left-column flex flex-col justify-between ${isMobileMode ? 'w-full md:w-full' : 'w-[100vw] md:w-1/2'} h-full shrink-0 border-r border-[#2B2B2B] bg-slate-950/20 overflow-hidden relative min-w-0`}>
           <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-y-auto flex flex-col min-h-0 w-full min-w-0 left-column-scroll">
           
           {/* Company & City Section Above Project Section */}
@@ -1511,6 +1649,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             onFilesSelected={handleFilesSelected}
             photosUsed={dailyUploadCount}
             photosLimit={planLimits.maxDaily}
+            isMobileMode={isMobileMode}
           />
 
           {/* Queue List */}
@@ -1716,7 +1855,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           {/* Right Side: Photo Carousel Editor and Exporters */}
 
           {!isMobileMode && (
-          <div className="column-container right-column aspect-[6/19] md:aspect-auto w-[100vw] md:w-1/2 h-full shrink-0 flex flex-col overflow-hidden bg-slate-900/10">
+          <div className="column-container right-column w-[100vw] md:w-1/2 h-full shrink-0 flex flex-col overflow-hidden bg-slate-900/10">
             {/* Photo Editor Tab View / Main Pane */}
             <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6">
             {!selectedProject ? (
@@ -2117,6 +2256,106 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   Upgrade Plan
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connectivity Interceptor Modal */}
+      {connectivityModal && connectivityModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl text-center space-y-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">No Internet Connection</h3>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                Unable to connect to the cloud server or share files. Please check your network connectivity and try again.
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConnectivityModal(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = connectivityModal.action;
+                  setConnectivityModal(null);
+                  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                    setTimeout(() => setConnectivityModal({ show: true, action }), 150);
+                  } else if (action) {
+                    action();
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-600/30 transition-all active:scale-95"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Share Action Sheet / Modal */}
+      {mobileShareModal && mobileShareModal.show && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-800 p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white">Share {mobileShareModal.type} Report</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[240px]">
+                  {mobileShareModal.fileName || 'Inspection Report'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileShareModal(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              <button
+                type="button"
+                onClick={handleWhatsAppShare}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-emerald-400 font-semibold text-xs transition-all active:scale-95"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#25D366] flex items-center justify-center text-white shrink-0 shadow-md">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  </svg>
+                </div>
+                <div className="text-left flex-1">
+                  <div className="font-bold text-white">Share to WhatsApp</div>
+                  <div className="text-[10px] text-slate-400 font-normal">Send directly to contacts or groups</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGoogleDriveShare}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-400 font-semibold text-xs transition-all active:scale-95"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-md">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M12.01 1.485c-2.082 0-3.754.02-3.743.047.01.02 1.808 3.138 3.995 6.928l3.978 6.892h7.661l.088-.135c.048-.076 1.765-3.046 3.816-6.602l3.729-6.467-.113-.082c-.062-.046-1.545-.066-8.68-.117l-8.583-.066-.148.602zM7.173 2.766L.071 15.06l3.816 6.611 3.816 6.61 7.106-12.298c3.908-6.764 7.106-12.308 7.106-12.32 0-.012-3.238-.035-7.195-.051l-7.193-.03-3.854 6.669-.5 4.515z" />
+                  </svg>
+                </div>
+                <div className="text-left flex-1">
+                  <div className="font-bold text-white">Google Drive</div>
+                  <div className="text-[10px] text-slate-400 font-normal">Upload and save to cloud drive</div>
+                </div>
+              </button>
             </div>
           </div>
         </div>

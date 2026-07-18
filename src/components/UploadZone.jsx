@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { FolderOpen, Image as ImageIcon, Camera } from 'lucide-react';
 
-export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPhotos, photosUsed = 0, photosLimit = 100 }) {
+export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPhotos, photosUsed = 0, photosLimit = 100, isMobileMode = false }) {
   const [isDragActive, setIsDragActive] = useState(false);
   const folderInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   // Recursive folder traversal for Drag and Drop
   const traverseFileTree = async (item) => {
@@ -63,14 +64,24 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
   };
 
   const handleFolderSelect = (e) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       filterAndQueueFiles(Array.from(e.target.files));
+      e.target.value = '';
     }
   };
 
   const handleFileSelect = (e) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       filterAndQueueFiles(Array.from(e.target.files));
+      e.target.value = '';
+    }
+  };
+
+  const handleCameraSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      filterAndQueueFiles(Array.from(e.target.files));
+      // Reset input immediately so the field inspector can sequentially snap more photos
+      e.target.value = '';
     }
   };
 
@@ -91,7 +102,15 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
 
   const isAtLimit = photosUsed >= photosLimit;
   const handleUploadFolderClick = () => onUploadFolder ? onUploadFolder() : folderInputRef.current?.click();
-  const handleSelectPhotosClick = () => onSelectPhotos ? onSelectPhotos() : fileInputRef.current?.click();
+  const handleSelectPhotosClick = () => {
+    if (onSelectPhotos) {
+      onSelectPhotos();
+    } else if (isMobileMode && cameraInputRef.current) {
+      cameraInputRef.current.click();
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
 
   return (
     <div
@@ -119,6 +138,14 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
         multiple
         className="hidden"
         onChange={handleFileSelect}
+      />
+      <input
+        type="file"
+        ref={cameraInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleCameraSelect}
       />
 
       <div className="flex gap-2 w-full">

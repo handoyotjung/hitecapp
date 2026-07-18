@@ -562,6 +562,8 @@ const getFilteredItems = (store, queryInstance) => {
   } else if (typeof data === 'object' && data !== null) {
     items = Object.keys(data).map(id => ({ id, email: id, ...data[id] }));
   }
+  const nowMs = Date.now();
+  items = items.filter(item => !item.expires_at || new Date(item.expires_at).getTime() >= nowMs);
 
   const constraints = queryInstance.constraints || [];
   constraints.forEach(c => {

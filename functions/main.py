@@ -219,7 +219,19 @@ def exportPPTX(req: https_fn.CallableRequest) -> dict:
     else:
         photos_ref = db.collection('photos')
         query_photos = photos_ref.where('project_id', '==', project_id).where('status', '==', 'done').get()
-        photos_list = [photo_doc.to_dict() for photo_doc in query_photos]
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        photos_list = []
+        for photo_doc in query_photos:
+            d = photo_doc.to_dict()
+            exp = d.get('expires_at')
+            if exp:
+                try:
+                    exp_dt = datetime.datetime.fromisoformat(exp.replace('Z', '+00:00'))
+                    if exp_dt < now_utc:
+                        continue
+                except Exception:
+                    pass
+            photos_list.append(d)
     
     # Initialize Presentation
     prs = Presentation()
@@ -382,8 +394,17 @@ def _generate_pdf_report(req: https_fn.CallableRequest) -> dict:
             print(f"BigQuery query failed, falling back to Firestore: {bq_err}")
             photos_ref = db.collection('photos')
             query_photos = photos_ref.where('project_id', '==', project_id).where('status', '==', 'done').get()
+            now_utc = datetime.datetime.now(datetime.timezone.utc)
             for doc_snap in query_photos:
                 p_data = doc_snap.to_dict()
+                exp = p_data.get('expires_at')
+                if exp:
+                    try:
+                        exp_dt = datetime.datetime.fromisoformat(exp.replace('Z', '+00:00'))
+                        if exp_dt < now_utc:
+                            continue
+                    except Exception:
+                        pass
                 recs = p_data.get('recommendations_json') or p_data.get('recommendations') or p_data.get('recommendation') or []
                 rec_text = '\n'.join(recs) if isinstance(recs, list) else str(recs)
                 if not rec_text or rec_text == '[]':

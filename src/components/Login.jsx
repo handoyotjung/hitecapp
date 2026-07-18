@@ -7,7 +7,7 @@ export default function Login({ onLoginSuccess, errorOverride }) {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('hitec_view_mode') || 'Desktop');
 
@@ -159,6 +159,18 @@ export default function Login({ onLoginSuccess, errorOverride }) {
               </div>
             </div>
 
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500/20"
+                />
+                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">Remember me</span>
+              </label>
+            </div>
+
             <div className="pt-1">
               <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Viewing Mode</label>
               <div className="grid grid-cols-2 gap-3">
@@ -193,18 +205,6 @@ export default function Login({ onLoginSuccess, errorOverride }) {
                   <span>Mobile</span>
                 </label>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-emerald-500 focus:ring-emerald-500/20"
-                />
-                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">Remember device</span>
-              </label>
             </div>
 
             <button
