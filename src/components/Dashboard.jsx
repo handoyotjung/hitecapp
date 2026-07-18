@@ -13,6 +13,8 @@ import {
   LogOut, Shield, ShieldAlert, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare
 } from 'lucide-react';
 import UploadZone from './UploadZone';
+import Header from './Header';
+import { AuthProvider } from '@/context/AuthContext';
 import { UpgradeModal } from './UpgradeModal';
 import { FeedbackModal } from './FeedbackModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, generateRecommendation, getAISuggestions, learnComment } from '../aiAssessor';
@@ -1281,71 +1283,24 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
   return (
     <div className="flex h-screen flex-col bg-slate-950 text-slate-100 overflow-hidden">
-      {/* Navbar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/60 px-3 md:px-6 backdrop-blur-md">
-        <div className="flex items-center gap-2 md:gap-2.5 min-w-0">
-          <img src="/logo-hs-white.png" alt="HS Logo" className="h-6 md:h-7 w-auto shrink-0 object-contain filter drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]" />
-          <span className="font-outfit text-base md:text-lg font-extrabold tracking-tight text-white truncate">HitecApp</span>
-        </div>
-
-        {/* Daily Usage Section in the Header Middle */}
-        <div className="hidden md:flex flex-col items-center justify-center min-w-[200px] max-w-[320px] w-full px-4">
-          <div className="flex items-center justify-between w-full text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-            <span>Daily Usage</span>
-            <span className="text-emerald-400">{dailyUploadCount} / {planLimits.maxDaily} photos</span>
-          </div>
-          {/* Thin progress bar */}
-          <div className="h-1 w-full rounded-full bg-slate-800 overflow-hidden">
-            <div 
-              className="h-full bg-emerald-500 transition-all duration-300"
-              style={{ width: `${Math.min((dailyUploadCount / planLimits.maxDaily) * 100, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          <button
-            onClick={() => setShowFeedbackModal(true)}
-            title="Give Feedback"
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all active:scale-[0.98]"
-          >
-            <MessageSquare className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Give Feedback</span>
-          </button>
-
-          {(user.role === 'super_admin' || user.role === 'admin' || user.email?.toLowerCase() === 'handoyo.tjung@gmail.com') && (
-            <a 
-              href="/admin.html" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              title="Admin Panel"
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all active:scale-[0.98]"
-            >
-              <Shield className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">Admin Panel</span>
-            </a>
-          )}
-
-          <div className="hidden md:flex items-center gap-2 rounded-lg bg-slate-950 border border-slate-800 px-3 py-1 text-xs">
-            <User className="h-3.5 w-3.5 text-slate-400" />
-            <span className="text-slate-300 font-medium">{user.email}</span>
-            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-              isPro ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'
-            }`}>
-              {isPro ? 'Pro' : 'Starter'}
-            </span>
-          </div>
-
-          <button
-            onClick={onLogout}
-            title="Logout"
-            className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950/40 px-2.5 md:px-3 py-1.5 min-h-[36px] text-xs font-semibold text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 transition-all active:scale-[0.98]"
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
-        </div>
-      </header>
+      {/* Navbar using standalone Header and AuthProvider */}
+      <AuthProvider value={{
+        user: {
+          ...user,
+          role: user?.role || 'user',
+          plan: {
+            dailyPhotoLimit: user?.plan?.dailyPhotoLimit || planLimits.maxDaily || (user?.role === 'user' ? 100 : 9999)
+          }
+        },
+        usage: {
+          photosUsedToday: dailyUploadCount
+        },
+        onLogout,
+        onOpenFeedback: () => setShowFeedbackModal(true),
+        onOpenSecurity
+      }}>
+        <Header />
+      </AuthProvider>
 
       {/* Main Grid Container with Swipe Track */}
       <div 
@@ -1357,8 +1312,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           activeTab !== 'upload' && activeTab !== 'export' ? '-translate-x-[100vw]' : 'translate-x-0'
         }`}>
           {/* Left Side: Projects and Uploads */}
-          <div className="column-container left-column aspect-[6/19] md:aspect-auto flex flex-col justify-between w-[100vw] md:w-1/2 h-full shrink-0 border-r border-slate-800 bg-slate-950/20 overflow-hidden relative">
-          <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-y-auto flex flex-col min-h-0">
+          <div className="column-container left-column aspect-[6/19] md:aspect-auto flex flex-col justify-between w-[100vw] md:w-1/2 h-full shrink-0 border-r border-[#2B2B2B] bg-slate-950/20 overflow-hidden relative min-w-0">
+          <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-y-auto flex flex-col min-h-0 w-full min-w-0 left-column-scroll">
           
           {/* Project Section */}
           <div className="p-4 border-b border-slate-800 bg-slate-900/10 shrink-0">
@@ -1427,13 +1382,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             </div>
           </div>
 
-          {/* Drag and Drop Photos Box Section moved to Top Left Column */}
-          <div className="p-4 border-b border-slate-800 bg-slate-900/20 shrink-0">
-            <UploadZone onFilesSelected={handleFilesSelected} />
-          </div>
+          {/* Clean Drag and Drop UploadZone (2 buttons) */}
+          <UploadZone
+            onFilesSelected={handleFilesSelected}
+            photosUsed={dailyUploadCount}
+            photosLimit={planLimits.maxDaily}
+          />
 
           {/* Queue List */}
-          <div className="photo-list-container flex-1 overflow-y-auto px-4 pb-4 flex flex-col min-h-0 gap-2">
+          <div className="photo-list-container flex-1 overflow-y-auto px-3 py-2 flex flex-col min-h-0 gap-2 left-column-scroll w-full min-w-0">
             <div className="flex items-center justify-between pb-2 sticky top-0 bg-slate-950 z-10 pt-2 border-b border-slate-900">
               {/* LEFT: Select All */}
               <div className="flex items-center gap-2">
@@ -1505,7 +1462,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         setDraggedItemIndex(null);
                         setDragOverItemIndex(null);
                       }}
-                      className={`flex items-center gap-2 rounded-xl border p-2.5 transition-all cursor-grab active:cursor-grabbing ${
+                      className={`flex items-center gap-2 rounded-xl border p-2.5 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 overflow-hidden ${
                         dragOverItemIndex === index
                           ? 'border-emerald-400 bg-emerald-950/40 scale-[1.01] shadow-lg'
                           : draggedItemIndex === index
@@ -1533,7 +1490,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
                       {/* CENTER: Thumbnail + info — clicking selects photo and navigates to Caption Editor */}
                       <div
-                        className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group"
+                        className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group overflow-hidden"
                         onClick={() => {
                           togglePhotoSelection(item.finalFilename, item.status);
                           if (canNavigate) navigateToPhoto(item.finalFilename);
@@ -1557,10 +1514,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           )}
                         </div>
 
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-medium text-slate-200 group-hover:text-emerald-300 transition-colors">{item.finalFilename}</p>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <p className="truncate block w-full min-w-0 text-xs font-medium text-slate-200 group-hover:text-emerald-300 transition-colors">{item.finalFilename}</p>
                           <p className="text-[10px] text-slate-500">{Math.round(item.sizeKb)} KB</p>
-                          <p className={`text-[10px] truncate mt-0.5 ${currentCaption ? 'text-emerald-400 font-medium' : 'text-slate-600 italic'}`}>
+                          <p className={`text-[10px] truncate block w-full min-w-0 mt-0.5 ${currentCaption ? 'text-emerald-400 font-medium' : 'text-slate-600 italic'}`}>
                             {currentCaption || 'No caption'}
                           </p>
                         </div>

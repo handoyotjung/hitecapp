@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { FolderOpen, Image as ImageIcon } from 'lucide-react';
 
-export default function UploadZone({ onFilesSelected }) {
+export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPhotos, photosUsed = 0, photosLimit = 100 }) {
   const [isDragActive, setIsDragActive] = useState(false);
   const folderInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -89,15 +89,17 @@ export default function UploadZone({ onFilesSelected }) {
     }
   };
 
+  const isAtLimit = photosUsed >= photosLimit;
+  const handleUploadFolderClick = () => onUploadFolder ? onUploadFolder() : folderInputRef.current?.click();
+  const handleSelectPhotosClick = () => onSelectPhotos ? onSelectPhotos() : fileInputRef.current?.click();
+
   return (
     <div
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-300 min-h-[220px] max-h-[300px] flex-1 ${
-        isDragActive
-          ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]'
-          : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/60'
+      className={`flex-shrink-0 w-full p-3 border-b border-[#2B2B2B] bg-[#0F172A] transition-colors ${
+        isDragActive ? 'bg-indigo-500/10' : ''
       }`}
     >
       {/* Invisible inputs */}
@@ -119,36 +121,31 @@ export default function UploadZone({ onFilesSelected }) {
         onChange={handleFileSelect}
       />
 
-      <div className="flex flex-col items-center gap-2">
-        <div>
-          <h3 className="text-base font-bold text-white leading-snug">
-            Drag & Drop Photos
-          </h3>
-          <p className="mt-1 text-xs text-slate-400 max-w-[280px] mx-auto">
-            Drop folders from your computer, or choose files from your gallery.
-          </p>
-        </div>
+      <div className="flex gap-2 w-full">
+        <button
+          type="button"
+          onClick={handleUploadFolderClick}
+          disabled={isAtLimit}
+          className="flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3B3B3B] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-white transition-colors"
+        >
+          <FolderOpen className="w-4 h-4 flex-shrink-0 text-slate-300" />
+          <span className="truncate">Upload Folder</span>
+        </button>
 
-        <div className="mt-2 flex flex-wrap justify-center gap-2">
-          {/* Folder Upload (Desktop) */}
-          <button
-            onClick={() => folderInputRef.current?.click()}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white transition-colors"
-          >
-            <FolderOpen className="h-3.5 w-3.5" />
-            Upload Folder
-          </button>
-          
-          {/* File Upload (Desktop/Mobile) */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white transition-colors"
-          >
-            <ImageIcon className="h-3.5 w-3.5" />
-            Select Photos
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleSelectPhotosClick}
+          disabled={isAtLimit}
+          className="flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3B3B3B] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-white transition-colors"
+        >
+          <ImageIcon className="w-4 h-4 flex-shrink-0 text-slate-300" />
+          <span className="truncate">Select Photos</span>
+        </button>
       </div>
+
+      {isAtLimit && (
+        <p className="text-xs text-red-400 mt-2 text-center">Daily limit reached: {photosLimit}/100</p>
+      )}
     </div>
   );
 }

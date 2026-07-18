@@ -386,7 +386,10 @@
     // Admin Core logic & default store defined first to avoid Temporal Dead Zone errors
     var defaultMockStore = {
       whitelist_users: {
-        "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" }
+        "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
+        "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
+        "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
+        "dummy@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
       },
       plan: {
         "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
@@ -455,6 +458,15 @@
       store.feedback = feedbackList;
       if (!store.whitelist_users["handoyo.tjung@gmail.com"]) {
         store.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
+      }
+      if (!store.whitelist_users["admin@hitec.id"]) {
+        store.whitelist_users["admin@hitec.id"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" };
+      }
+      if (!store.whitelist_users["demo@hitec.id"]) {
+        store.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
+      }
+      if (!store.whitelist_users["dummy@hitec.id"]) {
+        store.whitelist_users["dummy@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
       }
       return store;
     }
@@ -549,14 +561,7 @@
       const activeEmailsSet = new Set();
       const sessionsMap = {};
 
-      // 1. Check whitelist_users with active session_token across all roles
-      Object.keys(users).forEach(e => {
-        if (users[e] && users[e].session_token) {
-          activeEmailsSet.add(e.toLowerCase());
-        }
-      });
-
-      // 2. Check hitec_user_sessions_v1 table across ALL roles (ADMIN and USER)
+      // 1. Check hitec_user_sessions_v1 table across ALL roles (ADMIN and USER)
       try {
         const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
         if (rawSessions) {
@@ -566,19 +571,20 @@
               const cleanE = s.user_id.toLowerCase();
               activeEmailsSet.add(cleanE);
               sessionsMap[cleanE] = s;
-              // Sync missing whitelist_users entry so user accounts appear in both tables
-              if (!users[cleanE]) {
-                const isAdminOrDummy = cleanE.includes('admin') || cleanE.includes('dummy');
+              // Sync missing or unauthenticated whitelist_users entry across all roles
+              if (!users[cleanE] || !users[cleanE].session_token) {
+                const isAdminOrDummy = cleanE.includes('admin') || cleanE.includes('dummy') || cleanE === 'handoyo.tjung@gmail.com';
+                const existing = users[cleanE] || {};
                 users[cleanE] = {
-                  role: isAdminOrDummy ? 'super_admin' : 'user',
-                  company_id: 'co_hitec',
-                  plan: isAdminOrDummy ? 'pro' : 'starter',
-                  password: 'demopassword',
+                  role: existing.role || (isAdminOrDummy ? 'super_admin' : 'user'),
+                  company_id: existing.company_id || 'co_hitec',
+                  plan: existing.plan || (isAdminOrDummy ? 'pro' : 'starter'),
+                  password: existing.password || 'demopassword',
                   session_token: s.token || 'tok_active',
-                  session_device_name: s.device_name,
-                  session_ip_address: s.ip_address,
-                  session_login_at: s.login_at,
-                  created_at: new Date().toISOString()
+                  session_device_name: s.device_name || existing.session_device_name || (cleanE.includes('demo') || cleanE.includes('dummy') ? 'Assessor Mobile Device' : 'Windows PC - Chrome'),
+                  session_ip_address: s.ip_address || existing.session_ip_address || '127.0.0.1',
+                  session_login_at: s.login_at || existing.session_login_at || new Date().toISOString(),
+                  created_at: existing.created_at || new Date().toISOString()
                 };
                 saveStore(store);
               }
@@ -586,6 +592,36 @@
           });
         }
       } catch (e) {}
+
+      // 2. Check whitelist_users with active session_token across all roles (ADMIN and USER)
+      let sessionsUpdated = false;
+      const currentSessionsList = Object.values(sessionsMap);
+      Object.keys(users).forEach(e => {
+        const cleanE = e.toLowerCase();
+        if (users[e] && users[e].session_token) {
+          activeEmailsSet.add(cleanE);
+          if (!sessionsMap[cleanE]) {
+            const newS = {
+              id: currentSessionsList.length > 0 ? Math.max(...currentSessionsList.map(s => s.id || 0)) + 1 : 1,
+              user_id: cleanE,
+              token: users[e].session_token,
+              device_id: 'dev_' + Math.random().toString(36).substring(2, 10),
+              device_name: users[e].session_device_name || (cleanE.includes('demo') || cleanE.includes('dummy') ? 'Assessor Mobile Device' : 'Windows PC - Chrome'),
+              ip_address: users[e].session_ip_address || '127.0.0.1',
+              login_at: users[e].session_login_at || new Date().toISOString(),
+              last_activity: new Date().toISOString(),
+              role: users[e].role || 'user',
+              status: 'ACTIVE'
+            };
+            sessionsMap[cleanE] = newS;
+            currentSessionsList.push(newS);
+            sessionsUpdated = true;
+          }
+        }
+      });
+      if (sessionsUpdated) {
+        try { localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(currentSessionsList)); } catch(e) {}
+      }
 
       // 3. Check current browser active hitecmedia_session across all roles
       try {

@@ -71,7 +71,10 @@ let auth, db, storage, functions;
 // Mock database storage
 const mockStore = {
   whitelist_users: {
-    "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" }
+    "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
+    "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
+    "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
+    "dummy@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
   },
   plan: {
     "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
@@ -90,6 +93,15 @@ const loadMockStore = () => {
       parsed.whitelist_users = parsed.whitelist_users || {};
       if (!parsed.whitelist_users["handoyo.tjung@gmail.com"]) {
         parsed.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
+      }
+      if (!parsed.whitelist_users["admin@hitec.id"]) {
+        parsed.whitelist_users["admin@hitec.id"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" };
+      }
+      if (!parsed.whitelist_users["demo@hitec.id"]) {
+        parsed.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
+      }
+      if (!parsed.whitelist_users["dummy@hitec.id"]) {
+        parsed.whitelist_users["dummy@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
       }
       if (!Array.isArray(parsed.projects)) {
         parsed.projects = [];

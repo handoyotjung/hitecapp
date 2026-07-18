@@ -28,7 +28,18 @@ export default function App() {
       try {
         const parsed = JSON.parse(localSession);
         if (parsed && parsed.email) {
-          setUser(parsed);
+          const role = parsed.role || 'user';
+          const dailyLimit = typeof parsed.plan === 'object' && parsed.plan?.dailyPhotoLimit
+            ? parsed.plan.dailyPhotoLimit
+            : (parsed.dailyPhotoLimit || (role === 'user' ? 100 : 9999));
+          setUser({
+            ...parsed,
+            role: role,
+            plan: {
+              ...((typeof parsed.plan === 'object' && parsed.plan) || {}),
+              dailyPhotoLimit: dailyLimit
+            }
+          });
           setLoading(false);
           return;
         }
@@ -51,12 +62,20 @@ export default function App() {
 
           if (docSnap.exists()) {
             const userData = docSnap.data();
+            const role = userData.role || firebaseUser.role || 'user';
+            const dailyLimit = typeof userData.plan === 'object' && userData.plan?.dailyPhotoLimit
+              ? userData.plan.dailyPhotoLimit
+              : (userData.dailyPhotoLimit || firebaseUser.plan?.dailyPhotoLimit || (role === 'user' ? 100 : 9999));
             const sessionUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
-              role: userData.role || 'user',
+              role: role,
+              plan: {
+                ...((typeof userData.plan === 'object' && userData.plan) || {}),
+                dailyPhotoLimit: dailyLimit
+              },
               companyId: userData.company_id || 'default_company'
             };
             setUser(sessionUser);

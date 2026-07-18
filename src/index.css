@@ -58,6 +58,14 @@ html, body, #root {
   background-color: #1A1A1A;
 }
 
+*, *::before, *::after { box-sizing: border-box; }
+* { max-width: 100%; }
+
+.left-column-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #3B3B3B #1A1A1A;
+}
+
 /* For mobile safe area */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 
