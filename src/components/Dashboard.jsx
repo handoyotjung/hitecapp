@@ -15,7 +15,7 @@ import {
 import UploadZone from './UploadZone';
 import { UpgradeModal } from './UpgradeModal';
 import { FeedbackModal } from './FeedbackModal';
-import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck } from '../aiAssessor';
+import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, generateRecommendation, getAISuggestions, learnComment } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
 import { handleExportWord } from '../exportWordReport';
 
@@ -97,6 +97,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [recommendationsLang, setRecommendationsLang] = useState('EN');
   const [aiGrammarChecking, setAiGrammarChecking] = useState(false);
   const [aiGeneratingRec, setAiGeneratingRec] = useState(false);
+  const [photoGrade, setPhotoGrade] = useState('F2 - Major');
+  const [recMode, setRecMode] = useState('Auto'); // 'Auto' | 'Manual'
+  const [aiAssistOn, setAiAssistOn] = useState(true);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [aiSuggestedRecText, setAiSuggestedRecText] = useState('');
 
   // Gemini AI bilingual spelling correction and suggestion helper (Bahasa Indonesia & English)
   const generateGeminiSuggestions = (input) => {
@@ -147,7 +152,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     ];
   };
 
-  const aiSuggestions = useMemo(() => generateGeminiSuggestions(caption), [caption]);
+  const geminiSuggestionsMemo = useMemo(() => generateGeminiSuggestions(caption), [caption]);
 
   const runGeminiCorrection = () => {
     setAiProcessing(true);
@@ -426,17 +431,48 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (projectPhotos.length > 0 && projectPhotos[editorIndex]) {
       const activePhoto = projectPhotos[editorIndex];
       const obs = activePhoto.comments_text || activePhoto.caption || '';
+      const initialGrade = activePhoto.grade || 'F2 - Major';
+      const initialLang = activePhoto.recommendations_lang || 'EN';
+      const isManual = Boolean(activePhoto.manualOverride);
       setCommentsText(obs);
       setCommentsLang(activePhoto.comments_lang || 'ID');
       setRecommendations(Array.isArray(activePhoto.recommendations_json) ? activePhoto.recommendations_json : []);
-      setRecommendationsLang(activePhoto.recommendations_lang || 'ID');
+      setRecommendationsLang(initialLang);
       setCaption(obs);
+      setPhotoGrade(initialGrade);
+      setRecMode(isManual ? 'Manual' : 'Auto');
+      setAiSuggestions(getAISuggestions(obs, initialGrade, activePhoto.comments_lang || 'ID'));
+      setAiSuggestedRecText(activePhoto.aiSuggestedRec || '');
     } else {
       setCommentsText('');
       setRecommendations([]);
       setCaption('');
+      setPhotoGrade('F2 - Major');
+      setRecMode('Auto');
+      setAiSuggestions([]);
+      setAiSuggestedRecText('');
     }
   }, [projectPhotos, editorIndex]);
+
+  // Auto-generate AI Recommendation when in Auto mode upon comment or grade changes
+  useEffect(() => {
+    if (projectPhotos.length === 0 || !projectPhotos[editorIndex]) return;
+    const currentLang = recommendationsLang || 'EN';
+    const suggestions = getAISuggestions(commentsText, photoGrade, commentsLang || 'ID');
+    setAiSuggestions(suggestions);
+
+    if (recMode === 'Auto') {
+      let isMounted = true;
+      generateRecommendation(commentsText, photoGrade, currentLang).then(recText => {
+        if (isMounted && recText !== undefined) {
+          const lines = recText.split('\n').filter(Boolean);
+          setRecommendations(lines);
+          setAiSuggestedRecText(recText);
+        }
+      });
+      return () => { isMounted = false; };
+    }
+  }, [commentsText, photoGrade, recMode, recommendationsLang, commentsLang, editorIndex]);
 
   // Requirement 1: Debounced Auto-Save Logic (2-second debounce) whenever photo list or captions change
   useEffect(() => {
@@ -918,13 +954,23 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (!projectPhotos[editorIndex]) return;
     setAiGeneratingRec(true);
     try {
-      const res = await aiGenerateRecommendation(
-        projectPhotos[editorIndex],
-        commentsText,
-        recommendationsLang
-      );
-      if (res && res.recommendations) {
-        setRecommendations(res.recommendations);
+      const recText = await generateRecommendation(commentsText, photoGrade, recommendationsLang);
+      if (recText) {
+        const lines = recText.split('\n').filter(Boolean);
+        setRecommendations(lines);
+        setAiSuggestedRecText(recText);
+        setRecMode('Auto');
+      } else {
+        const res = await aiGenerateRecommendation(
+          projectPhotos[editorIndex],
+          commentsText,
+          recommendationsLang
+        );
+        if (res && res.recommendations) {
+          setRecommendations(res.recommendations);
+          setAiSuggestedRecText(res.recommendations.join('\n'));
+          setRecMode('Auto');
+        }
       }
     } catch (err) {
       console.error("AI Recommendation error:", err);
@@ -945,10 +991,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         comments_lang: commentsLang,
         recommendations_json: recommendations.slice(0, 5),
         recommendations_lang: recommendationsLang,
-        caption: commentsText.substring(0, 300)
+        caption: commentsText.substring(0, 300),
+        grade: photoGrade,
+        manualOverride: recMode === 'Manual',
+        aiSuggestedRec: aiSuggestedRecText || recommendations.join('\n')
       };
 
       await updateDoc(doc(db, 'photos', currentPhoto.id), updatePayload);
+      await learnComment(user, selectedProject, { ...currentPhoto, ...updatePayload, komentar: commentsText, rekomendasi: recommendations.join('\n') });
 
       const updatedPhotos = projectPhotos.map((p, idx) => 
         idx === editorIndex ? { ...p, ...updatePayload } : p
@@ -1666,6 +1716,30 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       </span>
                     </div>
 
+                    {/* GRADE SELECTOR */}
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm flex items-center justify-between flex-wrap gap-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <ShieldAlert className="h-4 w-4 text-emerald-400" />
+                        <span>Assessment Grade:</span>
+                      </label>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {['F1 - Minor', 'F2 - Major', 'F3 - Critical'].map((g) => {
+                          const active = photoGrade === g;
+                          const color = g.includes('F3') ? (active ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-500/20' : 'bg-slate-950 text-rose-400 border-rose-900/40 hover:bg-rose-950/40') : g.includes('F2') ? (active ? 'bg-amber-600 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-slate-950 text-amber-400 border-amber-900/40 hover:bg-amber-950/40') : (active ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-slate-950 text-emerald-400 border-emerald-900/40 hover:bg-emerald-950/40');
+                          return (
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => setPhotoGrade(g)}
+                              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${color}`}
+                            >
+                              {g}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {/* CARD A: COMMENTS / KOMENTAR */}
                     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-sm">
                       <div className="flex items-center justify-between mb-2">
@@ -1673,6 +1747,17 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           <label className="text-xs font-bold text-white uppercase tracking-wide">
                             {commentsLang === 'ID' ? 'KOMENTAR' : 'COMMENTS'}
                           </label>
+                          <button
+                            type="button"
+                            onClick={() => setAiAssistOn(!aiAssistOn)}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors flex items-center gap-1 shadow-sm ${
+                              aiAssistOn ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400'
+                            }`}
+                            title="Toggle AI Auto-Complete & Suggestion Pills"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            <span>AI Assist: {aiAssistOn ? 'ON' : 'OFF'}</span>
+                          </button>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1702,6 +1787,32 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         placeholder=""
                         className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none leading-relaxed"
                       />
+
+                      {aiAssistOn && aiSuggestions.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-800/80">
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
+                            <span>AI Suggestions (Click to insert):</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {aiSuggestions.map((pill, pIdx) => (
+                              <button
+                                key={pIdx}
+                                type="button"
+                                onClick={() => {
+                                  const newLines = commentsText ? (commentsText + '\n' + pill) : pill;
+                                  const splitted = newLines.split('\n').slice(0, 5).join('\n');
+                                  setCommentsText(splitted);
+                                }}
+                                className="rounded-lg bg-slate-950 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 px-2.5 py-1 text-left text-xs font-medium text-slate-300 hover:text-emerald-300 transition-all max-w-full truncate"
+                                title={pill}
+                              >
+                                + {pill}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* CARD B: ASSESSOR RECOMMENDATION - AI Fire Safety Assessor */}
@@ -1710,9 +1821,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         <div className="flex items-center gap-2">
                           <label className="text-xs font-bold text-white uppercase tracking-wide">
                             {commentsLang === 'ID'
-                              ? 'REKOMENDASI'
-                              : 'RECOMMENDATION'}
+                              ? 'REKOMENDASI AI'
+                              : 'AI RECOMMENDATION'}
                           </label>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border flex items-center gap-1 shadow-sm ${
+                            recMode === 'Auto' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                          }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${recMode === 'Auto' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                            <span>{recMode === 'Auto' ? 'Auto' : 'Manual Override'}</span>
+                          </span>
                         </div>
 
                         <button
@@ -1736,6 +1853,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           } else {
                             setRecommendations(lines.slice(0, 5));
                           }
+                          if (recMode === 'Auto') setRecMode('Manual');
                         }}
                         placeholder=""
                         className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none leading-relaxed"
@@ -1747,10 +1865,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             type="button"
                             onClick={handleGenerateRecommendation}
                             disabled={aiGeneratingRec}
-                            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50"
+                            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50 shadow-sm"
+                            title="Regenerate recommendation based on current comment and grade"
                           >
                             {aiGeneratingRec ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                            <span>{commentsLang === 'ID' ? 'Buat Rekomendasi' : 'Generate Recommendation'}</span>
+                            <span>{commentsLang === 'ID' ? 'Regenerate' : 'Regenerate'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRecMode(prev => prev === 'Auto' ? 'Manual' : 'Auto')}
+                            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all shadow-sm ${
+                              recMode === 'Manual' ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500 hover:text-white' : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-600'
+                            }`}
+                            title="Toggle between Auto-fill and Manual Override mode"
+                          >
+                            <span>{recMode === 'Manual' ? 'Edit Manually (Active)' : 'Edit Manually'}</span>
                           </button>
                         </div>
 

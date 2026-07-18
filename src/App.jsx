@@ -14,6 +14,11 @@ export default function App() {
   const [forceLogoutNotice, setForceLogoutNotice] = useState(null);
 
   useEffect(() => {
+    if (window.location.pathname.startsWith('/admin') && !window.location.pathname.includes('admin.html')) {
+      window.location.replace('/admin.html#comment-logs');
+      return;
+    }
+
     // Run cleanup job on app launch
     runSessionCleanupJob();
 

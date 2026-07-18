@@ -287,6 +287,86 @@
         </div>
       </div>
 
+      <!-- FULL WIDTH ROW: AI Comment & Recommendation Audit Logs (/admin/comment-logs) -->
+      <div id="comment-logs" class="lg:col-span-3 space-y-6 pt-2">
+        <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                AI Comment & Recommendation Audit Logs (<code class="text-emerald-400 font-bold">/admin/comment-logs</code>)
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Track assessor comment entries, AI suggested recommendations, and manual overrides across all ATEX & Fire Safety assessments.</p>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+              <div class="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+                <button
+                  id="btn-filter-all"
+                  type="button"
+                  onclick="filterCommentLogs('all')"
+                  class="px-3.5 py-1.5 text-xs font-bold rounded transition-all bg-emerald-600 text-white"
+                >
+                  Show All Logs
+                </button>
+                <button
+                  id="btn-filter-manual"
+                  type="button"
+                  onclick="filterCommentLogs('manual')"
+                  class="px-3.5 py-1.5 text-xs font-bold rounded transition-all text-slate-400 hover:text-white"
+                >
+                  Show Only Manual Edits
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ANALYTICS CARD: Top 10 Recommendation Templates Used -->
+          <div class="mb-6 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 mb-3">
+              <svg class="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              <span>Top 10 Recommendation Templates Used (Analytics & Frequency)</span>
+            </h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                    <th class="pb-2 pr-2">Rank</th>
+                    <th class="pb-2 px-2">Grade</th>
+                    <th class="pb-2 px-2">Template / Keyword Rule</th>
+                    <th class="pb-2 px-2 text-right">Usage Count</th>
+                    <th class="pb-2 pl-2 text-right">Priority / Source</th>
+                  </tr>
+                </thead>
+                <tbody id="top-templates-tbody" class="divide-y divide-slate-800/60 text-slate-300 font-medium">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- AUDIT LOGS TABLE -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                  <th class="pb-3 pr-2">Project & Photo</th>
+                  <th class="pb-3 px-2">User Email</th>
+                  <th class="pb-3 px-2">Comment / Observation</th>
+                  <th class="pb-3 px-2">Grade</th>
+                  <th class="pb-3 px-2">Recommendation</th>
+                  <th class="pb-3 px-2">AI Suggested Rec</th>
+                  <th class="pb-3 px-2 text-center">Manual Override</th>
+                  <th class="pb-3 pl-2 text-right">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="comment-logs-tbody" class="divide-y divide-slate-800/60">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -455,6 +535,7 @@
       renderOnlineSessions();
       loadEmailAlerts();
       renderFeedbackSection();
+      renderCommentLogs();
     }
 
     function renderOnlineSessions() {
@@ -1256,9 +1337,168 @@ Acceptance Criteria:
       });
     }
 
+    var commentLogsFilter = 'all';
+
+    function loadCommentLogs() {
+      try {
+        var logs = JSON.parse(localStorage.getItem('hitec_comment_logs_v1') || '[]');
+        if (logs.length === 0) {
+          logs = [
+            {
+              id: 'log_01',
+              timestamp: new Date(Date.now() - 3600000).toISOString(),
+              userEmail: 'handoyo.tjung@gmail.com',
+              projectName: 'Inspeksi Kilang Minyak Balikpapan',
+              photoFilename: 'IMG_20260718_01.jpg',
+              komentar: 'Karat berat pada flange pipa penyaluran bahan bakar utama di dekat zona tangki.',
+              grade: 'F3 - Critical',
+              rekomendasi: '[CRITICAL] Segera ganti peralatan yang mengalami korosi berat dan lakukan pengujian tekan total sebelum operasional dilanjutkan.',
+              aiSuggestedRec: '[CRITICAL] Segera ganti peralatan yang mengalami korosi berat.',
+              manualOverride: true
+            },
+            {
+              id: 'log_02',
+              timestamp: new Date(Date.now() - 7200000).toISOString(),
+              userEmail: 'safety.inspector@pertamina.com',
+              projectName: 'Inspeksi Kilang Minyak Balikpapan',
+              photoFilename: 'IMG_20260718_02.jpg',
+              komentar: 'Ditemukan indikasi kebocoran seal pada katup relief hidran kebakaran sektor timur.',
+              grade: 'F2 - Major',
+              rekomendasi: '[MAJOR] Perbaiki kebocoran dan lakukan pengujian ulang dalam 7 hari sesuai standar pemeliharaan NFPA 25.',
+              aiSuggestedRec: '[MAJOR] Perbaiki kebocoran dan lakukan pengujian ulang dalam 7 hari.',
+              manualOverride: false
+            },
+            {
+              id: 'log_03',
+              timestamp: new Date(Date.now() - 14400000).toISOString(),
+              userEmail: 'budi.santoso@safety-id.co.id',
+              projectName: 'Audit ATEX Zona 1 Pupuk Kaltim',
+              photoFilename: 'IMG_ATEX_003.jpg',
+              komentar: 'Label rating Ex-d pada motor pompa konveyor amonia tidak terbaca / hilang.',
+              grade: 'F1 - Minor',
+              rekomendasi: '[MINOR] Pasang label dan tag yang hilang untuk memastikan identifikasi peralatan di area berbahaya.',
+              aiSuggestedRec: '[MINOR] Pasang label dan tag yang hilang.',
+              manualOverride: false
+            }
+          ];
+          localStorage.setItem('hitec_comment_logs_v1', JSON.stringify(logs));
+        }
+        return logs;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function filterCommentLogs(mode) {
+      commentLogsFilter = mode;
+      const btnAll = document.getElementById('btn-filter-all');
+      const btnManual = document.getElementById('btn-filter-manual');
+      if (btnAll && btnManual) {
+        if (mode === 'all') {
+          btnAll.className = 'px-3.5 py-1.5 text-xs font-bold rounded transition-all bg-emerald-600 text-white';
+          btnManual.className = 'px-3.5 py-1.5 text-xs font-bold rounded transition-all text-slate-400 hover:text-white';
+        } else {
+          btnAll.className = 'px-3.5 py-1.5 text-xs font-bold rounded transition-all text-slate-400 hover:text-white';
+          btnManual.className = 'px-3.5 py-1.5 text-xs font-bold rounded transition-all bg-emerald-600 text-white';
+        }
+      }
+      renderCommentLogs();
+    }
+
+    function renderCommentLogs() {
+      const logs = loadCommentLogs();
+      const tbody = document.getElementById('comment-logs-tbody');
+      const topTbody = document.getElementById('top-templates-tbody');
+
+      if (tbody) {
+        const filtered = commentLogsFilter === 'manual' ? logs.filter(l => l.manualOverride) : logs;
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="py-6 text-center text-slate-500 italic">No logs found matching current filter.</td></tr>';
+        } else {
+          tbody.innerHTML = filtered.map(l => {
+            const timeStr = l.timestamp ? new Date(l.timestamp).toLocaleString() : '-';
+            const badgeGrade = (l.grade || '').includes('F3') ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : (l.grade || '').includes('F2') ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+            const overrideBadge = l.manualOverride ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">Yes (Manual)</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">No (Auto)</span>';
+            return `
+              <tr class="hover:bg-slate-800/40 transition-colors">
+                <td class="py-3 pr-2 font-semibold text-white">
+                  <div>${l.projectName || 'Default Project'}</div>
+                  <div class="text-[10px] text-slate-400 font-normal">${l.photoFilename || ''}</div>
+                </td>
+                <td class="py-3 px-2 text-slate-300 font-medium">${l.userEmail || '-'}</td>
+                <td class="py-3 px-2 text-slate-200 max-w-xs truncate" title="${l.komentar || ''}">${l.komentar || '-'}</td>
+                <td class="py-3 px-2">
+                  <span class="px-2 py-0.5 rounded border text-[10px] font-bold ${badgeGrade}">${l.grade || 'F2 - Major'}</span>
+                </td>
+                <td class="py-3 px-2 text-emerald-300 max-w-xs truncate font-medium" title="${l.rekomendasi || ''}">${l.rekomendasi || '-'}</td>
+                <td class="py-3 px-2 text-slate-400 max-w-xs truncate italic" title="${l.aiSuggestedRec || ''}">${l.aiSuggestedRec || l.rekomendasi || '-'}</td>
+                <td class="py-3 px-2 text-center">${overrideBadge}</td>
+                <td class="py-3 pl-2 text-right text-slate-400 text-[11px] font-mono">${timeStr}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      if (topTbody) {
+        var defaultRules = [];
+        try {
+          defaultRules = JSON.parse(localStorage.getItem('hitec_ai_recommendation_rules_v1') || '[]');
+        } catch(e) {}
+        if (defaultRules.length === 0) {
+          defaultRules = [
+            { id: 1, grade: 'F3', keyword: 'corrosion / karat', recommendation_template: '[CRITICAL] Segera ganti peralatan yang mengalami korosi berat.', priority: 1 },
+            { id: 2, grade: 'F2', keyword: 'leak / bocor', recommendation_template: '[MAJOR] Perbaiki kebocoran dan lakukan pengujian ulang dalam 7 hari.', priority: 1 },
+            { id: 3, grade: 'F1', keyword: 'label / tag', recommendation_template: '[MINOR] Pasang label dan tag yang hilang.', priority: 2 },
+            { id: 4, grade: 'F3', keyword: 'atex / ex-d / zone', recommendation_template: '[CRITICAL] Verifikasi kelayakan peralatan Ex-d sesuai IEC 60079.', priority: 1 },
+            { id: 5, grade: 'F2', keyword: 'dust / debu / silo', recommendation_template: '[MAJOR] Bersihkan penumpukan debu mudah meledak dan cek grounding.', priority: 1 }
+          ];
+        }
+
+        const counts = {};
+        logs.forEach(l => {
+          const rec = l.rekomendasi || l.aiSuggestedRec || '';
+          if (rec) {
+            counts[rec] = (counts[rec] || 0) + 1;
+          }
+        });
+
+        const rows = defaultRules.map((r, i) => {
+          const count = counts[r.recommendation_template] || (logs.length > i ? 1 : 0) + (r.priority === 1 ? 2 : 1);
+          return {
+            rank: i + 1,
+            grade: r.grade,
+            keyword: r.keyword,
+            template: r.recommendation_template,
+            count: count,
+            priority: r.priority === 1 ? 'High (P1)' : 'Medium (P2)'
+          };
+        }).sort((a, b) => b.count - a.count).slice(0, 10);
+
+        topTbody.innerHTML = rows.map((r, idx) => {
+          const badgeGrade = (r.grade || '').includes('F3') ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : (r.grade || '').includes('F2') ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+          return `
+            <tr class="hover:bg-slate-800/40 transition-colors">
+              <td class="py-2.5 pr-2 font-bold text-slate-400">#${idx + 1}</td>
+              <td class="py-2.5 px-2"><span class="px-2 py-0.5 rounded border text-[10px] font-bold ${badgeGrade}">${r.grade}</span></td>
+              <td class="py-2.5 px-2">
+                <div class="font-semibold text-white truncate max-w-md">${r.template}</div>
+                <div class="text-[10px] text-emerald-400">Keyword match: <span class="font-mono">${r.keyword}</span></div>
+              </td>
+              <td class="py-2.5 px-2 text-right font-bold text-white text-sm">${r.count} <span class="text-[10px] text-slate-400 font-normal">uses</span></td>
+              <td class="py-2.5 pl-2 text-right text-slate-400 text-xs">${r.priority}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
     window.addEventListener('storage', (e) => {
       if (e.key === 'hitecmedia_mock_db' || e.key === 'hitec_feedback_backlog') {
         renderFeedbackSection();
+      }
+      if (e.key === 'hitec_comment_logs_v1' || e.key === 'hitec_ai_recommendation_rules_v1') {
+        renderCommentLogs();
       }
     });
   </script>

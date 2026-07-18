@@ -753,3 +753,239 @@ Acceptance Criteria:
   };
 }
 
+// ==========================================
+// UPGRADED COMMENTS & RECOMMENDATIONS SYSTEM
+// PART 1: Database & AI Learning Engine
+// ==========================================
+
+const DEFAULT_AI_RECOMMENDATION_RULES = [
+  // F3 Critical rules
+  { grade: 'F3', keyword: 'corrosion', recommendation_template: '[CRITICAL] Replace equipment immediately due to severe corrosion', priority: 1, language: 'English' },
+  { grade: 'F3', keyword: 'korosi', recommendation_template: '[CRITICAL] Segera ganti atau isolasi peralatan bertekanan akibat kerusakan korosi berat', priority: 1, language: 'ID' },
+  { grade: 'F3', keyword: 'karat', recommendation_template: '[CRITICAL] Segera ganti peralatan yang mengalami degradasi korosif parah pada badan tabung', priority: 1, language: 'ID' },
+  { grade: 'F3', keyword: 'dust', recommendation_template: '[CRITICAL] Perform immediate housecleaning to eliminate combustible dust accumulations and prevent secondary explosion per EN 14491 / NFPA 652', priority: 1, language: 'English' },
+  { grade: 'F3', keyword: 'debu', recommendation_template: '[CRITICAL] Lakukan pembersihan menyeluruh terhadap akumulasi debu mudah terbakar pada area kerja kritis sesuai EN 14491 / NFPA 652', priority: 1, language: 'ID' },
+  { grade: 'F3', keyword: 'pressure', recommendation_template: '[CRITICAL] Conduct immediate cylinder replacement or recharge; critical pressure loss in ATEX classified atmosphere', priority: 1, language: 'English' },
+  { grade: 'F3', keyword: 'tekanan', recommendation_template: '[CRITICAL] Segera lakukan penggantian atau pengisian ulang tabung APAR karena kehilangan tekanan operasional kritis', priority: 1, language: 'ID' },
+  { grade: 'F3', keyword: 'spark', recommendation_template: '[CRITICAL] De-energize equipment and eliminate electrostatic discharge risk sources immediately per IEC 60079-0', priority: 1, language: 'English' },
+
+  // F2 Major rules
+  { grade: 'F2', keyword: 'leak', recommendation_template: '[MAJOR] Repair leak and re-test within 7 days', priority: 1, language: 'English' },
+  { grade: 'F2', keyword: 'bocor', recommendation_template: '[MAJOR] Lakukan perbaikan kebocoran dan pengujian hidrostatis ulang dalam waktu 7 hari', priority: 1, language: 'ID' },
+  { grade: 'F2', keyword: 'seal', recommendation_template: '[MAJOR] Reinstall certified safety locking pin and tamper-evident inspection seal immediately', priority: 1, language: 'English' },
+  { grade: 'F2', keyword: 'segel', recommendation_template: '[MAJOR] Pasang kembali pin pengaman pengunci tuas dan segel inspeksi baru untuk mencegah pelepasan tidak sengaja', priority: 1, language: 'ID' },
+  { grade: 'F2', keyword: 'hose', recommendation_template: '[MAJOR] Replace elastomeric discharge hose assembly with electrostatic conductive replacement unit', priority: 1, language: 'English' },
+  { grade: 'F2', keyword: 'selang', recommendation_template: '[MAJOR] Ganti selang penyalur bahan pemadam (discharge hose) yang retak atau terhambat', priority: 1, language: 'ID' },
+  { grade: 'F2', keyword: 'expired', recommendation_template: '[MAJOR] Schedule annual certified maintenance servicing and hydrostatic re-testing per NFPA 10', priority: 1, language: 'English' },
+  { grade: 'F2', keyword: 'kadaluarsa', recommendation_template: '[MAJOR] Lakukan penjadwalan inspeksi dan pemeliharaan tahunan oleh tim asesor keselamatan tersertifikasi', priority: 1, language: 'ID' },
+  { grade: 'F2', keyword: 'obstructed', recommendation_template: '[MAJOR] Relocate obstructing machinery to maintain 1-meter clear accessibility to fire protection equipment', priority: 1, language: 'English' },
+  { grade: 'F2', keyword: 'halang', recommendation_template: '[MAJOR] Pindahkan material yang menghalangi akses jalur evakuasi dan titik penempatan alat pemadam api', priority: 1, language: 'ID' },
+  { grade: 'F2', keyword: 'earthing', recommendation_template: '[MAJOR] Verify electrostatic grounding and bonding integrity across combustible dust processing areas', priority: 1, language: 'English' },
+
+  // F1 Minor rules
+  { grade: 'F1', keyword: 'label', recommendation_template: '[MINOR] Install missing label and tag', priority: 1, language: 'English' },
+  { grade: 'F1', keyword: 'missing', recommendation_template: '[MINOR] Install missing safety identification signage and inspection tracking record tag', priority: 1, language: 'English' },
+  { grade: 'F1', keyword: 'hilang', recommendation_template: '[MINOR] Pasang kembali rambu penanda keselamatan dan kartu riwayat pemeriksaan peralatan', priority: 1, language: 'ID' },
+  { grade: 'F1', keyword: 'dirty', recommendation_template: '[MINOR] Clean external cylinder enclosure and ensure operating instructions remain legible', priority: 1, language: 'English' },
+  { grade: 'F1', keyword: 'kotor', recommendation_template: '[MINOR] Bersihkan permukaan luar tabung dan pastikan petunjuk penggunaan tetap terbaca dengan jelas', priority: 1, language: 'ID' },
+  { grade: 'F1', keyword: 'good', recommendation_template: '[COMPLIANT] Fire protection unit is in optimal operational condition and ready for deployment', priority: 1, language: 'English' },
+  { grade: 'F1', keyword: 'baik', recommendation_template: '[COMPLIANT] Unit peralatan perlindungan kebakaran berada dalam kondisi operasional optimal dan siap pakai', priority: 1, language: 'ID' }
+];
+
+export function extractKeywords(text) {
+  if (!text || !text.trim()) return [];
+  const lower = text.toLowerCase();
+  const knownKeywords = [
+    'corrosion', 'leak', 'label', 'missing', 'dust', 'pressure', 'tekanan', 'merah', 'drop',
+    'seal', 'segel', 'pin', 'putus', 'karat', 'korosi', 'hose', 'selang', 'retak', 'cracked',
+    'expired', 'kadaluarsa', 'overdue', 'obstructed', 'halang', 'earthing', 'grounding',
+    'gland', 'cable', 'spark', 'zone', 'ip rating', 'repair', 'replace', 'install', 'monitor',
+    'bocor', 'kotor', 'dirty', 'good', 'baik', 'normal'
+  ];
+  const matches = knownKeywords.filter(kw => lower.includes(kw));
+  if (matches.length > 0) return [...new Set(matches)];
+  const words = lower.replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length >= 4);
+  return [...new Set([...matches, ...words.slice(0, 3)])];
+}
+
+export function getStoredRules() {
+  try {
+    const raw = localStorage.getItem('hitec_ai_recommendation_rules_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return [...parsed, ...DEFAULT_AI_RECOMMENDATION_RULES];
+      }
+    }
+  } catch (e) {}
+  return DEFAULT_AI_RECOMMENDATION_RULES;
+}
+
+export function getStoredCommentsTraining() {
+  try {
+    const raw = localStorage.getItem('hitec_ai_comments_training_v1');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [
+    { phrase: 'Tekanan tabung di bawah ambang batas operasional kritis (underpressure); berisiko gagal discharge.', keyword: 'tekanan', grade: 'F3', language: 'ID', frequency: 10 },
+    { phrase: 'Integritas segel pengaman (safety pin & tamper seal) terputus atau hilang pada zona operasional.', keyword: 'segel', grade: 'F2', language: 'ID', frequency: 9 },
+    { phrase: 'Akumulasi debu mudah terbakar (combustible dust) teridentifikasi pada area peralatan berpotensi ledakan.', keyword: 'debu', grade: 'F3', language: 'ID', frequency: 11 },
+    { phrase: 'Degradasi korosif pada cangkang silinder bertekanan; membahayakan integritas struktural tabung.', keyword: 'karat', grade: 'F3', language: 'ID', frequency: 8 },
+    { phrase: 'Selang discharge mengalami keretakan material elastomery / sumbatan fisik.', keyword: 'selang', grade: 'F2', language: 'ID', frequency: 7 },
+    { phrase: 'Unit APAR dalam kondisi baik, tekanan normal, dan siap pakai.', keyword: 'baik', grade: 'F1', language: 'ID', frequency: 15 },
+    { phrase: 'Extinguisher pressure indicator below minimum operational threshold; risking discharge failure.', keyword: 'pressure', grade: 'F3', language: 'English', frequency: 10 },
+    { phrase: 'Tamper seal and safety locking mechanism compromised, requiring immediate integrity verification.', keyword: 'seal', grade: 'F2', language: 'English', frequency: 9 },
+    { phrase: 'Combustible dust accumulation identified on equipment enclosure; secondary explosion hazard per EN 14491.', keyword: 'dust', grade: 'F3', language: 'English', frequency: 11 },
+    { phrase: 'Corrosive surface degradation observed on cylinder shell, threatening pressure vessel integrity.', keyword: 'corrosion', grade: 'F3', language: 'English', frequency: 8 },
+    { phrase: 'Discharge hose elastomeric deterioration observed, increasing flow impedance.', keyword: 'hose', grade: 'F2', language: 'English', frequency: 7 },
+    { phrase: 'Fire protection unit and operational indicators fully compliant and ready for service.', keyword: 'good', grade: 'F1', language: 'English', frequency: 15 }
+  ];
+}
+
+export async function generateRecommendation(commentText, grade = 'F2', language = 'ID') {
+  if (!commentText || !grade) return "";
+  const gradeShort = (grade || 'F2').split(' - ')[0].trim(); // e.g. F2
+  const keywords = extractKeywords(commentText);
+  const allRules = getStoredRules();
+
+  const isEng = language === 'English' || language === 'EN' || language === 'en';
+  const targetLang = isEng ? 'English' : 'ID';
+
+  let recs = [];
+  for (const kw of keywords) {
+    const matchedRules = allRules
+      .filter(r => r.grade === gradeShort && r.keyword.toLowerCase() === kw.toLowerCase() && (r.language === targetLang || r.language === (isEng ? 'EN' : 'Bahasa')))
+      .sort((a, b) => (a.priority || 1) - (b.priority || 1));
+    if (matchedRules.length > 0) {
+      recs.push(matchedRules[0].recommendation_template);
+    } else {
+      // check if keyword matches regardless of language if exact lang rule missing
+      const anyLangMatches = allRules.filter(r => r.grade === gradeShort && r.keyword.toLowerCase() === kw.toLowerCase());
+      if (anyLangMatches.length > 0) {
+        recs.push(anyLangMatches[0].recommendation_template);
+      }
+    }
+  }
+
+  if (recs.length === 0) {
+    if (gradeShort === 'F3') {
+      return isEng 
+        ? "[CRITICAL] Immediate action required: Replace or isolate compromised equipment immediately due to critical safety defect"
+        : "[CRITICAL] Segera ganti atau isolasi peralatan yang rusak berat demi keselamatan operasional";
+    }
+    if (gradeShort === 'F2') {
+      return isEng
+        ? "[MAJOR] Action required within 30 days: Repair defect and conduct operational re-test"
+        : "[MAJOR] Lakukan perbaikan dan pengujian ulang fungsi peralatan dalam waktu maksimal 30 hari";
+    }
+    return isEng
+      ? "[MINOR] Monitor during next inspection: Install missing label or maintain regular maintenance schedule"
+      : "[MINOR] Lakukan pemantauan pada jadwal inspeksi berikutnya atau lengkapi penanda/label yang kurang";
+  }
+
+  return [...new Set(recs)].join('\n');
+}
+
+export function getAISuggestions(commentText, grade = 'F2', language = 'ID') {
+  const gradeShort = (grade || 'F2').split(' - ')[0].trim();
+  const isEng = language === 'English' || language === 'EN' || language === 'en';
+  const targetLang = isEng ? 'English' : 'ID';
+  const training = getStoredCommentsTraining();
+
+  const keywords = extractKeywords(commentText);
+  let matching = training.filter(item => 
+    (item.language === targetLang || item.language === (isEng ? 'EN' : 'Bahasa')) &&
+    (keywords.includes(item.keyword) || item.grade === gradeShort)
+  );
+
+  if (matching.length === 0) {
+    matching = training.filter(item => item.language === targetLang);
+  }
+
+  // Sort by frequency descending and return unique phrases
+  matching.sort((a, b) => (b.frequency || 1) - (a.frequency || 1));
+  const phrases = [...new Set(matching.map(m => m.phrase))];
+  return phrases.slice(0, 4);
+}
+
+export async function learnComment(user, project, photo) {
+  if (!photo) return;
+  const gradeShort = (photo.grade || 'F2').split(' - ')[0].trim();
+  const commentText = photo.komentar || photo.comments_text || photo.caption || '';
+  const recommendationText = photo.rekomendasi || (Array.isArray(photo.recommendations_json) ? photo.recommendations_json.join('\n') : '') || '';
+  const aiSuggestedRec = photo.aiSuggestedRec || '';
+  const manualOverride = Boolean(photo.manualOverride || recommendationText !== aiSuggestedRec);
+
+  // 1. Save to Logs (`comment_logs`)
+  const logEntry = {
+    id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    project_id: project?.id || 'proj_' + Date.now(),
+    project_name: project?.name || 'Project',
+    photo_id: photo?.id || photo?.filename || 'photo',
+    photo_filename: photo?.filename || 'IMG.jpg',
+    user_email: user?.email || 'assessor@hitec.id',
+    timestamp: new Date().toISOString(),
+    comment: commentText,
+    grade: photo.grade || 'F2 - Major',
+    recommendation: recommendationText,
+    ai_suggested_rec: aiSuggestedRec || recommendationText,
+    manual_override: manualOverride
+  };
+
+  try {
+    const existingLogsRaw = localStorage.getItem('hitec_comment_logs_v1');
+    const existingLogs = existingLogsRaw ? JSON.parse(existingLogsRaw) : [];
+    existingLogs.unshift(logEntry);
+    localStorage.setItem('hitec_comment_logs_v1', JSON.stringify(existingLogs.slice(0, 1000)));
+  } catch (e) {}
+
+  // 2. Train AI Comments (`ai_comments_training`)
+  if (commentText && commentText.trim().length > 5) {
+    try {
+      const training = getStoredCommentsTraining();
+      const keywords = extractKeywords(commentText);
+      const kw = keywords[0] || 'general';
+      const existingIdx = training.findIndex(t => t.phrase.toLowerCase() === commentText.toLowerCase());
+      if (existingIdx >= 0) {
+        training[existingIdx].frequency = (training[existingIdx].frequency || 1) + 1;
+      } else {
+        training.unshift({
+          phrase: commentText.trim(),
+          keyword: kw,
+          grade: gradeShort,
+          language: project?.language || 'ID',
+          frequency: 1
+        });
+      }
+      localStorage.setItem('hitec_ai_comments_training_v1', JSON.stringify(training.slice(0, 200)));
+    } catch (e) {}
+  }
+
+  // 3. Train AI Recommendation Rules (`ai_recommendation_rules`)
+  if (commentText && recommendationText && recommendationText.trim().length > 5) {
+    try {
+      const keywords = extractKeywords(commentText);
+      if (keywords.length > 0) {
+        const storedRules = getStoredRules();
+        let newRules = [...storedRules];
+        for (const kw of keywords) {
+          const ruleIdx = newRules.findIndex(r => r.grade === gradeShort && r.keyword.toLowerCase() === kw.toLowerCase() && r.language === (project?.language || 'ID'));
+          if (ruleIdx >= 0) {
+            if (manualOverride) {
+              newRules[ruleIdx].recommendation_template = recommendationText;
+            }
+          } else {
+            newRules.push({
+              grade: gradeShort,
+              keyword: kw,
+              recommendation_template: recommendationText,
+              priority: 1,
+              language: project?.language || 'ID'
+            });
+          }
+        }
+        localStorage.setItem('hitec_ai_recommendation_rules_v1', JSON.stringify(newRules));
+      }
+    } catch (e) {}
+  }
+}
