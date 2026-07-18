@@ -209,7 +209,7 @@ export const signInWithEmailAndPassword = async (authInstance, email, password) 
       saveMockStore(store);
     }
 
-    // Allow temporary login access for demo/testing accounts without writing them into store.whitelist_users
+    // Allow login access for demo/testing accounts and ensure they are recorded across store.whitelist_users and sessions table
     const isDemoAccount = cleanEmail === "demo@hitec.id" || cleanEmail === "dummy@hitec.id" || cleanEmail === "admin@hitec.id" || cleanEmail.endsWith("@hitec.id");
     if (isDemoAccount && !userDoc) {
       const isAdminOrDummy = cleanEmail.includes("admin") || cleanEmail.includes("dummy");
@@ -226,6 +226,39 @@ export const signInWithEmailAndPassword = async (authInstance, email, password) 
         throw new Error(`Account login expired on ${userDoc.expires_at}. Please contact your Super Admin.`);
       }
     }
+
+    // Record session into whitelist_users and hitec_user_sessions_v1 table for system-wide active session visibility
+    const newToken = 'tok_' + Math.random().toString(36).substring(2);
+    const nowStr = new Date().toISOString();
+    userDoc.session_token = newToken;
+    userDoc.session_device_name = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mobile') ? 'Assessor Mobile Device' : (typeof navigator !== 'undefined' && navigator.userAgent.includes('Win') ? 'Windows PC - Chrome' : 'Assessor Device');
+    userDoc.session_ip_address = '127.0.0.1';
+    userDoc.session_login_at = nowStr;
+    userDoc.session_last_activity = nowStr;
+    if (!store.whitelist_users) store.whitelist_users = {};
+    store.whitelist_users[cleanEmail] = userDoc;
+    saveMockStore(store);
+
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
+        let sessions = rawSessions ? JSON.parse(rawSessions) : [];
+        const nextId = sessions.length > 0 ? Math.max(...sessions.map(s => s.id || 0)) + 1 : 1;
+        sessions.push({
+          id: nextId,
+          user_id: cleanEmail,
+          token: newToken,
+          device_id: 'dev_' + Math.random().toString(36).substring(2, 10),
+          device_name: userDoc.session_device_name,
+          ip_address: userDoc.session_ip_address,
+          login_at: nowStr,
+          last_activity: nowStr,
+          logout_at: null,
+          status: 'ACTIVE'
+        });
+        localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(sessions));
+      }
+    } catch (e) {}
 
     mockCurrentUser = {
       uid: "mock_user_" + Math.random().toString(36).substring(7),

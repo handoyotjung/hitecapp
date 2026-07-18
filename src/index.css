@@ -49,6 +49,18 @@
   }
 }
 
+html, body, #root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* KILL PAGE SCROLL */
+  margin: 0;
+  padding: 0;
+  background-color: #1A1A1A;
+}
+
+/* For mobile safe area */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

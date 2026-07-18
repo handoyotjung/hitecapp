@@ -18,6 +18,7 @@ import { FeedbackModal } from './FeedbackModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, generateRecommendation, getAISuggestions, learnComment } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
 import { handleExportWord } from '../exportWordReport';
+import PublishBar from './PublishBar';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -55,6 +56,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [activeTab, setActiveTab] = useState('upload');
   const [touchStartX, setTouchStartX] = useState(null);
   const [touchStartY, setTouchStartY] = useState(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobileViewport(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobileUser = isMobileViewport && user?.role === 'user';
+
 
   const handleTouchStart = (e) => {
     if (e.targetTouches && e.targetTouches[0]) {
@@ -1199,7 +1210,20 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
   };
 
+  const handlePublishBarExport = (key) => {
+    if (key === 'confirm') {
+      setConfirmedExports(true);
+    } else if (key === 'ppt') {
+      handleExport('pptx');
+    } else if (key === 'word') {
+      onExportWordClick();
+    } else if (key === 'excel') {
+      handleExport('xlsx');
+    }
+  };
+
   const handleRemove = async () => {
+
     let photosToDelete = [];
     if (allDoneSelected) {
       photosToDelete = [...projectPhotos];
@@ -1598,104 +1622,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             )}
           </div>
           </div>
-
-          {/* Publish & Export Section — Moved to Left Column below Upload Queue */}
-          {selectedProject && (
-            <div className="publish-section publish-buttons-container border-t border-slate-800 bg-slate-950 p-4 shrink-0 mt-auto sticky bottom-0 z-20 w-full shadow-2xl">
-              <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
-                Publish "{selectedProject.name}"
-              </h2>
-
-                {exportError && (
-                  <div className="mb-3 flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs text-rose-300">
-                    <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-                    <span>{exportError}</span>
-                  </div>
-                )}
-
-                {/* 4 Square Buttons with Big Icons */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {/* 1. Yellow/Blue Confirm Square Button */}
-                  <button
-                    type="button"
-                    onClick={() => setConfirmedExports(true)}
-                    disabled={selectedPhotos.length === 0}
-                    className={`aspect-square sm:h-20 sm:aspect-auto rounded-2xl flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold transition-all active:scale-[0.98] ${
-                      selectedPhotos.length === 0
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50'
-                        : confirmedExports
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                          : 'bg-yellow-500 hover:bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/15'
-                    }`}
-                  >
-                    <Check className="h-6 w-6 stroke-[3px] shrink-0" />
-                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">
-                      {confirmedExports ? "Confirmed" : "Confirm"} ({selectedPhotos.length})
-                    </span>
-                  </button>
-
-                  {/* 2. Red PowerPoint Square Button with Big Icon */}
-                  <button
-                    onClick={() => handleExport('pptx')}
-                    disabled={exportingPPTX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
-                    className="aspect-square sm:h-20 sm:aspect-auto rounded-2xl bg-rose-600 hover:bg-rose-500 flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold text-white shadow-lg shadow-rose-500/15 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    {exportingPPTX ? (
-                      <Loader2 className="h-6 w-6 animate-spin shrink-0" />
-                    ) : (
-                      <svg className="h-6 w-6 shrink-0" viewBox="0 0 32 32" fill="none">
-                        <rect x="2" y="4" width="28" height="24" rx="4" fill="white" fillOpacity="0.2" />
-                        <rect x="5" y="7" width="13" height="18" rx="2" fill="white" />
-                        <path d="M9 11h3.8c1.2 0 2.2.9 2.2 2.1 0 1.2-1 2.1-2.2 2.1H11v3.8H9V11zm2 2.6h1.8c.3 0 .6-.2.6-.6 0-.3-.3-.6-.6-.6H11v1.2z" fill="#e11d48"/>
-                        <path d="M21 11h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="white"/>
-                      </svg>
-                    )}
-                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Powerpoint</span>
-                  </button>
-
-                  {/* 3. Microsoft Word Square Button with Authentic Logo & Matching Blue Color */}
-                  <button
-                    onClick={onExportWordClick}
-                    disabled={exportingDOCX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
-                    className="aspect-square sm:h-20 sm:aspect-auto rounded-2xl bg-[#185ABD] hover:bg-[#154E9E] flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold text-white shadow-lg shadow-[#185ABD]/25 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    {exportingDOCX ? (
-                      <Loader2 className="h-6 w-6 animate-spin shrink-0" />
-                    ) : (
-                      <svg className="h-6 w-6 shrink-0" viewBox="0 0 32 32" fill="none">
-                        <rect x="2" y="4" width="28" height="24" rx="4" fill="white" fillOpacity="0.2" />
-                        <rect x="5" y="7" width="13" height="18" rx="2" fill="white" />
-                        <path d="M7.8 11.5l1.5 7.5h1.7l1.3-4.8 1.3 4.8h1.7l1.5-7.5h-1.6l-0.9 5.3-1.3-5.3h-1.4l-1.3 5.3-0.9-5.3H7.8z" fill="#185ABD"/>
-                        <path d="M21 11h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="white"/>
-                      </svg>
-                    )}
-                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Word</span>
-                  </button>
-
-                  {/* 4. Green Excel Square Button with Big Icon */}
-                  <button
-                    onClick={() => handleExport('xlsx')}
-                    disabled={exportingXLSX || projectPhotos.length === 0 || !confirmedExports || selectedPhotos.length === 0}
-                    className="aspect-square sm:h-20 sm:aspect-auto rounded-2xl bg-emerald-600 hover:bg-emerald-500 flex flex-col items-center justify-center gap-1.5 p-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/15 transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    {exportingXLSX ? (
-                      <Loader2 className="h-6 w-6 animate-spin shrink-0" />
-                    ) : (
-                      <svg className="h-6 w-6 shrink-0" viewBox="0 0 32 32" fill="none">
-                        <rect x="2" y="4" width="28" height="24" rx="4" fill="white" fillOpacity="0.2" />
-                        <rect x="5" y="7" width="13" height="18" rx="2" fill="white" />
-                        <path d="M8.8 19l2.4-3.8-2.2-3.7h2.2l1.1 2.2 1.1-2.2h2.1l-2.2 3.7 2.4 3.8h-2.2l-1.3-2.4-1.3 2.4H8.8z" fill="#059669"/>
-                        <path d="M21 11h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z" fill="white"/>
-                      </svg>
-                    )}
-                    <span className="text-[11px] font-extrabold tracking-tight text-center leading-tight">Excel</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
+
           {/* Right Side: Photo Carousel Editor and Exporters */}
+
           <div className="column-container right-column aspect-[6/19] md:aspect-auto w-[100vw] md:w-1/2 h-full shrink-0 flex flex-col overflow-hidden bg-slate-900/10">
             {/* Photo Editor Tab View / Main Pane */}
             <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6">
@@ -1708,9 +1639,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 </p>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col overflow-y-auto gap-4">
+              <div className="flex-1 flex flex-col overflow-hidden gap-3 min-h-0">
                 {projectPhotos.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600">
+                  <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600 min-h-0">
                     <ImageIcon className="h-10 w-10 stroke-1 mb-2" />
                     <h3 className="font-semibold text-slate-400 text-sm">No uploaded photos</h3>
                     <p className="mt-1 text-xs text-slate-500 max-w-xs">
@@ -1719,45 +1650,49 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   </div>
                 ) : (
                   <>
-                    {/* Annotated Image Canvas with Toolbar & Navigation Overlay */}
-                    <div className="w-full relative flex flex-col group shrink-0">
-                      <AnnotatedImageCanvas
-                        photo={projectPhotos[editorIndex]}
-                        onSaveAnnotatedImage={handleSaveAnnotatedImage}
-                        stageWidth={800}
-                        stageHeight={450}
-                      />
+                    {/* Canvas flex-[6] overflow-hidden */}
+                    <div className="flex-[6] w-full relative flex flex-col group shrink-0 min-h-0 overflow-hidden items-center justify-center bg-slate-950/40 rounded-2xl border border-slate-800/80 p-1">
+                      <div className="w-full h-full relative flex flex-col items-center justify-center overflow-hidden">
+                        <AnnotatedImageCanvas
+                          photo={projectPhotos[editorIndex]}
+                          onSaveAnnotatedImage={handleSaveAnnotatedImage}
+                          stageWidth={800}
+                          stageHeight={450}
+                        />
 
-                      {/* Left arrow overlay */}
-                      <button
-                        type="button"
-                        disabled={editorIndex === 0}
-                        onClick={() => setEditorIndex(prev => prev - 1)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md"
-                        title="Previous photo"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
+                        {/* Left arrow overlay */}
+                        <button
+                          type="button"
+                          disabled={editorIndex === 0}
+                          onClick={() => setEditorIndex(prev => prev - 1)}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md"
+                          title="Previous photo"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
 
-                      {/* Right arrow overlay */}
-                      <button
-                        type="button"
-                        disabled={editorIndex === projectPhotos.length - 1}
-                        onClick={() => setEditorIndex(prev => prev + 1)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md"
-                        title="Next photo"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
+                        {/* Right arrow overlay */}
+                        <button
+                          type="button"
+                          disabled={editorIndex === projectPhotos.length - 1}
+                          onClick={() => setEditorIndex(prev => prev + 1)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md"
+                          title="Next photo"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
 
-                      {/* Index badge */}
-                      <span className="absolute top-16 right-4 z-10 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400 pointer-events-none">
-                        {editorIndex + 1} / {projectPhotos.length}
-                      </span>
+                        {/* Index badge */}
+                        <span className="absolute top-4 right-4 z-10 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400 pointer-events-none">
+                          {editorIndex + 1} / {projectPhotos.length}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* GRADE SELECTOR */}
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm flex items-center justify-between flex-wrap gap-2">
+                    {/* Editor flex-[4] overflow-y-auto */}
+                    <div className="flex-[4] flex flex-col overflow-y-auto min-h-0 gap-3 pr-1">
+                      {/* GRADE SELECTOR */}
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm flex items-center justify-between flex-wrap gap-2 shrink-0">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <ShieldAlert className="h-4 w-4 text-emerald-400" />
                         <span>Assessment Grade:</span>
@@ -1956,25 +1891,43 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         </button>
                       </div>
                     </div>
+                    </div>
                   </>
                 )}
               </div>
             )}
             </div>
+            {!isMobileUser && (
+              <PublishBar
+                position="relative"
+                confirmCount={selectedPhotos.length}
+                onExport={handlePublishBarExport}
+              />
+            )}
           </div>
         </div>
       </div>
 
+      {isMobileUser && (
+        <PublishBar
+          position="fixed"
+          confirmCount={selectedPhotos.length}
+          onExport={handlePublishBarExport}
+        />
+      )}
+
       {/* Mobile Tab bar footer (highly compact responsive overlay) */}
-      <div className="flex md:hidden h-14 shrink-0 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 items-center justify-around z-20">
-        <button
-          onClick={() => setActiveTab('upload')}
-          className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
-            activeTab === 'upload' ? 'text-emerald-400' : 'text-slate-500'
-          }`}
-        >
-          <Upload className="h-4 w-4" />
-          <span>Upload</span>
+      {!isMobileUser && (
+        <div className="flex md:hidden h-14 shrink-0 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 items-center justify-around z-20">
+          <button
+            onClick={() => setActiveTab('upload')}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
+              activeTab === 'upload' ? 'text-emerald-400' : 'text-slate-500'
+            }`}
+          >
+            <Upload className="h-4 w-4" />
+            <span>Upload</span>
+
         </button>
 
         <button
@@ -1997,8 +1950,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           <span>Export</span>
         </button>
       </div>
+      )}
 
       {/* Alert / Popup Message Modal */}
+
       {alertPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">

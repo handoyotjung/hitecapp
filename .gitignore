@@ -4,3 +4,4 @@ dist
 .env.local
 cloudflared.exe
 backup/
+scratch/

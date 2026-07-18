@@ -80,7 +80,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Sync active user session into whitelist_users for Admin Panel live monitoring
+  // Sync active user session into whitelist_users and sessions table across all roles for Admin Panel monitoring
   useEffect(() => {
     if (user && user.email) {
       try {
@@ -89,12 +89,35 @@ export default function App() {
         let store = rawStore ? JSON.parse(rawStore) : {};
         if (!store.whitelist_users) store.whitelist_users = {};
         const u = store.whitelist_users[cleanE] || { role: user.role || 'user', plan: 'starter' };
-        u.session_token = u.session_token || 'tok_' + Math.random().toString(36).substring(2);
-        u.session_device_name = u.session_device_name || (navigator.userAgent.includes('Win') ? 'Windows PC - Chrome' : 'Assessor Device');
+        const token = u.session_token || 'tok_' + Math.random().toString(36).substring(2);
+        u.session_token = token;
+        const deviceName = u.session_device_name || (typeof navigator !== 'undefined' && navigator.userAgent.includes('Mobile') ? 'Assessor Mobile Device' : (typeof navigator !== 'undefined' && navigator.userAgent.includes('Win') ? 'Windows PC - Chrome' : 'Assessor Device'));
+        u.session_device_name = deviceName;
         u.session_ip_address = u.session_ip_address || '127.0.0.1';
-        u.session_login_at = u.session_login_at || new Date().toISOString();
+        const loginAt = u.session_login_at || new Date().toISOString();
+        u.session_login_at = loginAt;
         store.whitelist_users[cleanE] = u;
         localStorage.setItem('hitecmedia_mock_db', JSON.stringify(store));
+
+        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
+        let sessions = rawSessions ? JSON.parse(rawSessions) : [];
+        const existingActive = sessions.find(s => s && s.user_id === cleanE && s.status === 'ACTIVE');
+        if (!existingActive) {
+          const nextId = sessions.length > 0 ? Math.max(...sessions.map(s => s.id || 0)) + 1 : 1;
+          sessions.push({
+            id: nextId,
+            user_id: cleanE,
+            token: token,
+            device_id: 'dev_' + Math.random().toString(36).substring(2, 10),
+            device_name: deviceName,
+            ip_address: u.session_ip_address,
+            login_at: loginAt,
+            last_activity: new Date().toISOString(),
+            logout_at: null,
+            status: 'ACTIVE'
+          });
+          localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(sessions));
+        }
       } catch (e) {}
     }
   }, [user]);

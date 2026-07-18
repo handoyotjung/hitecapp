@@ -130,14 +130,14 @@
         </div>
       </div>
 
-      <!-- FULL WIDTH ROW: Live Online Assessor Sessions -->
+      <!-- FULL WIDTH ROW: Online Accounts -->
       <div class="lg:col-span-3 space-y-6">
         <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
               <h3 class="text-lg font-bold text-white flex items-center gap-2">
                 <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Live Online Assessor Sessions (Enterprise Active Sessions)
+                Online Accounts
               </h3>
               <p class="text-xs text-slate-400 mt-0.5">Monitor real-time active logins across all assessor accounts. Enforces 1 active session per account.</p>
             </div>
@@ -547,28 +547,47 @@
 
       const users = store.whitelist_users || {};
       const activeEmailsSet = new Set();
+      const sessionsMap = {};
 
-      // 1. Check whitelist_users with active session_token
+      // 1. Check whitelist_users with active session_token across all roles
       Object.keys(users).forEach(e => {
         if (users[e] && users[e].session_token) {
           activeEmailsSet.add(e.toLowerCase());
         }
       });
 
-      // 2. Check hitec_user_sessions_v1 table
+      // 2. Check hitec_user_sessions_v1 table across ALL roles (ADMIN and USER)
       try {
         const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
         if (rawSessions) {
           const sessions = JSON.parse(rawSessions);
           sessions.forEach(s => {
             if (s && s.status === 'ACTIVE' && s.user_id) {
-              activeEmailsSet.add(s.user_id.toLowerCase());
+              const cleanE = s.user_id.toLowerCase();
+              activeEmailsSet.add(cleanE);
+              sessionsMap[cleanE] = s;
+              // Sync missing whitelist_users entry so user accounts appear in both tables
+              if (!users[cleanE]) {
+                const isAdminOrDummy = cleanE.includes('admin') || cleanE.includes('dummy');
+                users[cleanE] = {
+                  role: isAdminOrDummy ? 'super_admin' : 'user',
+                  company_id: 'co_hitec',
+                  plan: isAdminOrDummy ? 'pro' : 'starter',
+                  password: 'demopassword',
+                  session_token: s.token || 'tok_active',
+                  session_device_name: s.device_name,
+                  session_ip_address: s.ip_address,
+                  session_login_at: s.login_at,
+                  created_at: new Date().toISOString()
+                };
+                saveStore(store);
+              }
             }
           });
         }
       } catch (e) {}
 
-      // 3. Check current browser active hitecmedia_session
+      // 3. Check current browser active hitecmedia_session across all roles
       try {
         const currentSessionRaw = localStorage.getItem('hitecmedia_session');
         if (currentSessionRaw) {
@@ -576,7 +595,6 @@
           if (currentSession && currentSession.email) {
             const cleanE = currentSession.email.toLowerCase();
             activeEmailsSet.add(cleanE);
-            // Ensure whitelist user has session_token set
             if (users[cleanE] && !users[cleanE].session_token) {
               users[cleanE].session_token = currentSession.token || 'active_local_session';
               users[cleanE].session_login_at = users[cleanE].session_login_at || new Date().toISOString();
@@ -604,16 +622,17 @@
       }
 
       activeEmails.forEach(email => {
-        const u = users[email] || { role: 'user' };
+        const u = users[email] || { role: (sessionsMap[email] && sessionsMap[email].role) || 'user' };
+        const s = sessionsMap[email] || {};
         const roleBadge = u.role === 'super_admin' 
           ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Super Admin</span>'
           : u.role === 'admin'
           ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Admin</span>'
           : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
 
-        const deviceName = u.session_device_name || 'Windows PC - Assessor Device';
-        const ipAddress = u.session_ip_address || '127.0.0.1';
-        const loginAt = u.session_login_at ? new Date(u.session_login_at).toLocaleString() : 'Active Now';
+        const deviceName = u.session_device_name || s.device_name || 'Windows PC - Assessor Device';
+        const ipAddress = u.session_ip_address || s.ip_address || '127.0.0.1';
+        const loginAt = u.session_login_at ? new Date(u.session_login_at).toLocaleString() : (s.login_at ? new Date(s.login_at).toLocaleString() : 'Active Now');
 
         const tr = document.createElement('tr');
         tr.className = 'border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors';
