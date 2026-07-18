@@ -82,3 +82,70 @@
     border-color: rgba(99, 102, 241, 0.6);
   }
 }
+
+/* Column Structural Balancing & Layout Constraints */
+.column-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+@media (min-width: 769px) {
+  .left-column, .right-column {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+/* Fix action buttons to bottom of left column */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scroll wrapper encompassing everything above the publish section */
+.upper-content-wrapper, .upper-column-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-list-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 8px;
+}
+
+/* Statically anchored at the bottom edge */
+.publish-section, .publish-buttons-container {
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+/* Restrain textarea rows */
+.comments-textarea, .ai-recommendation-textarea {
+  max-height: calc(1.5em * 3 + 1.5rem) !important;
+  overflow-y: auto !important;
+  resize: none !important;
+}
+
+/* Mobile 6:19 Aspect Ratio Adjustments */
+@media (max-width: 768px) {
+  .column-container {
+    aspect-ratio: 6 / 19;
+    height: auto !important;
+    width: 100% !important;
+    overflow-y: auto !important;
+  }
+}

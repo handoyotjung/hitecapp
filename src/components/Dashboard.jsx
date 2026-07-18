@@ -53,6 +53,33 @@ const saveProjectsToCache = (user, projectsList) => {
 export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Mobile Tab State: 'upload' | 'editor' | 'export'
   const [activeTab, setActiveTab] = useState('upload');
+  const [touchStartX, setTouchStartX] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
+
+  const handleTouchStart = (e) => {
+    if (e.targetTouches && e.targetTouches[0]) {
+      setTouchStartX(e.targetTouches[0].clientX);
+      setTouchStartY(e.targetTouches[0].clientY);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX === null || touchStartY === null || !e.changedTouches || !e.changedTouches[0]) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const diffX = touchStartX - touchEndX;
+    const diffY = Math.abs(touchStartY - touchEndY);
+
+    if (Math.abs(diffX) > 50 && Math.abs(diffX) > diffY) {
+      if (diffX > 0 && (activeTab === 'upload' || activeTab === 'export')) {
+        setActiveTab('editor');
+      } else if (diffX < 0 && activeTab === 'editor') {
+        setActiveTab('upload');
+      }
+    }
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
   
   // Projects state
   const [projects, setProjects] = useState([]);
@@ -645,13 +672,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         maxSeq + 1,
         dailyUploadCount + newQueueItems.filter(i => i.status === 'Queued').length + 1
       );
+      const activeProjectName = selectedProject?.name
+        ? selectedProject.name.toLowerCase().replace(/\s+/g, '_')
+        : (currentProject?.name ? currentProject.name.toLowerCase().replace(/\s+/g, '_') : 'demo');
       const seqStr = String(nextSeq).padStart(3, '0');
-      let finalFilename = `${cleanUsername}_${todayStr}-${seqStr}.${extension}`;
+      let finalFilename = `${activeProjectName}_${todayStr}-${seqStr}.${extension}`;
 
       let collisionCounter = 1;
       while (existingNames.includes(finalFilename)) {
         const guardedSeq = String(nextSeq + collisionCounter).padStart(3, '0');
-        finalFilename = `${cleanUsername}_${todayStr}-${guardedSeq}.${extension}`;
+        finalFilename = `${activeProjectName}_${todayStr}-${guardedSeq}.${extension}`;
         collisionCounter++;
       }
 
@@ -1293,13 +1323,18 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         </div>
       </header>
 
-      {/* Main Grid Container */}
-      <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
-        
-         {/* Left Side: Projects and Uploads (Desktop) or Mobile Navigation tabs */}
-        <div className={`flex flex-col w-full md:w-1/2 shrink-0 border-r border-slate-800 bg-slate-950/20 overflow-hidden ${
-          activeTab === 'upload' ? 'flex' : 'hidden md:flex'
+      {/* Main Grid Container with Swipe Track */}
+      <div 
+        className="flex flex-1 overflow-hidden relative w-full"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className={`w-[200vw] md:w-full h-full flex transition-transform duration-300 ease-in-out md:translate-x-0 md:transition-none ${
+          activeTab !== 'upload' && activeTab !== 'export' ? '-translate-x-[100vw]' : 'translate-x-0'
         }`}>
+          {/* Left Side: Projects and Uploads */}
+          <div className="column-container left-column aspect-[6/19] md:aspect-auto flex flex-col justify-between w-[100vw] md:w-1/2 h-full shrink-0 border-r border-slate-800 bg-slate-950/20 overflow-hidden relative">
+          <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-y-auto flex flex-col min-h-0">
           
           {/* Project Section */}
           <div className="p-4 border-b border-slate-800 bg-slate-900/10 shrink-0">
@@ -1374,7 +1409,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           </div>
 
           {/* Queue List */}
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="photo-list-container flex-1 overflow-y-auto px-4 pb-4 flex flex-col min-h-0 gap-2">
             <div className="flex items-center justify-between pb-2 sticky top-0 bg-slate-950 z-10 pt-2 border-b border-slate-900">
               {/* LEFT: Select All */}
               <div className="flex items-center gap-2">
@@ -1561,13 +1596,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 })}
               </div>
             )}
+          </div>
+          </div>
 
-            {/* Publish & Export Section — Moved to Left Column below Upload Queue */}
-            {selectedProject && (
-              <div className="border-t border-slate-800 bg-slate-900/40 p-4 shrink-0">
-                <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
-                  Publish "{selectedProject.name}"
-                </h2>
+          {/* Publish & Export Section — Moved to Left Column below Upload Queue */}
+          {selectedProject && (
+            <div className="publish-section publish-buttons-container border-t border-slate-800 bg-slate-950 p-4 shrink-0 mt-auto sticky bottom-0 z-20 w-full shadow-2xl">
+              <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
+                Publish "{selectedProject.name}"
+              </h2>
 
                 {exportError && (
                   <div className="mb-3 flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs text-rose-300">
@@ -1657,16 +1694,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Right Side: Photo Carousel Editor and Exporters */}
-        <div className={`w-full md:w-1/2 flex-1 flex-col overflow-hidden bg-slate-900/10 ${
-          activeTab !== 'upload' ? 'flex' : 'hidden md:flex'
-        }`}>
-          {/* Photo Editor Tab View / Main Pane */}
-          <div className={`flex-1 flex-col overflow-hidden p-4 md:p-6 ${
-            activeTab === 'editor' ? 'flex' : 'hidden md:flex'
-          }`}>
+          {/* Right Side: Photo Carousel Editor and Exporters */}
+          <div className="column-container right-column aspect-[6/19] md:aspect-auto w-[100vw] md:w-1/2 h-full shrink-0 flex flex-col overflow-hidden bg-slate-900/10">
+            {/* Photo Editor Tab View / Main Pane */}
+            <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6">
             {!selectedProject ? (
               <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600">
                 <Folder className="h-10 w-10 stroke-1 mb-2 text-slate-500" />
@@ -1782,18 +1814,18 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       </div>
 
                       <textarea
-                        rows={5}
+                        rows={3}
                         value={commentsText}
                         onChange={(e) => {
                           const lines = e.target.value.split('\n');
-                          if (lines.length <= 5) {
+                          if (lines.length <= 3) {
                             setCommentsText(e.target.value);
                           } else {
-                            setCommentsText(lines.slice(0, 5).join('\n'));
+                            setCommentsText(lines.slice(0, 3).join('\n'));
                           }
                         }}
                         placeholder=""
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none leading-relaxed"
+                        className="comments-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none h-[calc(3*1.5rem)] leading-relaxed overflow-y-auto"
                       />
 
                       {aiAssistOn && aiSuggestions.length > 0 && (
@@ -1809,7 +1841,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 type="button"
                                 onClick={() => {
                                   const newLines = commentsText ? (commentsText + '\n' + pill) : pill;
-                                  const splitted = newLines.split('\n').slice(0, 5).join('\n');
+                                  const splitted = newLines.split('\n').slice(0, 3).join('\n');
                                   setCommentsText(splitted);
                                 }}
                                 className="rounded-lg bg-slate-950 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 px-2.5 py-1 text-left text-xs font-medium text-slate-300 hover:text-emerald-300 transition-all max-w-full truncate"
@@ -1852,19 +1884,19 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       </div>
 
                       <textarea
-                        rows={5}
+                        rows={3}
                         value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
                         onChange={(e) => {
                           const lines = e.target.value.split('\n');
-                          if (lines.length <= 5) {
+                          if (lines.length <= 3) {
                             setRecommendations(lines);
                           } else {
-                            setRecommendations(lines.slice(0, 5));
+                            setRecommendations(lines.slice(0, 3));
                           }
                           if (recMode === 'Auto') setRecMode('Manual');
                         }}
                         placeholder=""
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none leading-relaxed"
+                        className="ai-recommendation-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-sm text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-500 transition-colors resize-none h-[calc(3*1.5rem)] leading-relaxed overflow-y-auto"
                       />
 
                       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
@@ -1928,6 +1960,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
