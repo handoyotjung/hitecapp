@@ -21,6 +21,7 @@ import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTran
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
 import { handleExportWord } from '../exportWordReport';
 import PublishBar from './PublishBar';
+import { compressImage } from '../imageCompressor';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -108,6 +109,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [connectivityModal, setConnectivityModal] = useState(null);
   const [mobileShareModal, setMobileShareModal] = useState(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   // Upload Queue state (remember queue per project)
   const [projectQueues, setProjectQueues] = useState({});
@@ -665,7 +667,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
   };
 
-  const handleFilesSelected = (files) => {
+  const handleFilesSelected = async (files) => {
     if (!selectedProject) {
       alert("Please select or create a project first.");
       return;
@@ -678,13 +680,42 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       return;
     }
 
+    // Intercept and dynamically compress high-resolution photos (2MB-8MB) down below 300KB
+    const targetKb = (planLimits.maxKb || 300) - 5;
+    const needsCompression = files.some(file => file && file.type && file.type.startsWith('image/') && (file.size / 1024) > targetKb);
+
+    if (needsCompression) {
+      setIsCompressing(true);
+    }
+
+    let processedFiles = files;
+    try {
+      processedFiles = await Promise.all(
+        files.map(async (file) => {
+          if (file && file.type && file.type.startsWith('image/') && (file.size / 1024) > targetKb) {
+            try {
+              return await compressImage(file, targetKb);
+            } catch (err) {
+              console.warn("Client image compression error, falling back to original file:", err);
+              return file;
+            }
+          }
+          return file;
+        })
+      );
+    } finally {
+      if (needsCompression) {
+        setIsCompressing(false);
+      }
+    }
+
     let currentRemaining = planLimits.maxDaily - dailyUploadCount;
     const newQueueItems = [];
     const oversizedFiles = [];
     let limitReachedHit = false;
     let projectLimitAlertHit = false;
 
-    files.forEach((file) => {
+    processedFiles.forEach((file) => {
       if (availableProjectSlots <= 0) {
         if (!projectLimitAlertHit) {
           alert("Project photo limit reached! Only up to 200 photos can be appended per project.");
@@ -1650,6 +1681,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             photosUsed={dailyUploadCount}
             photosLimit={planLimits.maxDaily}
             isMobileMode={isMobileMode}
+            isCompressing={isCompressing}
           />
 
           {/* Queue List */}
