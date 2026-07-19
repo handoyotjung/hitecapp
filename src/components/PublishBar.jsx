@@ -1,7 +1,7 @@
 import React from 'react';
 import { Save, CheckCircle2, FileDown, Presentation, FileText } from 'lucide-react';
 
-export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport }) {
+export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport, isLocked = false }) {
   const isSaved = Boolean(isConfirmed);
 
   return (
@@ -14,62 +14,70 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
         {/* 1. Save / Selected Button */}
         <button
           type="button"
-          onClick={() => !isSaved && onExport('confirm')}
-          disabled={isSaved}
+          onClick={() => !isLocked && !isSaved && onExport('confirm')}
+          disabled={isLocked || isSaved}
           className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
-            isSaved
-              ? 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
-              : 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold'
+            isLocked
+              ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
+              : isSaved
+                ? 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
+                : 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold'
           }`}
-          title={isSaved ? "Photos selected and confirmed" : "Save and confirm selected photos"}
+          title={isLocked ? "Select or create a project first" : isSaved ? "Photos selected and confirmed" : "Save and confirm selected photos"}
         >
           {isSaved ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Save className="h-4 w-4 shrink-0" />}
           <span className="truncate">{isSaved ? `Selected (${confirmCount})` : (confirmCount > 0 ? `Save (${confirmCount})` : 'Save')}</span>
         </button>
 
-        {/* 2. PDF Button (Magenta #D9008D when active, muted when Active Save) */}
+        {/* 2. PDF Button */}
         <button
           type="button"
-          onClick={() => isSaved && onExport('pdf')}
-          disabled={!isSaved}
+          onClick={() => !isLocked && isSaved && onExport('pdf')}
+          disabled={isLocked || !isSaved}
           className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs transition-all truncate ${
-            isSaved
-              ? 'bg-white hover:bg-slate-100 text-[#F40F02] font-bold border border-transparent shadow-md shadow-white/20 active:scale-95 cursor-pointer'
-              : 'bg-slate-900 border border-slate-800 text-slate-500 font-bold opacity-60 cursor-not-allowed shadow-none'
+            isLocked
+              ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
+              : isSaved
+                ? 'bg-white hover:bg-slate-100 text-[#F40F02] font-bold border border-transparent shadow-md shadow-white/20 active:scale-95 cursor-pointer'
+                : 'bg-slate-900 border border-slate-800 text-slate-500 font-bold opacity-60 cursor-not-allowed shadow-none'
           }`}
-          title={isSaved ? "Export report to PDF (.pdf)" : "Save changes before exporting"}
+          title={isLocked ? "Select or create a project first" : isSaved ? "Export report to PDF (.pdf)" : "Save changes before exporting"}
         >
-          <FileDown className={`h-4 w-4 shrink-0 ${isSaved ? 'text-[#F40F02]' : 'text-slate-500'}`} />
+          <FileDown className={`h-4 w-4 shrink-0 ${!isLocked && isSaved ? 'text-[#F40F02]' : 'text-slate-500'}`} />
           <span className="truncate">PDF</span>
         </button>
 
-        {/* 3. PPT Button (Red #D04423 when active, muted when Active Save) */}
+        {/* 3. PPT Button */}
         <button
           type="button"
-          onClick={() => isSaved && onExport('ppt')}
-          disabled={!isSaved}
+          onClick={() => !isLocked && isSaved && onExport('ppt')}
+          disabled={isLocked || !isSaved}
           className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
-            isSaved
-              ? 'bg-[#D04423] hover:bg-[#B8381C] text-white shadow-md shadow-[#D04423]/25 border border-transparent active:scale-95 cursor-pointer'
-              : 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
+            isLocked
+              ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
+              : isSaved
+                ? 'bg-[#D04423] hover:bg-[#B8381C] text-white shadow-md shadow-[#D04423]/25 border border-transparent active:scale-95 cursor-pointer'
+                : 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
           }`}
-          title={isSaved ? "Export report to Microsoft PowerPoint (.pptx)" : "Save changes before exporting"}
+          title={isLocked ? "Select or create a project first" : isSaved ? "Export report to Microsoft PowerPoint (.pptx)" : "Save changes before exporting"}
         >
           <Presentation className="h-4 w-4 shrink-0" />
           <span className="truncate">PPT</span>
         </button>
 
-        {/* 4. DOC Button (Blue #185ABD when active, muted when Active Save) */}
+        {/* 4. DOC Button */}
         <button
           type="button"
-          onClick={() => isSaved && onExport('word')}
-          disabled={!isSaved}
+          onClick={() => !isLocked && isSaved && onExport('word')}
+          disabled={isLocked || !isSaved}
           className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
-            isSaved
-              ? 'bg-[#185ABD] hover:bg-[#144796] text-white shadow-md shadow-[#185ABD]/25 border border-transparent active:scale-95 cursor-pointer'
-              : 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
+            isLocked
+              ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
+              : isSaved
+                ? 'bg-[#185ABD] hover:bg-[#144796] text-white shadow-md shadow-[#185ABD]/25 border border-transparent active:scale-95 cursor-pointer'
+                : 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
           }`}
-          title={isSaved ? "Export report to Microsoft Word (.docx)" : "Save changes before exporting"}
+          title={isLocked ? "Select or create a project first" : isSaved ? "Export report to Microsoft Word (.docx)" : "Save changes before exporting"}
         >
           <FileText className="h-4 w-4 shrink-0" />
           <span className="truncate">DOC</span>

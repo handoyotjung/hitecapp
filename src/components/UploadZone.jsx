@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { FolderOpen, Image as ImageIcon, Camera, Loader2 } from 'lucide-react';
 import { compressImage } from '../imageCompressor';
 
-export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPhotos, photosUsed = 0, photosLimit = 100, isMobileMode = false, isCompressing = false }) {
+export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPhotos, photosUsed = 0, photosLimit = 100, isMobileMode = false, isCompressing = false, isLocked = false }) {
   const [isDragActive, setIsDragActive] = useState(false);
   const folderInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -173,8 +173,12 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
         <button
           type="button"
           onClick={handleUploadFolderClick}
-          disabled={isAtLimit || isCompressing}
-          className="flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3B3B3B] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-white transition-colors"
+          disabled={isLocked || isAtLimit || isCompressing}
+          className={`flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            isLocked
+              ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed'
+              : 'bg-[#2B2B2B] hover:bg-[#3B3B3B] text-white disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
         >
           <FolderOpen className="w-4 h-4 flex-shrink-0 text-slate-300" />
           <span className="truncate">Select Folder</span>
@@ -183,8 +187,12 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
         <button
           type="button"
           onClick={handleSelectPhotosClick}
-          disabled={isAtLimit || isCompressing}
-          className="flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#2B2B2B] hover:bg-[#3B3B3B] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-white transition-colors"
+          disabled={isLocked || isAtLimit || isCompressing}
+          className={`flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            isLocked
+              ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed'
+              : 'bg-[#2B2B2B] hover:bg-[#3B3B3B] text-white disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
         >
           <Camera className="w-4 h-4 flex-shrink-0 text-slate-300" />
           <span className="truncate">Use Camera</span>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic as MicIcon } from 'lucide-react';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 
@@ -7,31 +7,76 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
   const [isEditing, setIsEditing] = useState(false);
   const { isRecording, transcript, detectedLang, start, stop, supported } = useSpeechToText();
 
-  useEffect(() => {
-    if (!isEditing && !isRecording) {
-      setCaption(photo.caption || photo.comments_text || '');
-    }
-  }, [photo.caption, photo.comments_text, isEditing, isRecording]);
+  // Track the last photo identity we synced from, so we only reset on actual photo change
+  const lastPhotoIdRef = useRef(photo.id || photo.filename);
+  // Track whether the textarea currently has focus (user is actively typing)
+  const isFocusedRef = useRef(false);
 
+  // Only sync caption from prop when the photo itself changes identity (different photo).
+  // NEVER overwrite while the user has focus or is recording — that causes the reversion bug.
   useEffect(() => {
-    if (transcript && !isRecording) { // only save when user releases mic
+    const currentId = photo.id || photo.filename;
+    if (currentId !== lastPhotoIdRef.current) {
+      // Different photo entirely — reset everything
+      lastPhotoIdRef.current = currentId;
+      setCaption(photo.caption || photo.comments_text || '');
+      setIsEditing(false);
+    } else if (!isFocusedRef.current && !isRecording && !isEditing) {
+      // Same photo, not focused, not recording, not in edit mode — safe to sync
+      const incoming = photo.caption || photo.comments_text || '';
+      setCaption(incoming);
+    }
+  }, [photo.id, photo.filename, photo.caption, photo.comments_text, isRecording, isEditing]);
+
+  // Commit speech transcript once recording stops
+  useEffect(() => {
+    if (transcript && !isRecording) {
       setCaption(transcript);
       if (onUpdateCaption) {
         onUpdateCaption(photo.id || photo.filename, transcript);
       }
     }
-  }, [isRecording, transcript, photo.id, photo.filename, onUpdateCaption]);
+  }, [isRecording, transcript]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handlePointerDown = (e) => {
+  const handleMicPointerDown = (e) => {
     e.stopPropagation();
-    setIsEditing(true); // auto expand to 5 rows when mic is held
+    setIsEditing(true);
     start();
   };
 
-  const handlePointerUp = (e) => {
+  const handleMicPointerUp = (e) => {
     e.stopPropagation();
     stop();
   };
+
+  const handleChange = useCallback((e) => {
+    setCaption(e.target.value);
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
+    setIsEditing(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
+    if (onUpdateCaption) {
+      onUpdateCaption(photo.id || photo.filename, caption);
+    }
+  }, [caption, photo.id, photo.filename, onUpdateCaption]);
+
+  const handleClear = useCallback((e) => {
+    e.stopPropagation();
+    setCaption('');
+    if (onUpdateCaption) onUpdateCaption(photo.id || photo.filename, '');
+  }, [photo.id, photo.filename, onUpdateCaption]);
+
+  const handleSave = useCallback((e) => {
+    e.stopPropagation();
+    isFocusedRef.current = false;
+    if (onUpdateCaption) onUpdateCaption(photo.id || photo.filename, caption);
+    setIsEditing(false);
+  }, [caption, photo.id, photo.filename, onUpdateCaption]);
 
   return (
     <div className="flex flex-col gap-2 p-3 border border-[#2B2B2B] bg-[#0F172A] rounded-lg w-full min-w-0">
@@ -67,9 +112,9 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
         {supported && (
           <button 
             type="button"
-            onPointerDown={handlePointerDown}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
+            onPointerDown={handleMicPointerDown}
+            onPointerUp={handleMicPointerUp}
+            onPointerLeave={handleMicPointerUp}
             style={{ touchAction: 'manipulation' }}
             className={`w-12 h-12 rounded-lg flex flex-col items-center justify-center transition-all shrink-0 border ${
               isRecording 
@@ -90,11 +135,10 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
           <textarea 
             rows={5}
             value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            onBlur={() => { 
-              if (onUpdateCaption) onUpdateCaption(photo.id || photo.filename, caption); 
-            }}
-            autoFocus={isEditing}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            autoFocus={isEditing && !isRecording}
             placeholder="Type or hold mic to speak caption..."
             className="w-full bg-[#1F2937] text-white text-xs p-2.5 pr-8 rounded-lg outline-none border border-emerald-500/60 focus:border-emerald-400 resize-y"
           />
@@ -102,11 +146,7 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()} // prevent onBlur when clicking X
-            onClick={(e) => {
-              e.stopPropagation();
-              setCaption('');
-              if (onUpdateCaption) onUpdateCaption(photo.id || photo.filename, '');
-            }}
+            onClick={handleClear}
             className="absolute top-2 right-2 w-5 h-5 rounded-full bg-slate-900/95 border border-red-500/50 text-red-400 hover:text-red-300 hover:bg-slate-800 flex items-center justify-center text-xs font-bold leading-none transition-colors shadow z-10"
             title="Clear all caption text"
           >
@@ -117,11 +157,7 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()} // prevent onBlur when clicking checkmark
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onUpdateCaption) onUpdateCaption(photo.id || photo.filename, caption);
-              setIsEditing(false);
-            }}
+            onClick={handleSave}
             className="absolute bottom-2 right-2 w-5 h-5 rounded-full bg-slate-900/95 border border-emerald-500/60 text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 flex items-center justify-center text-xs font-bold leading-none transition-colors shadow z-10"
             title="Save caption and close editor"
           >

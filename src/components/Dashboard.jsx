@@ -90,13 +90,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     return mobileMode || window.innerWidth < 768;
   });
 
+
+  // RULE 1: Auto force expand when NO project exists
   useEffect(() => {
-    if (isMobileMode || isMobileViewport) {
-      setIsHeaderCollapsed(true);
-    } else {
-      setIsHeaderCollapsed(false);
+    if (!hasProject) {
+      setIsHeaderCollapsed(false); // Force Expand
+    } else if (isMobileMode || isMobileViewport) {
+      setIsHeaderCollapsed(true); // Collapse when project IS created/selected on mobile
     }
-  }, [isMobileMode, isMobileViewport]);
+  }, [hasProject, isMobileMode, isMobileViewport]);
 
 
   const handleTouchStart = (e) => {
@@ -127,6 +129,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Projects state
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
+  const hasProject = Boolean(selectedProject?.id);
   const [newProjectName, setNewProjectName] = useState('');
   const [loadingProjects, setLoadingProjects] = useState(true);
 
@@ -768,6 +771,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       await setDoc(doc(db, 'projects', projectId), newProjObj, { merge: true });
       setNewProjectName('');
       setSelectedProject(newProjObj);
+      setIsHeaderCollapsed(true); // RULE 2: Auto force collapse when project IS created
       setProjects(prev => {
         if (prev.some(p => p.id === newProjObj.id)) {
           const updated = prev.map(p => p.id === newProjObj.id ? newProjObj : p);
@@ -1653,8 +1657,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               {(isMobileMode || isMobileViewport) && (
                 <button
                   type="button"
-                  onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/50 text-xs font-semibold text-slate-300 hover:text-emerald-400 transition-all shadow-sm shrink-0 ml-2"
+                  onClick={() => hasProject && setIsHeaderCollapsed(!isHeaderCollapsed)}
+                  disabled={!hasProject}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shadow-sm shrink-0 ml-2 ${
+                    !hasProject
+                      ? 'opacity-50 cursor-not-allowed bg-slate-900 border-gray-600 text-gray-500'
+                      : 'bg-slate-900 border-slate-800 hover:border-emerald-500/50 text-slate-300 hover:text-emerald-400'
+                  }`}
                 >
                   <span>{isHeaderCollapsed ? 'Expand Details' : 'Collapse Details'}</span>
                   {isHeaderCollapsed ? (
@@ -1814,6 +1823,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             photosLimit={planLimits.maxDaily}
             isMobileMode={isMobileMode}
             isCompressing={isCompressing}
+            isLocked={!hasProject}
           />
 
           {/* Queue List */}
@@ -1857,8 +1867,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
             {queue.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-slate-600">
-                <FileText className="h-8 w-8 stroke-1 mb-2" />
-                <p className="text-xs">No files queued for upload</p>
+                <FileText className="h-8 w-8 stroke-1 mb-2 text-gray-500" />
+                <p className="text-xs text-gray-400">
+                  {hasProject ? 'No files queued for upload' : 'Create a project above to start uploading ↑'}
+                </p>
               </div>
             ) : (
               <div className={`mt-2 grid gap-1.5 ${queue.length > 20 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
@@ -2024,6 +2036,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             confirmCount={selectedPhotos.length}
             isConfirmed={confirmedExports}
             onExport={handlePublishBarExport}
+            isLocked={!hasProject}
           />
           </div>
 
