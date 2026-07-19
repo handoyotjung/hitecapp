@@ -1042,13 +1042,19 @@ export const handleExportPDF = async (project, customFilename = null) => {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const isMobileMode = project.view_mode === 'Mobile';
   
+  const now = new Date();
+  const yyyymmdd = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const pName = (project.name || "Project").replace(/[\\/:*?"<>|]/g, "_").trim();
+  const filename = customFilename || project.export_filename || `FSA_Report_A4_${pName}_${yyyymmdd}.pdf`;
+  const headerTitle = filename.replace(/\.pdf$/i, "").replace(/_/g, " ");
+
   // Header Banner
   doc.setFillColor(31, 41, 55); // slate-800
   doc.rect(0, 0, 210, 26, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("PT Safety Indonesia Utama - Assessment Report", 14, 12);
+  doc.text(headerTitle, 14, 12);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text(`Project: ${project.name || "Project"}${isMobileMode ? " (Mobile Mode - Raw Photos)" : ""}`, 14, 20);
@@ -1069,7 +1075,7 @@ export const handleExportPDF = async (project, customFilename = null) => {
   });
 
   const headRow = isMobileMode
-    ? [["No.", "Photo & Caption"]]
+    ? []
     : [["No.", "Photo Filename", "Observation / Comments", "Recommendation", "Risk Level"]];
 
   const colStyles = isMobileMode
@@ -1083,7 +1089,8 @@ export const handleExportPDF = async (project, customFilename = null) => {
       };
 
   autoTable(doc, {
-    startY: 32,
+    startY: isMobileMode ? 28 : 32,
+    showHead: isMobileMode ? false : 'everyPage',
     head: headRow,
     body: tableData.length > 0 ? tableData : [isMobileMode ? ["-", "No data found"] : ["-", "No data found", "No completed photos recorded.", "-", "-"]],
     headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: 'bold' },
@@ -1120,7 +1127,7 @@ export const handleExportPDF = async (project, customFilename = null) => {
             }
 
             const availW = data.cell.width - 4;
-            const bottomSpace = isMobileMode ? 16 : 6;
+            const bottomSpace = isMobileMode ? 14.24 : 6;
             const availH = Math.max(16, data.cell.height - bottomSpace);
 
             let imgW = availW;
@@ -1141,10 +1148,6 @@ export const handleExportPDF = async (project, customFilename = null) => {
     }
   });
 
-  const now = new Date();
-  const yyyymmdd = now.toISOString().slice(0, 10).replace(/-/g, "");
-  const pName = (project.name || "Project").replace(/[\\/:*?"<>|]/g, "_").trim();
-  const filename = customFilename || project.export_filename || `FSA_Report_A4_${pName}_${yyyymmdd}.pdf`;
   doc.save(filename);
   return { valid: true };
 };
