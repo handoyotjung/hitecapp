@@ -23,6 +23,7 @@ import { handleExportWord } from '../exportWordReport';
 import PublishBar from './PublishBar';
 import { compressImage } from '../imageCompressor';
 import { shareFile } from '../utils/shareFile';
+import { useProjectAutoSave } from '@/hooks/useProjectAutoSave';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -161,6 +162,27 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [aiAssistOn, setAiAssistOn] = useState(true);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [aiSuggestedRecText, setAiSuggestedRecText] = useState('');
+
+  const { autosave, isSaving, isError } = useProjectAutoSave(selectedProject?.id);
+
+  const updatePhotoFieldAndAutosave = (fieldUpdates) => {
+    if (projectPhotos.length === 0 || editorIndex === null || !projectPhotos[editorIndex]) return;
+    const currentPhoto = projectPhotos[editorIndex];
+    const updatedPhoto = { ...currentPhoto, ...fieldUpdates };
+    const updatedPhotos = projectPhotos.map((p, idx) => idx === editorIndex ? updatedPhoto : p);
+    setProjectPhotos(updatedPhotos);
+    if (selectedProject) {
+      setSelectedProject(prev => prev ? { ...prev, photos: updatedPhotos } : null);
+    }
+    if (currentPhoto.id) {
+      updateDoc(doc(db, 'photos', currentPhoto.id), fieldUpdates).catch(() => {});
+    }
+    autosave({ 
+      photos: updatedPhotos, 
+      lastEditedPhotoId: currentPhoto.id, 
+      ...fieldUpdates 
+    });
+  };
 
   // Gemini AI bilingual spelling correction and suggestion helper (Bahasa Indonesia & English)
   const generateGeminiSuggestions = (input) => {
@@ -650,6 +672,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         saveProjectsToCache(user, updated);
         return updated;
       });
+      autosave({ photos: cleanPhotos });
     }, 1500);
 
     return () => clearTimeout(timer);
@@ -712,6 +735,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         name: newName.trim()
       });
       setSelectedProject(prev => prev ? { ...prev, name: newName.trim() } : null);
+      autosave({ name: newName.trim() });
     } catch (err) {
       console.error("Error renaming project:", err);
     }
@@ -1084,6 +1108,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       if (res && res.observations) {
         const obsText = res.observations.join('\n');
         setCommentsText(obsText);
+        updatePhotoFieldAndAutosave({ comments_text: obsText, caption: obsText });
 
         if (photoObj) {
           const recRes = await aiGenerateRecommendation(
@@ -1094,6 +1119,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           );
           if (recRes && recRes.recommendations) {
             setRecommendations(recRes.recommendations);
+            updatePhotoFieldAndAutosave({ recommendations_json: recRes.recommendations });
           }
         }
       }
@@ -1121,12 +1147,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         if (translatedObs) {
           updatedComments = translatedObs;
           setCommentsText(updatedComments);
+          updatePhotoFieldAndAutosave({ comments_text: updatedComments, caption: updatedComments, comments_lang: targetLang });
         }
       } else {
         const res = await aiObservationAssessor(photoObj, commentsText, targetLang);
         if (res && res.observations) {
           updatedComments = res.observations.join('\n');
           setCommentsText(updatedComments);
+          updatePhotoFieldAndAutosave({ comments_text: updatedComments, caption: updatedComments, comments_lang: targetLang });
         }
       }
 
@@ -1137,6 +1165,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         if (translatedRecsText) {
           const translatedRecsArr = translatedRecsText.split('\n').map(r => r.trim()).filter(Boolean);
           setRecommendations(translatedRecsArr);
+          updatePhotoFieldAndAutosave({ recommendations_json: translatedRecsArr, recommendations_lang: targetLang });
         }
       } else if (photoObj) {
         const recRes = await aiGenerateRecommendation(
@@ -1146,6 +1175,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         );
         if (recRes && recRes.recommendations) {
           setRecommendations(recRes.recommendations);
+          updatePhotoFieldAndAutosave({ recommendations_json: recRes.recommendations, recommendations_lang: targetLang });
         }
       }
     } catch (err) {
@@ -1165,6 +1195,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         setRecommendations(lines);
         setAiSuggestedRecText(recText);
         setRecMode('Auto');
+        updatePhotoFieldAndAutosave({ recommendations_json: lines, aiSuggestedRec: recText });
       } else {
         const res = await aiGenerateRecommendation(
           projectPhotos[editorIndex],
@@ -1175,6 +1206,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           setRecommendations(res.recommendations);
           setAiSuggestedRecText(res.recommendations.join('\n'));
           setRecMode('Auto');
+          updatePhotoFieldAndAutosave({ recommendations_json: res.recommendations, aiSuggestedRec: res.recommendations.join('\n') });
         }
       }
     } catch (err) {
@@ -1183,106 +1215,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setAiGeneratingRec(false);
     }
   };
-
-  const handleSaveMetadata = async () => {
-    if (projectPhotos.length === 0) return;
-    const currentPhoto = projectPhotos[editorIndex];
-    if (!currentPhoto) return;
-
-    try {
-      const payload = {
-        title: photoTitle,
-        asset_title: photoTitle,
-        date: photoDate,
-        exif_date: photoDate,
-        location: photoLocation
-      };
-      await updateDoc(doc(db, 'photos', currentPhoto.id), payload);
-      const updatedPhotos = projectPhotos.map((p, idx) => 
-        idx === editorIndex ? { ...p, ...payload } : p
-      );
-      setProjectPhotos(updatedPhotos);
-      setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
-    } catch (err) {
-      console.error("Failed to save metadata:", err);
-    }
-  };
-
-  const handleSaveGrade = async (targetGrade) => {
-    if (projectPhotos.length === 0) return;
-    const currentPhoto = projectPhotos[editorIndex];
-    if (!currentPhoto) return;
-
-    setPhotoGrade(targetGrade);
-    setSavingGrade(true);
-    try {
-      const payload = {
-        grade: targetGrade,
-        title: photoTitle,
-        asset_title: photoTitle,
-        date: photoDate,
-        exif_date: photoDate,
-        location: photoLocation
-      };
-      await updateDoc(doc(db, 'photos', currentPhoto.id), payload);
-      const updatedPhotos = projectPhotos.map((p, idx) => 
-        idx === editorIndex ? { ...p, ...payload } : p
-      );
-      setProjectPhotos(updatedPhotos);
-      setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
-    } catch (err) {
-      console.error("Failed to save grade:", err);
-    } finally {
-      setSavingGrade(false);
-    }
-  };
-
-  const handleSaveAssessment = async () => {
-    if (projectPhotos.length === 0) return;
-    const currentPhoto = projectPhotos[editorIndex];
-    if (!currentPhoto) return;
-
-    setSavingCaption(true);
-    try {
-      const updatePayload = {
-        comments_text: commentsText.substring(0, 500),
-        comments_lang: commentsLang,
-        recommendations_json: recommendations.slice(0, 5),
-        recommendations_lang: recommendationsLang,
-        caption: commentsText.substring(0, 300),
-        grade: photoGrade,
-        assessment_grade: photoGrade,
-        latest_status: photoStatus || 'Open',
-        status: photoStatus || 'Open',
-        title: photoTitle,
-        asset_title: photoTitle,
-        date: photoDate,
-        exif_date: photoDate,
-        location: photoLocation,
-        manualOverride: recMode === 'Manual',
-        aiSuggestedRec: aiSuggestedRecText || recommendations.join('\n')
-      };
-
-      await updateDoc(doc(db, 'photos', currentPhoto.id), updatePayload);
-      await learnComment(user, selectedProject, { ...currentPhoto, ...updatePayload, komentar: commentsText, rekomendasi: recommendations.join('\n') });
-
-      const updatedPhotos = projectPhotos.map((p, idx) => 
-        idx === editorIndex ? { ...p, ...updatePayload } : p
-      );
-      setProjectPhotos(updatedPhotos);
-
-      if (selectedProject) {
-        setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
-        updateDoc(doc(db, 'projects', selectedProject.id), { photos: updatedPhotos }).catch(() => {});
-      }
-    } catch (err) {
-      console.error("Error saving assessment:", err);
-    } finally {
-      setSavingCaption(false);
-    }
-  };
-
-  const handleSaveCaption = handleSaveAssessment;
 
   const handleSaveAnnotatedImage = async (photo, dataURL, annotationsObj) => {
     if (!photo) return;
@@ -1309,6 +1241,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       );
       setSelectedProject(prev => ({ ...prev, photos: updatedPhotos }));
       updateDoc(doc(db, 'projects', selectedProject.id), { photos: updatedPhotos }).catch(() => {});
+      autosave({ photos: updatedPhotos });
     }
 
     if (photo.id) {
@@ -1610,6 +1543,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       try {
         await updateDoc(doc(db, 'projects', selectedProject.id), { photos: remainingPhotos });
       } catch (e) {}
+      autosave({ photos: remainingPhotos });
     }
   };
 
@@ -1633,7 +1567,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         onOpenFeedback: () => setShowFeedbackModal(true),
         onOpenSecurity
       }}>
-        <Header />
+        <Header isSaving={isSaving} isError={isError} />
       </AuthProvider>
 
       {/* Main Grid Container with Swipe Track */}
@@ -1659,9 +1593,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   placeholder="Enter company name..."
                   value={companyName}
                   onChange={(e) => {
-                    setCompanyName(e.target.value);
-                    if (e.target.value.trim()) setFieldValidationErrors(prev => ({ ...prev, company: false }));
-                    localStorage.setItem('hitec_company_name', e.target.value);
+                    const val = e.target.value;
+                    setCompanyName(val);
+                    if (val.trim()) setFieldValidationErrors(prev => ({ ...prev, company: false }));
+                    localStorage.setItem('hitec_company_name', val);
+                    if (selectedProject) {
+                      setSelectedProject(prev => ({ ...prev, company_name: val }));
+                      setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, company_name: val } : p));
+                      autosave({ company_name: val, company: val });
+                    }
                   }}
                   className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-colors ${
                     fieldValidationErrors.company
@@ -1677,9 +1617,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   placeholder="Enter city..."
                   value={cityName}
                   onChange={(e) => {
-                    setCityName(e.target.value);
-                    if (e.target.value.trim()) setFieldValidationErrors(prev => ({ ...prev, city: false }));
-                    localStorage.setItem('hitec_city_name', e.target.value);
+                    const val = e.target.value;
+                    setCityName(val);
+                    if (val.trim()) setFieldValidationErrors(prev => ({ ...prev, city: false }));
+                    localStorage.setItem('hitec_city_name', val);
+                    if (selectedProject) {
+                      setSelectedProject(prev => ({ ...prev, city_name: val }));
+                      setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, city_name: val } : p));
+                      autosave({ city_name: val, city: val });
+                    }
                   }}
                   className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-colors ${
                     fieldValidationErrors.city
@@ -2048,7 +1994,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             <input
                               type="text"
                               value={photoTitle}
-                              onChange={(e) => setPhotoTitle(e.target.value)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPhotoTitle(val);
+                                updatePhotoFieldAndAutosave({ title: val, asset_title: val });
+                              }}
                               placeholder="e.g. Main Switchboard 01"
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
@@ -2062,7 +2012,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             <input
                               type="date"
                               value={photoDate}
-                              onChange={(e) => setPhotoDate(e.target.value)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPhotoDate(val);
+                                updatePhotoFieldAndAutosave({ date: val, exif_date: val });
+                              }}
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
                           </div>
@@ -2075,7 +2029,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             <input
                               type="text"
                               value={photoLocation}
-                              onChange={(e) => setPhotoLocation(e.target.value)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPhotoLocation(val);
+                                updatePhotoFieldAndAutosave({ location: val, exif_gps: val });
+                              }}
                               placeholder="e.g. Electrical Room A"
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
@@ -2131,7 +2089,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                     name="gradesPriority"
                                     value={item.id}
                                     checked={isChecked}
-                                    onChange={() => setPhotoGrade(item.id)}
+                                    onChange={() => {
+                                      setPhotoGrade(item.id);
+                                      updatePhotoFieldAndAutosave({ grade: item.id, assessment_grade: item.id });
+                                    }}
                                     className="sr-only"
                                   />
                                   <span>{item.label}</span>
@@ -2174,7 +2135,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                   name="latestStatus"
                                   value={statusItem.id}
                                   checked={statusItem.isChecked}
-                                  onChange={() => setPhotoStatus(statusItem.id)}
+                                  onChange={() => {
+                                    setPhotoStatus(statusItem.id);
+                                    updatePhotoFieldAndAutosave({ status: statusItem.id, latest_status: statusItem.id });
+                                  }}
                                   className="sr-only"
                                 />
                                 <span>{statusItem.label}</span>
@@ -2206,7 +2170,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
                           <button
                             type="button"
-                            onClick={() => setCommentsText('')}
+                            onClick={() => {
+                              setCommentsText('');
+                              updatePhotoFieldAndAutosave({ comments_text: '', caption: '' });
+                            }}
                             title="Clear"
                             className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm"
                           >
@@ -2220,11 +2187,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           value={commentsText}
                           onChange={(e) => {
                             const lines = e.target.value.split('\n');
+                            let newText = e.target.value;
                             if (lines.length <= 3) {
-                              setCommentsText(e.target.value);
+                              setCommentsText(newText);
                             } else {
-                              setCommentsText(lines.slice(0, 3).join('\n'));
+                              newText = lines.slice(0, 3).join('\n');
+                              setCommentsText(newText);
                             }
+                            updatePhotoFieldAndAutosave({ comments_text: newText, caption: newText });
                           }}
                           placeholder={commentsLang === 'ID' ? 'Tulis komentar observasi...' : 'Write observation comments...'}
                           className="comments-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-none h-[calc(3*1.4rem)] leading-relaxed overflow-y-auto"
@@ -2245,6 +2215,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                     const newLines = commentsText ? (commentsText + '\n' + pill) : pill;
                                     const splitted = newLines.split('\n').slice(0, 3).join('\n');
                                     setCommentsText(splitted);
+                                    updatePhotoFieldAndAutosave({ comments_text: splitted, caption: splitted });
                                   }}
                                   className="rounded-lg bg-slate-950 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 px-2 py-1 text-left text-[11px] font-medium text-slate-300 hover:text-emerald-300 transition-all max-w-full truncate"
                                   title={pill}
@@ -2274,7 +2245,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
                           <button
                             type="button"
-                            onClick={() => setRecommendations([])}
+                            onClick={() => {
+                              setRecommendations([]);
+                              updatePhotoFieldAndAutosave({ recommendations_json: [] });
+                            }}
                             title="Clear"
                             className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm"
                           >
@@ -2288,12 +2262,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
                           onChange={(e) => {
                             const lines = e.target.value.split('\n');
+                            let newRecs;
                             if (lines.length <= 3) {
+                              newRecs = lines;
                               setRecommendations(lines);
                             } else {
-                              setRecommendations(lines.slice(0, 3));
+                              newRecs = lines.slice(0, 3);
+                              setRecommendations(newRecs);
                             }
                             if (recMode === 'Auto') setRecMode('Manual');
+                            updatePhotoFieldAndAutosave({ recommendations_json: newRecs });
                           }}
                           placeholder={commentsLang === 'ID' ? 'Rekomendasi tindakan mitigasi...' : 'Mitigation recommendation actions...'}
                           className="ai-recommendation-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-none h-[calc(3*1.4rem)] leading-relaxed overflow-y-auto"
@@ -2343,15 +2321,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               English
                             </button>
                           </div>
-
-                          <button
-                            onClick={handleSaveAssessment}
-                            disabled={savingCaption}
-                            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50"
-                          >
-                            {savingCaption ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                            <span>{commentsLang === 'ID' ? 'Simpan Caption' : 'Save Caption'}</span>
-                          </button>
                         </div>
                       </div>
                     </div>

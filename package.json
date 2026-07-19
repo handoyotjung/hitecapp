@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
     "docx": "^9.7.1",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",

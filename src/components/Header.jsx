@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageSquareIcon, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import AutoSaveIndicator from './AutoSaveIndicator';
 
 function UserMenu() {
   const { user, onLogout } = useAuth();
@@ -31,7 +32,7 @@ function UserMenu() {
   );
 }
 
-export default function Header() {
+export default function Header({ isSaving, isError }) {
   const { user, usage, onOpenFeedback } = useAuth();
 
   const photosUsed = usage?.photosUsedToday ?? 0;
@@ -39,14 +40,18 @@ export default function Header() {
   const photosLimit = user?.plan?.dailyPhotoLimit ?? (user?.role === 'user' ? 100 : 9999);
   const percent = photosLimit > 0 ? Math.min(100, (photosUsed / photosLimit) * 100) : 0;
 
-  const getUsageColor = () => {
-    if (percent >= 90) return 'text-red-400 bg-red-500';
-    if (percent >= 70) return 'text-yellow-400 bg-yellow-500';
-    return 'text-emerald-400 bg-emerald-500';
-  };
-  const [textColor, barColor] = getUsageColor().split(' ');
+  // Determine bar color based on usage percentage
+  let barColor = 'bg-emerald-500';
+  let textColor = 'text-slate-300';
+  if (percent >= 100) {
+    barColor = 'bg-red-500';
+    textColor = 'text-red-400 font-bold';
+  } else if (percent >= 80) {
+    barColor = 'bg-yellow-500';
+    textColor = 'text-yellow-400 font-semibold';
+  }
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin' || user?.email?.toLowerCase() === 'handoyo.tjung@gmail.com';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   return (
     <header className="h-14 flex-shrink-0 flex items-center justify-between px-4 border-b border-[#2B2B2B] bg-[#0F172A]">
@@ -76,6 +81,7 @@ export default function Header() {
           <span className={`text-xs font-semibold flex-shrink-0 ${textColor}`}>
             {photosUsed} / {photosLimit} PHOTOS
           </span>
+          <AutoSaveIndicator isSaving={isSaving} isError={isError} />
         </div>
       </div>
 
