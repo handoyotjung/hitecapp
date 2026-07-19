@@ -171,30 +171,20 @@ export const apiLogin = async ({ email, password, device_id, device_name, ip_add
   const now = new Date();
   const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
-  // Check users.session_token
-  if (userDoc.session_token && userDoc.session_last_activity) {
-    const lastActivityTime = new Date(userDoc.session_last_activity).getTime();
-    const isWithin5Min = (now.getTime() - lastActivityTime) <= FIVE_MINUTES_MS;
-    const isDifferentDevice = userDoc.session_device_id && userDoc.session_device_id !== device_id;
+  // Check active sessions in user_sessions table for this user
+  const sessions = loadSessionsTable();
+  const activeSessions = sessions.filter(s => s.user_id === cleanEmail && s.status === 'ACTIVE');
 
-    if (isWithin5Min && isDifferentDevice) {
-      // EVENT A: Send email alert to admin@hitec.id (with 10-min rate limiting per user)
-      sendAccountInUseAlert({
-        user_email: cleanEmail,
-        device_name: device_name || getClientDeviceName(),
-        ip_address: ip_address,
-        active_device_name: userDoc.session_device_name || 'Existing Device',
-        active_ip: userDoc.session_ip_address || '127.0.0.1'
-      });
-
-      return {
-        status: 403,
-        body: {
-          success: false,
-          code: 'ACCOUNT_IN_USE',
-          message: 'This account is currently active on another device. For security purposes, only one active session is allowed at a time.'
-        }
-      };
+  // Enforce up to 10 concurrent active sessions per user account
+  if (activeSessions.length >= 10) {
+    // Sort by last_activity ascending to terminate the oldest session above the 10 limit
+    activeSessions.sort((a, b) => new Date(a.last_activity || 0).getTime() - new Date(b.last_activity || 0).getTime());
+    while (activeSessions.length >= 10) {
+      const oldest = activeSessions.shift();
+      if (oldest) {
+        oldest.status = 'EXPIRED';
+        oldest.logout_at = now.toISOString();
+      }
     }
   }
 
@@ -208,14 +198,18 @@ export const apiLogin = async ({ email, password, device_id, device_name, ip_add
   userDoc.session_login_at = now.toISOString();
   userDoc.session_last_activity = now.toISOString();
 
+  // Keep track of up to 10 active tokens in whitelist_users doc
+  const currentTokens = Array.isArray(userDoc.active_tokens) ? userDoc.active_tokens : (userDoc.session_token ? [userDoc.session_token] : []);
+  userDoc.active_tokens = [...currentTokens.filter(t => t !== newToken), newToken].slice(-10);
+
   if (!store.whitelist_users) store.whitelist_users = {};
   store.whitelist_users[cleanEmail] = userDoc;
   saveStore(store);
 
   // Record session in user_sessions table
-  const sessions = loadSessionsTable();
-  const nextId = sessions.length > 0 ? Math.max(...sessions.map(s => s.id || 0)) + 1 : 1;
-  sessions.push({
+  const updatedSessions = loadSessionsTable();
+  const nextId = updatedSessions.length > 0 ? Math.max(...updatedSessions.map(s => s.id || 0)) + 1 : 1;
+  updatedSessions.push({
     id: nextId,
     user_id: cleanEmail,
     token: newToken,
@@ -227,7 +221,7 @@ export const apiLogin = async ({ email, password, device_id, device_name, ip_add
     logout_at: null,
     status: 'ACTIVE'
   });
-  saveSessionsTable(sessions);
+  saveSessionsTable(updatedSessions);
 
   // SANITIZE: Never expose password in any response
   const sanitizedUser = {
@@ -265,7 +259,7 @@ export const validateSession = async ({ token, device_id }) => {
   if (store.whitelist_users) {
     Object.keys(store.whitelist_users).forEach((emailKey) => {
       const u = store.whitelist_users[emailKey];
-      if (u && u.session_token === token) {
+      if (u && (u.session_token === token || (Array.isArray(u.active_tokens) && u.active_tokens.includes(token)))) {
         foundEmail = emailKey;
         userDoc = u;
       }
@@ -273,10 +267,21 @@ export const validateSession = async ({ token, device_id }) => {
   }
 
   if (!foundEmail || !userDoc) {
-    return { status: 401, success: false, message: 'Session expired' };
+    // Check if valid in sessions table
+    const sessions = loadSessionsTable();
+    const activeSession = sessions.find(s => s.token === token && s.status === 'ACTIVE');
+    if (activeSession && store.whitelist_users && store.whitelist_users[activeSession.user_id]) {
+      foundEmail = activeSession.user_id;
+      userDoc = store.whitelist_users[foundEmail];
+    } else {
+      return { status: 401, success: false, message: 'Session expired' };
+    }
   }
 
-  if (userDoc.session_device_id && userDoc.session_device_id !== device_id) {
+  // Check if session explicitly terminated
+  const allSessions = loadSessionsTable();
+  const sessionEntry = allSessions.find(s => s.token === token);
+  if (sessionEntry && (sessionEntry.status === 'FORCED_LOGOUT' || sessionEntry.status === 'EXPIRED')) {
     return { status: 403, success: false, message: 'Session terminated' };
   }
 
@@ -286,12 +291,9 @@ export const validateSession = async ({ token, device_id }) => {
   store.whitelist_users[foundEmail] = userDoc;
   saveStore(store);
 
-  // Also update user_sessions
-  const sessions = loadSessionsTable();
-  const sessionEntry = sessions.find(s => s.token === token);
   if (sessionEntry) {
     sessionEntry.last_activity = nowStr;
-    saveSessionsTable(sessions);
+    saveSessionsTable(allSessions);
   }
 
   const sanitizedUser = {
@@ -300,10 +302,10 @@ export const validateSession = async ({ token, device_id }) => {
     plan: userDoc.plan || 'starter',
     company_id: userDoc.company_id || 'default_company',
     session_token: token,
-    session_device_id: userDoc.session_device_id,
-    session_device_name: userDoc.session_device_name,
-    session_ip_address: userDoc.session_ip_address,
-    session_login_at: userDoc.session_login_at
+    session_device_id: sessionEntry ? sessionEntry.device_id : (userDoc.session_device_id || device_id),
+    session_device_name: sessionEntry ? sessionEntry.device_name : userDoc.session_device_name,
+    session_ip_address: sessionEntry ? sessionEntry.ip_address : userDoc.session_ip_address,
+    session_login_at: sessionEntry ? sessionEntry.login_at : userDoc.session_login_at
   };
 
   return { status: 200, success: true, user: sanitizedUser };

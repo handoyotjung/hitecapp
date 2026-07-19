@@ -340,20 +340,71 @@ export const getDoc = async (docRef) => {
   return fbGetDoc(docRef);
 };
 
+// ----------------------------------------------------
+// MULTI-DEVICE REAL-TIME SYNCHRONIZATION & LWW ENGINE
+// ----------------------------------------------------
+let realtimeSyncChannel = null;
+if (typeof window !== 'undefined') {
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      realtimeSyncChannel = new BroadcastChannel('hitec_realtime_sync_channel');
+      realtimeSyncChannel.onmessage = (event) => {
+        if (event.data && event.data.type === 'DB_MUTATION' && event.data.colPath) {
+          triggerDbListeners(event.data.colPath);
+        }
+      };
+    }
+  } catch (e) {
+    console.warn("BroadcastChannel init failed:", e);
+  }
+
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'hitecmedia_mock_db') {
+      Object.keys(dbListeners).forEach(colPath => {
+        triggerDbListeners(colPath);
+      });
+    }
+  });
+}
+
+export const broadcastDbMutation = (colPath, docId = null) => {
+  triggerDbListeners(colPath);
+  if (realtimeSyncChannel && typeof realtimeSyncChannel.postMessage === 'function') {
+    try {
+      realtimeSyncChannel.postMessage({
+        type: 'DB_MUTATION',
+        colPath,
+        docId,
+        timestamp: Date.now()
+      });
+    } catch (e) {}
+  }
+};
+
 export const updateDoc = async (docRef, data) => {
   if (isMockMode) {
     const store = loadMockStore();
+    const lwwTime = data._lww_timestamp || Date.now();
+    const mergedPayload = { ...data, _lww_timestamp: lwwTime, updated_at: new Date().toISOString() };
+
     if (Array.isArray(store[docRef.colPath])) {
       const idx = store[docRef.colPath].findIndex(item => item.id === docRef.docId);
       if (idx > -1) {
-        store[docRef.colPath][idx] = { ...store[docRef.colPath][idx], ...data };
-        saveMockStore(store);
-        triggerDbListeners(docRef.colPath);
+        const existing = store[docRef.colPath][idx];
+        // Last-Write-Wins (LWW) conflict check: prevent stale data from overwriting newer updates
+        if (!existing._lww_timestamp || lwwTime >= existing._lww_timestamp) {
+          store[docRef.colPath][idx] = { ...existing, ...mergedPayload };
+          saveMockStore(store);
+          broadcastDbMutation(docRef.colPath, docRef.docId);
+        }
       }
     } else if (store[docRef.colPath] && store[docRef.colPath][docRef.docId]) {
-      store[docRef.colPath][docRef.docId] = { ...store[docRef.colPath][docRef.docId], ...data };
-      saveMockStore(store);
-      triggerDbListeners(docRef.colPath);
+      const existing = store[docRef.colPath][docRef.docId];
+      if (!existing._lww_timestamp || lwwTime >= existing._lww_timestamp) {
+        store[docRef.colPath][docRef.docId] = { ...existing, ...mergedPayload };
+        saveMockStore(store);
+        broadcastDbMutation(docRef.colPath, docRef.docId);
+      }
     }
     return;
   }
@@ -372,7 +423,7 @@ export const deleteDoc = async (docRef) => {
       delete store[docRef.colPath][docRef.docId];
     }
     saveMockStore(store);
-    triggerDbListeners(docRef.colPath);
+    broadcastDbMutation(docRef.colPath, docRef.docId);
     return;
   }
   return fbDeleteDoc(docRef);
@@ -383,16 +434,17 @@ export const setDoc = async (docRef, data, options = {}) => {
     const store = loadMockStore();
     if (!store[docRef.colPath]) store[docRef.colPath] = {};
 
-    // Prevent overwriting a completed mock status with pending
     let existingStatus = null;
     let existingBase64 = null;
     let existingUrl = null;
+    let existingLww = 0;
     if (Array.isArray(store[docRef.colPath])) {
       const existing = store[docRef.colPath].find(item => item.id === docRef.docId);
       if (existing) {
         existingStatus = existing.status;
         existingBase64 = existing.base64;
         existingUrl = existing.url;
+        existingLww = existing._lww_timestamp || 0;
       }
     } else {
       const existing = store[docRef.colPath][docRef.docId];
@@ -400,10 +452,17 @@ export const setDoc = async (docRef, data, options = {}) => {
         existingStatus = existing.status;
         existingBase64 = existing.base64;
         existingUrl = existing.url;
+        existingLww = existing._lww_timestamp || 0;
       }
     }
 
-    const mergedData = { ...data };
+    const lwwTime = data._lww_timestamp || Date.now();
+    // LWW verification
+    if (existingLww > 0 && lwwTime < existingLww && !options.force) {
+      return;
+    }
+
+    const mergedData = { ...data, _lww_timestamp: lwwTime, updated_at: new Date().toISOString() };
     if (data.status === 'pending' && existingStatus === 'done') {
       mergedData.status = 'done';
     }
@@ -438,7 +497,7 @@ export const setDoc = async (docRef, data, options = {}) => {
       }
     }
     saveMockStore(store);
-    triggerDbListeners(docRef.colPath);
+    broadcastDbMutation(docRef.colPath, docRef.docId);
     return;
   }
   return fbSetDoc(docRef, data, options);
@@ -448,14 +507,16 @@ export const addDoc = async (colRef, data) => {
   if (isMockMode) {
     const store = loadMockStore();
     const id = "mock_id_" + Math.random().toString(36).substring(7);
+    const lwwTime = data._lww_timestamp || Date.now();
+    const docData = { id, _lww_timestamp: lwwTime, updated_at: new Date().toISOString(), ...data };
     if (Array.isArray(store[colRef.path])) {
-      store[colRef.path].push({ id, ...data });
+      store[colRef.path].push(docData);
     } else {
       if (!store[colRef.path]) store[colRef.path] = {};
-      store[colRef.path][id] = data;
+      store[colRef.path][id] = docData;
     }
     saveMockStore(store);
-    triggerDbListeners(colRef.path);
+    broadcastDbMutation(colRef.path, id);
     return { id };
   }
   return fbAddDoc(colRef, data);

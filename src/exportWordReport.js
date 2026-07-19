@@ -177,8 +177,9 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
     if (filtered.length > 0) photosToExport = filtered;
   }
 
-  // Use for...of loop to avoid UI hangs
-  for (const photo of photosToExport) {
+  // Use for loop with index to manage 2 photos per page in Mobile mode
+  for (let idx = 0; idx < photosToExport.length; idx++) {
+    const photo = photosToExport[idx];
     // 1. GET IMAGE DIMENSIONS FOR ASPECT RATIO
     const rawBase64 = viewMode === 'Mobile' ? (photo.base64 || await ensurePhotoBase64(photo, viewMode)) : (photo.annotatedBase64 || photo.base64 || await ensurePhotoBase64(photo, viewMode));
     const imgData = base64ToBytes(rawBase64);
@@ -187,11 +188,18 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
     if (viewMode === 'Mobile') {
       if (imgData && imgData.length > 0) {
         const imgType = (imgData[0] === 0x89 && imgData[1] === 0x50) ? "png" : "jpg";
-        const mobileMaxWidth = 600;
-        const mobileRatio = (width > 0 && height > 0) ? (height / width) : 0.6;
-        const mobileFinalWidth = Math.min(width || mobileMaxWidth, mobileMaxWidth);
-        const mobileFinalHeight = Math.round(mobileFinalWidth * mobileRatio);
+        const mobileMaxWidth = 500;
+        const mobileMaxHeight = 320;
+        const ratio = (width > 0 && height > 0) ? (height / width) : 0.6;
+        let mobileFinalWidth = Math.min(width || mobileMaxWidth, mobileMaxWidth);
+        let mobileFinalHeight = Math.round(mobileFinalWidth * ratio);
 
+        if (mobileFinalHeight > mobileMaxHeight) {
+          mobileFinalHeight = mobileMaxHeight;
+          mobileFinalWidth = Math.round(mobileFinalHeight / ratio);
+        }
+
+        const isOddIndex = idx % 2 === 1; // 2nd photo on the current page
         docChildren.push(
           new Paragraph({
             children: [
@@ -201,7 +209,8 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
                 type: imgType
               })
             ],
-            alignment: AlignmentType.CENTER
+            alignment: AlignmentType.CENTER,
+            spacing: { after: isOddIndex ? 0 : 360 } // ~18pt space between 1st and 2nd photo on the page
           })
         );
       }
@@ -301,8 +310,16 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
       docChildren.push(containerTable);
     }
 
-    if (photo !== photosToExport[photosToExport.length - 1]) {
-      docChildren.push(new Paragraph({ children: [new PageBreak()] }));
+    if (idx < photosToExport.length - 1) {
+      if (viewMode === 'Mobile') {
+        // In mobile mode, insert PageBreak only after every 2nd photo (idx === 1, 3, 5...)
+        if (idx % 2 === 1) {
+          docChildren.push(new Paragraph({ children: [new PageBreak()] }));
+        }
+      } else {
+        // In desktop mode, insert PageBreak after every photo
+        docChildren.push(new Paragraph({ children: [new PageBreak()] }));
+      }
     }
   }
 
