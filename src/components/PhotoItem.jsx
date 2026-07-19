@@ -8,8 +8,10 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
   const { isRecording, transcript, detectedLang, start, stop, supported } = useSpeechToText();
 
   useEffect(() => {
-    setCaption(photo.caption || photo.comments_text || '');
-  }, [photo.caption, photo.comments_text]);
+    if (!isEditing && !isRecording) {
+      setCaption(photo.caption || photo.comments_text || '');
+    }
+  }, [photo.caption, photo.comments_text, isEditing, isRecording]);
 
   useEffect(() => {
     if (transcript && !isRecording) { // only save when user releases mic
@@ -82,7 +84,7 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
         )}
       </div>
 
-      {/* CAPTION EDITOR: auto expands to 5 rows when open, with red X on top right corner */}
+      {/* CAPTION EDITOR: auto expands to 5 rows when open, with red X on top right and green checkmark on bottom right */}
       {(isEditing || isRecording) && (
         <div className="relative w-full mt-1">
           <textarea 
@@ -109,6 +111,21 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
             title="Clear all caption text"
           >
             ✕
+          </button>
+
+          {/* Green checkmark on bottom right corner (same column with red X) to save and close */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()} // prevent onBlur when clicking checkmark
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onUpdateCaption) onUpdateCaption(photo.id || photo.filename, caption);
+              setIsEditing(false);
+            }}
+            className="absolute bottom-2 right-2 w-5 h-5 rounded-full bg-slate-900/95 border border-emerald-500/60 text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 flex items-center justify-center text-xs font-bold leading-none transition-colors shadow z-10"
+            title="Save caption and close editor"
+          >
+            ✓
           </button>
 
           {isRecording && (

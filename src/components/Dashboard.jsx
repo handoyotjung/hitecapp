@@ -212,7 +212,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   }, [cardASpeech.transcript, cardASpeech.isRecording]);
 
   const handleUpdateCaptionFromVoice = (photoIdOrFilename, newCaption) => {
-    if (!photoIdOrFilename || !newCaption) return;
+    if (!photoIdOrFilename || newCaption === undefined || newCaption === null) return;
     setProjectPhotos(prev => {
       const updatedPhotos = prev.map(p => 
         (p.id && p.id === photoIdOrFilename) || p.filename === photoIdOrFilename ? { ...p, caption: newCaption, comments_text: newCaption } : p
@@ -377,6 +377,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       return newPhotos;
     });
 
+    autosave({ reorderedAt: Date.now() });
     setDraggedItemIndex(null);
     setDragOverItemIndex(null);
   };
@@ -587,6 +588,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         return Array.from(photoMap.values());
       });
       setEditorIndex(0);
+      autosave({ snapshotsSyncedAt: Date.now() });
 
       // Automatically sync saved Firestore photos into projectQueues so photo list persists after relogging in
       setProjectQueues(prev => {
@@ -960,6 +962,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
     // Immediately commit all queue items to state — thumbnails render at once
     setQueue(prev => [...prev, ...newQueueItems]);
+    if (newQueueItems.length > 0) {
+      autosave({ newSnapshotsAddedAt: Date.now() });
+    }
 
     // Pipe all eligible items through the parallel worker pool (6 concurrent slots)
     newQueueItems.forEach(item => {
@@ -1069,6 +1074,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             const data = docSnap.data();
             if (data.status === 'done') {
               setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Done', progress: 100 } : q));
+              autosave({ snapshotCompletedAt: Date.now() });
               if (unsub) unsub();
             } else if (data.status === 'rejected') {
               setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server' } : q));
@@ -1114,6 +1120,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         const data = docSnap.data();
         if (data.status === 'done') {
           setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Done', progress: 100 } : q));
+          autosave({ snapshotCompletedAt: Date.now() });
           if (unsub) unsub();
         } else if (data.status === 'rejected') {
           setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server' } : q));
@@ -1152,6 +1159,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       });
       return updatedPhotos;
     });
+    autosave({ orderRefreshedAt: Date.now() });
     setEditorIndex(0);
   };
 
@@ -1637,13 +1645,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           {/* Left Side: Projects and Uploads */}
           <div className={`column-container left-column flex flex-col justify-between ${isMobileMode ? 'w-full md:w-full' : 'w-[100vw] md:w-1/2'} h-full shrink-0 border-r border-[#2B2B2B] bg-slate-950/20 overflow-hidden relative min-w-0`}>
           <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-hidden flex flex-col min-h-0 w-full min-w-0">
-            {/* Mobile Global Toggle: positioned at top right directly beneath the Header block */}
-            {(isMobileMode || isMobileViewport) && (
-              <div className="flex justify-end items-center px-4 py-2 border-b border-slate-800/80 bg-slate-950/90 shrink-0">
+            {/* Top Control Bar: Autosave text + Expand/Collapse Details right in the same line */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/80 bg-slate-950/90 shrink-0 w-full min-w-0">
+              <div className="flex items-center min-w-0">
+                <AutoSaveIndicator isSaving={isSaving} isError={isError} lastSavedAt={lastSavedAt} />
+              </div>
+              {(isMobileMode || isMobileViewport) && (
                 <button
                   type="button"
                   onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/50 text-xs font-semibold text-slate-300 hover:text-emerald-400 transition-all shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/50 text-xs font-semibold text-slate-300 hover:text-emerald-400 transition-all shadow-sm shrink-0 ml-2"
                 >
                   <span>{isHeaderCollapsed ? 'Expand Details' : 'Collapse Details'}</span>
                   {isHeaderCollapsed ? (
@@ -1652,8 +1663,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                     <span className="text-[10px] text-slate-400 font-bold">▲</span>
                   )}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Company/City and Project Sections Container with smooth transition/animation */}
             <div
@@ -1721,7 +1732,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           <div className="p-4 border-b border-slate-800 bg-slate-900/10 shrink-0">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Project</h2>
-              <AutoSaveIndicator isSaving={isSaving} isError={isError} lastSavedAt={lastSavedAt} />
             </div>
 
             {/* Create Project Form (Moved up inside section) */}

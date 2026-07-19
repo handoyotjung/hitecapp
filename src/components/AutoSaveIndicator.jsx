@@ -22,7 +22,7 @@ export default function AutoSaveIndicator({ isSaving, isError, lastSavedAt }) {
   }
 
   return (
-    <div className="text-xs ml-2 flex items-center shrink-0">
+    <div className="text-xs flex items-center shrink-0">
       {isSaving && <span className="text-yellow-400 font-semibold flex items-center gap-1">Saving...</span>}
       {!isSaving && !isError && (
         <span className="flex items-center">
