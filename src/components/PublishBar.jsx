@@ -34,12 +34,12 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
           disabled={!isSaved}
           className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs transition-all truncate ${
             isSaved
-              ? 'bg-[#D9008D] hover:bg-[#B50075] text-white font-bold border border-transparent shadow-md shadow-[#D9008D]/25 active:scale-95 cursor-pointer'
+              ? 'bg-white hover:bg-slate-100 text-[#F40F02] font-bold border border-transparent shadow-md shadow-white/20 active:scale-95 cursor-pointer'
               : 'bg-slate-900 border border-slate-800 text-slate-500 font-bold opacity-60 cursor-not-allowed shadow-none'
           }`}
           title={isSaved ? "Export report to PDF (.pdf)" : "Save changes before exporting"}
         >
-          <FileDown className={`h-4 w-4 shrink-0 ${isSaved ? 'text-white' : 'text-slate-500'}`} />
+          <FileDown className={`h-4 w-4 shrink-0 ${isSaved ? 'text-[#F40F02]' : 'text-slate-500'}`} />
           <span className="truncate">PDF</span>
         </button>
 

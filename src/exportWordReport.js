@@ -145,13 +145,17 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
 
   // Order exported photos strictly matching queue or selected list
   let photosToExport = project.photos || [];
-  if (selectedPhotos && selectedPhotos.length > 0) {
-    const orderedQueue = queue.filter(item =>
-      item.status === 'Done' && selectedPhotos.includes(item.finalFilename)
+  const orderedQueue = queue.filter(item =>
+    item.status === 'Done' && (!selectedPhotos || selectedPhotos.length === 0 || selectedPhotos.includes(item.finalFilename))
+  );
+  if (orderedQueue.length > 0) {
+    const queueFilenames = new Set(orderedQueue.map(q => q.finalFilename));
+    const fallbackPhotos = (project.photos || []).filter(p =>
+      !queueFilenames.has(p.filename) && (!selectedPhotos || selectedPhotos.length === 0 || selectedPhotos.includes(p.filename))
     );
-    if (orderedQueue.length > 0) {
-      photosToExport = orderedQueue.map(item => {
-        const matchedPhoto = project.photos.find(p => p.filename === item.finalFilename) || {};
+    photosToExport = [
+      ...orderedQueue.map(item => {
+        const matchedPhoto = (project.photos || []).find(p => p.filename === item.finalFilename) || {};
         const rawBase = item.base64 || matchedPhoto.base64 || item.annotatedBase64 || '';
         return {
           ...matchedPhoto,
@@ -161,11 +165,12 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
           base64: rawBase,
           localUrl: item.thumbnailUrl || matchedPhoto.url || ''
         };
-      });
-    } else {
-      const filtered = photosToExport.filter(p => selectedPhotos.includes(p.filename));
-      if (filtered.length > 0) photosToExport = filtered;
-    }
+      }),
+      ...fallbackPhotos
+    ];
+  } else if (selectedPhotos && selectedPhotos.length > 0) {
+    const filtered = photosToExport.filter(p => selectedPhotos.includes(p.filename));
+    if (filtered.length > 0) photosToExport = filtered;
   }
 
   // Use for...of loop to avoid UI hangs

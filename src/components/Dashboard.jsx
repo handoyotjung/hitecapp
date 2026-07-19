@@ -226,6 +226,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [alertPopup, setAlertPopup] = useState(null);
   const [companyName, setCompanyName] = useState(() => localStorage.getItem('hitec_company_name') || '');
   const [cityName, setCityName] = useState(() => localStorage.getItem('hitec_city_name') || '');
+  const [fieldValidationErrors, setFieldValidationErrors] = useState({ company: false, city: false });
 
   useEffect(() => {
     setConfirmedExports(false);
@@ -604,6 +605,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const handleCreateProject = async (e) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
+    if (!companyName.trim() || !cityName.trim()) {
+      setFieldValidationErrors({
+        company: !companyName.trim(),
+        city: !cityName.trim()
+      });
+      alert("Please enter both Company and City names before creating a project.");
+      return;
+    }
+    setFieldValidationErrors({ company: false, city: false });
     try {
       const nowIso = new Date().toISOString();
       const expiresIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
@@ -616,6 +626,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         created_by: (user.email || '').trim().toLowerCase(),
         userId: user.uid || '',
         company_id: user.companyId || 'hitec',
+        company_name: companyName.trim(),
+        city_name: cityName.trim(),
         retention_days: 3,
         expires_at: expiresIso,
         photos: []
@@ -1375,7 +1387,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     setExportingDOCX(true);
     try {
       const filename = getExportFileName('docx');
-      const result = await handleExportWord(selectedProject, queue, selectedPhotos, filename, isMobileMode ? 'Mobile' : 'Desktop', true);
+      const projectPayload = {
+        ...selectedProject,
+        photos: projectPhotos.length > 0 ? projectPhotos : (selectedProject?.photos || []),
+        company_name: companyName,
+        city_name: cityName
+      };
+      const result = await handleExportWord(projectPayload, queue, selectedPhotos, filename, isMobileMode ? 'Mobile' : 'Desktop', true);
       if (result && result.blob) {
         const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         await shareFile(result.blob, result.filename || filename, mime);
@@ -1579,9 +1597,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   value={companyName}
                   onChange={(e) => {
                     setCompanyName(e.target.value);
+                    if (e.target.value.trim()) setFieldValidationErrors(prev => ({ ...prev, company: false }));
                     localStorage.setItem('hitec_company_name', e.target.value);
                   }}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500 transition-colors"
+                  className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-colors ${
+                    fieldValidationErrors.company
+                      ? 'border-red-500 bg-red-950/20 focus:border-red-400'
+                      : 'border-slate-800 bg-slate-900 focus:border-emerald-500'
+                  }`}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -1592,9 +1615,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   value={cityName}
                   onChange={(e) => {
                     setCityName(e.target.value);
+                    if (e.target.value.trim()) setFieldValidationErrors(prev => ({ ...prev, city: false }));
                     localStorage.setItem('hitec_city_name', e.target.value);
                   }}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500 transition-colors"
+                  className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-colors ${
+                    fieldValidationErrors.city
+                      ? 'border-red-500 bg-red-950/20 focus:border-red-400'
+                      : 'border-slate-800 bg-slate-900 focus:border-emerald-500'
+                  }`}
                 />
               </div>
             </div>
@@ -1628,7 +1656,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 value={selectedProject?.id || ''}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setSelectedProject(val ? projects.find(p => p.id === val) : null);
+                  const proj = val ? projects.find(p => p.id === val) : null;
+                  setSelectedProject(proj);
+                  if (proj && proj.company_name) {
+                    setCompanyName(proj.company_name);
+                    localStorage.setItem('hitec_company_name', proj.company_name);
+                  }
+                  if (proj && proj.city_name) {
+                    setCityName(proj.city_name);
+                    localStorage.setItem('hitec_city_name', proj.city_name);
+                  }
                 }}
                 className="flex-1 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-500 transition-colors"
               >
@@ -1832,10 +1869,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             {isSelected && (
                               <Check className="h-4 w-4 text-white stroke-[3] shrink-0" title="Selected" />
                             )}
-                            {projectPhotos[editorIndex]?.filename === item.finalFilename && (
+                            {!isMobileMode && projectPhotos[editorIndex]?.filename === item.finalFilename && (
                               <Edit2 className="h-4 w-4 text-yellow-400 shrink-0 animate-pulse" title="Currently viewing in Caption Editor" />
                             )}
-                            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                           </div>
                         )}
                         {item.status === 'Rejected' && (
