@@ -91,14 +91,17 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   });
 
 
-  // RULE 1: Auto force expand when NO project exists
+  // RULE 1 & 2: Auto expand/collapse header based on project existence (mobile only)
+  // NOTE: Cannot reference hasProject here — selectedProject not yet declared at this point.
+  // hasProject is declared at line 132 (after selectedProject). This effect reads selectedProject directly.
   useEffect(() => {
-    if (!hasProject) {
-      setIsHeaderCollapsed(false); // Force Expand
+    const projectExists = Boolean(selectedProject?.id);
+    if (!projectExists) {
+      setIsHeaderCollapsed(false); // Force Expand when no project
     } else if (isMobileMode || isMobileViewport) {
-      setIsHeaderCollapsed(true); // Collapse when project IS created/selected on mobile
+      setIsHeaderCollapsed(true); // Auto collapse when project exists on mobile
     }
-  }, [hasProject, isMobileMode, isMobileViewport]);
+  }, [selectedProject?.id, isMobileMode, isMobileViewport]);
 
 
   const handleTouchStart = (e) => {
