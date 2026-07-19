@@ -137,8 +137,8 @@ async function ensurePhotoBase64(photo) {
   }
 }
 
-export async function handleExportWord(project, queue = [], selectedPhotos = [], customFilename = null, viewMode = 'Desktop') {
-  if (!project || !project.photos || project.photos.length === 0) return;
+export async function handleExportWord(project, queue = [], selectedPhotos = [], customFilename = null, viewMode = 'Desktop', returnBlob = false) {
+  if (!project || !project.photos || project.photos.length === 0) return null;
 
   const docChildren = [];
   const isEnglish = !(project.language === 'ID' || project.language === 'Bahasa' || project.language === 'Bahasa Indonesia' || project.lang === 'ID');
@@ -288,5 +288,8 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
   const blob = await Packer.toBlob(doc);
   const safeName = (project.name || 'Project').replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = customFilename || `Hitec_Report_${safeName}.docx`;
+  if (returnBlob) {
+    return { blob, filename };
+  }
   saveAs(blob, filename);
 }

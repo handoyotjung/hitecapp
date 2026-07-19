@@ -22,6 +22,7 @@ import AnnotatedImageCanvas from './AnnotatedImageCanvas';
 import { handleExportWord } from '../exportWordReport';
 import PublishBar from './PublishBar';
 import { compressImage } from '../imageCompressor';
+import { shareFile } from '../utils/shareFile';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -1341,7 +1342,18 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       const { downloadUrl, valid } = response.data || {};
       
       if (downloadUrl) {
-        window.open(downloadUrl, '_blank');
+        try {
+          const res = await fetch(downloadUrl);
+          const blob = await res.blob();
+          const filename = getExportFileName(format === 'pptx' ? 'pptx' : format === 'excel' ? 'xlsx' : 'pdf');
+          let mime = 'application/pdf';
+          if (format === 'pptx') mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+          if (format === 'excel') mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          await shareFile(blob, filename, mime);
+        } catch (fetchErr) {
+          console.error("Error fetching blob for shareFile, falling back to direct link:", fetchErr);
+          window.open(downloadUrl, '_blank');
+        }
       } else if (!valid && !isMockMode && downloadUrl !== "") {
         throw new Error("No download URL returned.");
       }
@@ -1362,7 +1374,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     setExportError(null);
     setExportingDOCX(true);
     try {
-      await handleExportWord(selectedProject, queue, selectedPhotos, getExportFileName('docx'), isMobileMode ? 'Mobile' : 'Desktop');
+      const filename = getExportFileName('docx');
+      const result = await handleExportWord(selectedProject, queue, selectedPhotos, filename, isMobileMode ? 'Mobile' : 'Desktop', true);
+      if (result && result.blob) {
+        const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        await shareFile(result.blob, result.filename || filename, mime);
+      }
     } catch (err) {
       console.error("Error exporting Word report:", err);
       setExportError(`Word export failed: ${err.message || 'Error'}`);
@@ -1413,38 +1430,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
       setConfirmedExports(true);
     } else if (key === 'ppt') {
-      if (isMobileMode) {
-        setMobileShareModal({
-          show: true,
-          type: 'PPT',
-          fileName: getExportFileName('pptx'),
-          exportFn: () => handleExport('pptx')
-        });
-      } else {
-        handleExport('pptx');
-      }
+      await handleExport('pptx');
     } else if (key === 'word' || key === 'doc') {
-      if (isMobileMode) {
-        setMobileShareModal({
-          show: true,
-          type: 'DOC',
-          fileName: getExportFileName('docx'),
-          exportFn: () => onExportWordClick()
-        });
-      } else {
-        onExportWordClick();
-      }
-    } else if (key === 'excel' || key === 'pdf') {
-      if (isMobileMode) {
-        setMobileShareModal({
-          show: true,
-          type: 'PDF',
-          fileName: getExportFileName('pdf'),
-          exportFn: () => handleExport('pdf')
-        });
-      } else {
-        handleExport('pdf');
-      }
+      await onExportWordClick();
+    } else if (key === 'excel') {
+      await handleExport('excel');
+    } else if (key === 'pdf') {
+      await handleExport('pdf');
     }
   };
 
