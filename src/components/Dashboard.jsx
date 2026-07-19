@@ -84,6 +84,20 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const isMobileUser = isMobileViewport && user?.role === 'user';
   const isMobileMode = (user?.viewMode || localStorage.getItem('hitec_view_mode')) === 'Mobile';
 
+  // State to auto-collapse Company/City and Project sections on mobile to optimize screen space
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(() => {
+    const mobileMode = (user?.viewMode || localStorage.getItem('hitec_view_mode')) === 'Mobile';
+    return mobileMode || window.innerWidth < 768;
+  });
+
+  useEffect(() => {
+    if (isMobileMode || isMobileViewport) {
+      setIsHeaderCollapsed(true);
+    } else {
+      setIsHeaderCollapsed(false);
+    }
+  }, [isMobileMode, isMobileViewport]);
+
 
   const handleTouchStart = (e) => {
     if (e.targetTouches && e.targetTouches[0]) {
@@ -1623,9 +1637,34 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           {/* Left Side: Projects and Uploads */}
           <div className={`column-container left-column flex flex-col justify-between ${isMobileMode ? 'w-full md:w-full' : 'w-[100vw] md:w-1/2'} h-full shrink-0 border-r border-[#2B2B2B] bg-slate-950/20 overflow-hidden relative min-w-0`}>
           <div className="upper-content-wrapper upper-column-scroll flex-1 overflow-hidden flex flex-col min-h-0 w-full min-w-0">
-          
-          {/* Company & City Section Above Project Section */}
-          <div className="p-4 border-b border-slate-800 bg-slate-900/10 shrink-0">
+            {/* Mobile Global Toggle: positioned at top right directly beneath the Header block */}
+            {(isMobileMode || isMobileViewport) && (
+              <div className="flex justify-end items-center px-4 py-2 border-b border-slate-800/80 bg-slate-950/90 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/50 text-xs font-semibold text-slate-300 hover:text-emerald-400 transition-all shadow-sm"
+                >
+                  <span>{isHeaderCollapsed ? 'Expand Details' : 'Collapse Details'}</span>
+                  {isHeaderCollapsed ? (
+                    <span className="text-[10px] text-emerald-400 font-bold">▼</span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 font-bold">▲</span>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Company/City and Project Sections Container with smooth transition/animation */}
+            <div
+              className={`transition-all duration-300 ease-in-out overflow-hidden shrink-0 ${
+                (isMobileMode || isMobileViewport) && isHeaderCollapsed
+                  ? 'max-h-0 opacity-0 border-b-0 pointer-events-none'
+                  : 'max-h-[700px] opacity-100 border-b border-slate-800'
+              }`}
+            >
+              {/* Company & City Section Above Project Section */}
+              <div className="p-4 border-b border-slate-800/60 bg-slate-900/10">
             <div className="grid grid-cols-2 gap-2.5 w-full">
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Company</label>
@@ -1756,6 +1795,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               )}
             </div>
           </div>
+            </div>
 
           {/* Clean Drag and Drop UploadZone (2 buttons) */}
           <UploadZone
