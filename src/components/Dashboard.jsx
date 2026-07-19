@@ -82,11 +82,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   }, []);
 
   const isMobileUser = isMobileViewport && user?.role === 'user';
-  const isMobileMode = (user?.viewMode || localStorage.getItem('hitec_view_mode')) === 'Mobile';
+  const isMobileMode = (user?.viewMode || localStorage.getItem('hitec_view_mode') || 'Mobile') === 'Mobile';
 
   // State to auto-collapse Company/City and Project sections on mobile to optimize screen space
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(() => {
-    const mobileMode = (user?.viewMode || localStorage.getItem('hitec_view_mode')) === 'Mobile';
+    const mobileMode = (user?.viewMode || localStorage.getItem('hitec_view_mode') || 'Mobile') === 'Mobile';
     return mobileMode || window.innerWidth < 768;
   });
 

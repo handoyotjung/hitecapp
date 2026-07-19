@@ -9,7 +9,7 @@ export default function Login({ onLoginSuccess, errorOverride }) {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [viewMode, setViewMode] = useState(() => localStorage.getItem('hitec_view_mode') || 'Desktop');
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('hitec_view_mode') || 'Mobile');
 
   // Modal State for ACCOUNT_IN_USE
   const [accountInUseModal, setAccountInUseModal] = useState(false);
@@ -172,7 +172,7 @@ export default function Login({ onLoginSuccess, errorOverride }) {
             </div>
 
             <div className="pt-1">
-              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Viewing Mode</label>
+              <label className="block text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Viewing Mode</label>
               <div className="grid grid-cols-2 gap-3">
                 <label className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold cursor-pointer transition-all ${
                   viewMode === 'Desktop'
