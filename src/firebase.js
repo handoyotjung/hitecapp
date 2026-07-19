@@ -1023,6 +1023,7 @@ export const httpsCallable = (functionsInstance, name) => {
               date: photo.date || photo.exif_date || "N/A",
               location: photo.location || photo.exif_gps || "Location Recorded",
               filename: photo.filename || "IMG.jpg",
+              caption: photo.caption || photo.comments || photo.comments_text || "",
               comments: photo.comments || photo.comments_text || photo.caption || "No visual defects observed.",
               recommendation: photo.recommendation || recText || "No specific recommendation noted.",
               risk
@@ -1055,7 +1056,8 @@ export const handleExportPDF = async (project, customFilename = null) => {
   const photos = project.photos || [];
   const tableData = photos.map((photo, idx) => {
     if (isMobileMode) {
-      return [idx + 1, photo.filename || "IMG.jpg"];
+      const captionText = photo.caption || photo.comments || photo.comments_text || photo.filename || "";
+      return [idx + 1, captionText];
     }
     return [
       idx + 1,
@@ -1067,7 +1069,7 @@ export const handleExportPDF = async (project, customFilename = null) => {
   });
 
   const headRow = isMobileMode
-    ? [["No.", "Photo Filename & Original Photo"]]
+    ? [["No.", "Photo & Caption"]]
     : [["No.", "Photo Filename", "Observation / Comments", "Recommendation", "Risk Level"]];
 
   const colStyles = isMobileMode
@@ -1093,8 +1095,11 @@ export const handleExportPDF = async (project, customFilename = null) => {
         const photo = photos[data.row.index];
         const base64Str = isMobileMode ? (photo.base64 || photo.annotatedBase64 || '') : (photo.annotatedBase64 || photo.base64 || '');
         if (base64Str && base64Str.startsWith('data:image/')) {
-          data.cell.styles.minCellHeight = isMobileMode ? 100 : 28;
+          data.cell.styles.minCellHeight = isMobileMode ? 115 : 28;
           data.cell.styles.valign = 'bottom';
+          if (isMobileMode) {
+            data.cell.styles.halign = 'center';
+          }
         }
       }
     },
@@ -1104,9 +1109,27 @@ export const handleExportPDF = async (project, customFilename = null) => {
         const base64Str = isMobileMode ? (photo.base64 || photo.annotatedBase64 || '') : (photo.annotatedBase64 || photo.base64 || '');
         if (base64Str && base64Str.startsWith('data:image/')) {
           try {
-            const availH = Math.max(16, data.cell.height - 8);
-            const imgW = Math.min(availH * 1.33, data.cell.width - 4);
-            const imgH = Math.min(availH, (data.cell.width - 4) * 0.75);
+            let imgRatio = 1.333;
+            try {
+              const props = doc.getImageProperties(base64Str);
+              if (props && props.width && props.height && props.height > 0) {
+                imgRatio = props.width / props.height;
+              }
+            } catch (err) {
+              // fallback
+            }
+
+            const availW = data.cell.width - 4;
+            const bottomSpace = isMobileMode ? 16 : 6;
+            const availH = Math.max(16, data.cell.height - bottomSpace);
+
+            let imgW = availW;
+            let imgH = availW / imgRatio;
+            if (imgH > availH) {
+              imgH = availH;
+              imgW = availH * imgRatio;
+            }
+
             const x = data.cell.x + (data.cell.width - imgW) / 2;
             const y = data.cell.y + 2;
             doc.addImage(base64Str, 'JPEG', x, y, imgW, imgH);

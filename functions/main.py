@@ -529,7 +529,7 @@ def _generate_pdf_report(req: https_fn.CallableRequest) -> dict:
     if is_mobile_mode:
         table_data.append([
             Paragraph("No.", header_style),
-            Paragraph("Photo Filename & Original Photo", header_style)
+            Paragraph("Photo & Caption", header_style)
         ])
     else:
         table_data.append([
@@ -544,17 +544,28 @@ def _generate_pdf_report(req: https_fn.CallableRequest) -> dict:
         r['view_mode'] = view_mode
         rl_img = get_reportlab_image(r, max_width=450 if is_mobile_mode else 100, max_height=350 if is_mobile_mode else 75)
         fname_para = Paragraph(str(r.get('Photo Filename') or 'IMG.jpg'), normal_style)
-        if rl_img:
-            photo_cell = [rl_img, Spacer(1, 4), fname_para]
-        else:
-            photo_cell = fname_para
-
+        
         if is_mobile_mode:
+            mobile_caption_style = ParagraphStyle(
+                f'MobileCap_{idx}',
+                parent=normal_style,
+                alignment=1
+            )
+            caption_text = str(r.get('Caption') or r.get('Comments') or r.get('Photo Filename') or '')
+            caption_para = Paragraph(caption_text, mobile_caption_style)
+            if rl_img:
+                photo_cell = [rl_img, Spacer(1, 8), caption_para]
+            else:
+                photo_cell = caption_para
             table_data.append([
                 Paragraph(str(idx), normal_style),
                 photo_cell
             ])
         else:
+            if rl_img:
+                photo_cell = [rl_img, Spacer(1, 4), fname_para]
+            else:
+                photo_cell = fname_para
             risk_val = str(r.get('Risk Level') or 'COMPLIANT')
             risk_style = ParagraphStyle(
                 f'Risk_{idx}',
