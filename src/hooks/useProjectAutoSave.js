@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -23,6 +23,11 @@ function queueOfflineSave(projectId, payload) {
 export function useProjectAutoSave(projectId) {
   const queryClient = useQueryClient();
   const timeoutRef = useRef(null);
+  const [lastSavedAt, setLastSavedAt] = useState(() => Date.now());
+
+  useEffect(() => {
+    setLastSavedAt(Date.now());
+  }, [projectId]);
 
   const { mutate, isPending, isError } = useMutation({
     mutationFn: async (payload) => {
@@ -81,6 +86,7 @@ export function useProjectAutoSave(projectId) {
       return { id: projectId, ...payload, status: 'saved' };
     },
     onSuccess: () => {
+      setLastSavedAt(Date.now());
       // Refresh project for all users across active queries
       if (projectId) {
         queryClient.invalidateQueries(['project', projectId]);
@@ -153,6 +159,7 @@ export function useProjectAutoSave(projectId) {
   return {
     autosave,
     isSaving: isPending,
-    isError
+    isError,
+    lastSavedAt
   };
 }

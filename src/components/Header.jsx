@@ -1,7 +1,6 @@
 import React from 'react';
 import { MessageSquareIcon, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import AutoSaveIndicator from './AutoSaveIndicator';
 
 function UserMenu() {
   const { user, onLogout } = useAuth();
@@ -81,7 +80,6 @@ export default function Header({ isSaving, isError }) {
           <span className={`text-xs font-semibold flex-shrink-0 ${textColor}`}>
             {photosUsed} / {photosLimit} PHOTOS
           </span>
-          <AutoSaveIndicator isSaving={isSaving} isError={isError} />
         </div>
       </div>
 

@@ -10,10 +10,11 @@ import {
   FolderPlus, Folder, Loader2, ArrowRight, ArrowLeft,
   Upload, FileText, CheckCircle2, AlertCircle, Trash2, 
   ChevronLeft, ChevronRight, Save, Download, FileSpreadsheet,
-  LogOut, Shield, ShieldAlert, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare
+  LogOut, Shield, ShieldAlert, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare, Mic as MicIcon
 } from 'lucide-react';
 import UploadZone from './UploadZone';
 import Header from './Header';
+import AutoSaveIndicator from './AutoSaveIndicator';
 import { AuthProvider } from '@/context/AuthContext';
 import { UpgradeModal } from './UpgradeModal';
 import { FeedbackModal } from './FeedbackModal';
@@ -24,6 +25,9 @@ import PublishBar from './PublishBar';
 import { compressImage } from '../imageCompressor';
 import { shareFile } from '../utils/shareFile';
 import { useProjectAutoSave } from '@/hooks/useProjectAutoSave';
+import PhotoItem from './PhotoItem';
+import { useSpeechToText } from '../hooks/useSpeechToText';
+
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -163,7 +167,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [aiSuggestedRecText, setAiSuggestedRecText] = useState('');
 
-  const { autosave, isSaving, isError } = useProjectAutoSave(selectedProject?.id);
+  const { autosave, isSaving, isError, lastSavedAt } = useProjectAutoSave(selectedProject?.id);
 
   const updatePhotoFieldAndAutosave = (fieldUpdates) => {
     if (projectPhotos.length === 0 || editorIndex === null || !projectPhotos[editorIndex]) return;
@@ -182,6 +186,43 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       lastEditedPhotoId: currentPhoto.id, 
       ...fieldUpdates 
     });
+  };
+
+  const cardASpeech = useSpeechToText();
+
+  useEffect(() => {
+    if (cardASpeech.transcript && !cardASpeech.isRecording) {
+      setCommentsText(cardASpeech.transcript);
+      updatePhotoFieldAndAutosave({ comments_text: cardASpeech.transcript, caption: cardASpeech.transcript });
+    }
+  }, [cardASpeech.transcript, cardASpeech.isRecording]);
+
+  const handleUpdateCaptionFromVoice = (photoIdOrFilename, newCaption) => {
+    if (!photoIdOrFilename || !newCaption) return;
+    setProjectPhotos(prev => {
+      const updatedPhotos = prev.map(p => 
+        (p.id && p.id === photoIdOrFilename) || p.filename === photoIdOrFilename ? { ...p, caption: newCaption, comments_text: newCaption } : p
+      );
+      if (selectedProject) {
+        setSelectedProject(prevProj => prevProj ? { ...prevProj, photos: updatedPhotos } : null);
+      }
+      const targetPhoto = prev.find(p => (p.id && p.id === photoIdOrFilename) || p.filename === photoIdOrFilename);
+      if (targetPhoto && targetPhoto.id) {
+        updateDoc(doc(db, 'photos', targetPhoto.id), { caption: newCaption, comments_text: newCaption }).catch(() => {});
+      }
+      autosave({
+        photos: updatedPhotos,
+        lastEditedPhotoId: targetPhoto ? targetPhoto.id : null,
+        caption: newCaption,
+        comments_text: newCaption
+      });
+      return updatedPhotos;
+    });
+    // If the updated photo is currently open in editor, also update commentsText
+    const currentPhoto = projectPhotos[editorIndex];
+    if (currentPhoto && ((currentPhoto.id && currentPhoto.id === photoIdOrFilename) || currentPhoto.filename === photoIdOrFilename)) {
+      setCommentsText(newCaption);
+    }
   };
 
   // Gemini AI bilingual spelling correction and suggestion helper (Bahasa Indonesia & English)
@@ -1567,7 +1608,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         onOpenFeedback: () => setShowFeedbackModal(true),
         onOpenSecurity
       }}>
-        <Header isSaving={isSaving} isError={isError} />
+        <Header />
       </AuthProvider>
 
       {/* Main Grid Container with Swipe Track */}
@@ -1639,7 +1680,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
           {/* Project Section */}
           <div className="p-4 border-b border-slate-800 bg-slate-900/10 shrink-0">
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Project</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Project</h2>
+              <AutoSaveIndicator isSaving={isSaving} isError={isError} lastSavedAt={lastSavedAt} />
+            </div>
 
             {/* Create Project Form (Moved up inside section) */}
             <form onSubmit={handleCreateProject} className="flex gap-2 mb-3">
@@ -1821,40 +1865,53 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         </span>
                       </div>
 
-                      {/* CENTER: Thumbnail + info — clicking selects photo and navigates to Caption Editor */}
-                      <div
-                        className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group overflow-hidden"
-                        onClick={() => {
-                          togglePhotoSelection(item.finalFilename, item.status);
-                          if (canNavigate) navigateToPhoto(item.finalFilename);
-                        }}
-                        title="Click to select and view in Caption Editor"
-                      >
-                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-950 flex items-center justify-center">
-                          {item.thumbnailUrl ? (
-                            <img
-                              src={item.thumbnailUrl}
-                              alt="thumbnail"
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <FileText className="h-4 w-4 text-slate-500" />
-                          )}
-                          {canNavigate && (
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-                              <ImageIcon className="h-4 w-4 text-white" />
-                            </div>
-                          )}
+                      {/* CENTER: Thumbnail + info or PhotoItem for Hold-To-Talk voice captioning */}
+                      {isDone && matchedPhoto ? (
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <PhotoItem 
+                            photo={matchedPhoto} 
+                            onUpdateCaption={handleUpdateCaptionFromVoice} 
+                            onSelectPhoto={() => {
+                              togglePhotoSelection(item.finalFilename, item.status);
+                              if (canNavigate) navigateToPhoto(item.finalFilename);
+                            }}
+                          />
                         </div>
+                      ) : (
+                        <div
+                          className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group overflow-hidden"
+                          onClick={() => {
+                            togglePhotoSelection(item.finalFilename, item.status);
+                            if (canNavigate) navigateToPhoto(item.finalFilename);
+                          }}
+                          title="Click to select and view in Caption Editor"
+                        >
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-950 flex items-center justify-center">
+                            {item.thumbnailUrl ? (
+                              <img
+                                src={item.thumbnailUrl}
+                                alt="thumbnail"
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <FileText className="h-4 w-4 text-slate-500" />
+                            )}
+                            {canNavigate && (
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                                <ImageIcon className="h-4 w-4 text-white" />
+                              </div>
+                            )}
+                          </div>
 
-                        <div className="min-w-0 flex-1 overflow-hidden">
-                          <p className="truncate block w-full min-w-0 text-xs font-medium text-slate-200 group-hover:text-emerald-300 transition-colors">{item.finalFilename}</p>
-                          <p className="text-[10px] text-slate-500">{Math.round(item.sizeKb)} KB</p>
-                          <p className={`text-[10px] truncate block w-full min-w-0 mt-0.5 ${currentCaption ? 'text-emerald-400 font-medium' : 'text-slate-600 italic'}`}>
-                            {currentCaption || 'No caption'}
-                          </p>
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <p className="truncate block w-full min-w-0 text-xs font-medium text-slate-200 group-hover:text-emerald-300 transition-colors">{item.finalFilename}</p>
+                            <p className="text-[10px] text-slate-500">{Math.round(item.sizeKb)} KB</p>
+                            <p className={`text-[10px] truncate block w-full min-w-0 mt-0.5 ${currentCaption ? 'text-emerald-400 font-medium' : 'text-slate-600 italic'}`}>
+                              {currentCaption || 'No caption'}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* RIGHT: Status chip */}
                       <div className="shrink-0 flex items-center gap-1.5 pl-1">
@@ -2168,18 +2225,39 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             </button>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCommentsText('');
-                              updatePhotoFieldAndAutosave({ comments_text: '', caption: '' });
-                            }}
-                            title="Clear"
-                            className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm"
-                          >
-                            <X className="h-3 w-3" />
-                            <span>Clear</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            {cardASpeech.supported && (
+                              <button
+                                type="button"
+                                onPointerDown={(e) => { e.stopPropagation(); cardASpeech.start(); }}
+                                onPointerUp={(e) => { e.stopPropagation(); cardASpeech.stop(); }}
+                                onPointerLeave={(e) => { e.stopPropagation(); cardASpeech.stop(); }}
+                                style={{ touchAction: 'manipulation' }}
+                                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all shrink-0 ${
+                                  cardASpeech.isRecording
+                                    ? 'bg-red-500 text-white scale-105 shadow-lg shadow-red-500/30'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                                }`}
+                                title="Press and hold to talk"
+                              >
+                                <MicIcon className={`w-3.5 h-3.5 ${cardASpeech.isRecording ? 'text-white animate-pulse' : 'text-slate-400'}`} />
+                                <span>{cardASpeech.isRecording ? `Listening... ${cardASpeech.detectedLang === 'id-ID' ? 'ID' : 'EN'}` : 'Hold to Talk'}</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCommentsText('');
+                                updatePhotoFieldAndAutosave({ comments_text: '', caption: '' });
+                              }}
+                              title="Clear"
+                              className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm shrink-0"
+                            >
+                              <X className="h-3 w-3" />
+                              <span>Clear</span>
+                            </button>
+                          </div>
                         </div>
 
                         <textarea
