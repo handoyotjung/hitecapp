@@ -117,9 +117,13 @@ function base64ToBytes(base64Str) {
 }
 
 // HELPER 5: SAFE URL TO BASE64 CONVERTER IF BASE64 NOT CACHED
-async function ensurePhotoBase64(photo) {
-  if (photo.annotatedBase64) return photo.annotatedBase64;
-  if (photo.base64) return photo.base64;
+async function ensurePhotoBase64(photo, viewMode = 'Desktop') {
+  if (viewMode === 'Mobile') {
+    if (photo.base64) return photo.base64;
+  } else {
+    if (photo.annotatedBase64) return photo.annotatedBase64;
+    if (photo.base64) return photo.base64;
+  }
   const url = photo.localUrl || photo.url || photo.thumbnailUrl;
   if (!url) return '';
   if (url.startsWith('data:image/')) return url;
@@ -176,44 +180,65 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
   // Use for...of loop to avoid UI hangs
   for (const photo of photosToExport) {
     // 1. GET IMAGE DIMENSIONS FOR ASPECT RATIO
-    const rawBase64 = viewMode === 'Mobile' ? (photo.base64 || await ensurePhotoBase64(photo)) : (photo.annotatedBase64 || photo.base64 || await ensurePhotoBase64(photo));
+    const rawBase64 = viewMode === 'Mobile' ? (photo.base64 || await ensurePhotoBase64(photo, viewMode)) : (photo.annotatedBase64 || photo.base64 || await ensurePhotoBase64(photo, viewMode));
     const imgData = base64ToBytes(rawBase64);
     const { width, height } = await getImageSize(imgData);
-    const maxWidth = 500;
-    const ratio = (width > 0 && height > 0) ? (height / width) : 0.6;
-    const finalWidth = Math.min(width || maxWidth, maxWidth);
-    const finalHeight = Math.round(finalWidth * ratio);
 
-    const gradeShort = photo.grade ? photo.grade.split(' - ')[0] : 'F2';
+    if (viewMode === 'Mobile') {
+      if (imgData && imgData.length > 0) {
+        const imgType = (imgData[0] === 0x89 && imgData[1] === 0x50) ? "png" : "jpg";
+        const mobileMaxWidth = 600;
+        const mobileRatio = (width > 0 && height > 0) ? (height / width) : 0.6;
+        const mobileFinalWidth = Math.min(width || mobileMaxWidth, mobileMaxWidth);
+        const mobileFinalHeight = Math.round(mobileFinalWidth * mobileRatio);
 
-    // 2. BUILD CONTENT FOR 1 PHOTO
-    const photoContent = [];
+        docChildren.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: imgData,
+                transformation: { width: mobileFinalWidth, height: mobileFinalHeight },
+                type: imgType
+              })
+            ],
+            alignment: AlignmentType.CENTER
+          })
+        );
+      }
+    } else {
+      const maxWidth = 500;
+      const ratio = (width > 0 && height > 0) ? (height / width) : 0.6;
+      const finalWidth = Math.min(width || maxWidth, maxWidth);
+      const finalHeight = Math.round(finalWidth * ratio);
 
-    // IMAGE
-    if (imgData && imgData.length > 0) {
-      const imgType = (imgData[0] === 0x89 && imgData[1] === 0x50) ? "png" : "jpg";
-      photoContent.push(
-        new Paragraph({
-          children: [
-            new ImageRun({
-              data: imgData,
-              transformation: { width: finalWidth, height: finalHeight },
-              type: imgType
-            })
-          ],
-          alignment: AlignmentType.CENTER
-        })
-      );
-    }
+      const gradeShort = photo.grade ? photo.grade.split(' - ')[0] : 'F2';
 
-    const filenameText = photo.title || photo.asset_title || photo.filename || 'IMG.jpg';
-    const dateText = photo.date || new Date().toISOString().split('T')[0];
-    const standardsText = photo.standards || photo.standard || '-';
-    const locationText = photo.location || project.location || 'Site';
+      // BUILD CONTENT FOR 1 PHOTO
+      const photoContent = [];
 
-    photoContent.push(createDarkRow(`${filenameText}, ${dateText}`, true));
+      // IMAGE
+      if (imgData && imgData.length > 0) {
+        const imgType = (imgData[0] === 0x89 && imgData[1] === 0x50) ? "png" : "jpg";
+        photoContent.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: imgData,
+                transformation: { width: finalWidth, height: finalHeight },
+                type: imgType
+              })
+            ],
+            alignment: AlignmentType.CENTER
+          })
+        );
+      }
 
-    if (viewMode !== 'Mobile') {
+      const filenameText = photo.title || photo.asset_title || photo.filename || 'IMG.jpg';
+      const dateText = photo.date || new Date().toISOString().split('T')[0];
+      const standardsText = photo.standards || photo.standard || '-';
+      const locationText = photo.location || project.location || 'Site';
+
+      photoContent.push(createDarkRow(`${filenameText}, ${dateText}`, true));
       photoContent.push(createDarkRow(`Standard references ${standardsText}`));
       photoContent.push(createDarkRow(`Location: ${locationText}`, true));
 
@@ -257,24 +282,24 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
           "404040"
         )
       );
-    }
 
-    // 3. WRAP EVERYTHING IN 1 DARK CONTAINER TABLE WITH 10PT PADDING
-    const containerTable = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              children: photoContent,
-              shading: { fill: "2B2B2B" },
-              margins: { top: 144, bottom: 144, left: 144, right: 144 } // ~10pt padding
-            })
-          ]
-        })
-      ]
-    });
-    docChildren.push(containerTable);
+      // WRAP EVERYTHING IN 1 DARK CONTAINER TABLE WITH 10PT PADDING
+      const containerTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: photoContent,
+                shading: { fill: "2B2B2B" },
+                margins: { top: 144, bottom: 144, left: 144, right: 144 } // ~10pt padding
+              })
+            ]
+          })
+        ]
+      });
+      docChildren.push(containerTable);
+    }
 
     if (photo !== photosToExport[photosToExport.length - 1]) {
       docChildren.push(new Paragraph({ children: [new PageBreak()] }));

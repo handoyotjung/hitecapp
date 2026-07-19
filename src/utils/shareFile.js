@@ -11,20 +11,22 @@ export async function shareFile(blob, filename, mimeType) {
       });
       return true; // shared successfully
     } catch (err) {
-      if (err.name !== 'AbortError') console.error('Share failed:', err);
-      return false;
+      if (err.name === 'AbortError') {
+        return false; // User explicitly closed/aborted share dialog
+      }
+      console.warn('Share API failed or user gesture expired, falling back to direct download:', err);
+      // Fall through to fallback download below
     }
   } 
-  // 2. Fallback: Desktop or browser without canShare files support - just download
-  else {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    return false;
-  }
+  
+  // 2. Fallback: Desktop or browser without share support (or expired user gesture) - direct download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return false;
 }
