@@ -151,7 +151,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [recommendationsLang, setRecommendationsLang] = useState('EN');
   const [aiGrammarChecking, setAiGrammarChecking] = useState(false);
   const [aiGeneratingRec, setAiGeneratingRec] = useState(false);
-  const [photoGrade, setPhotoGrade] = useState('F2 - Major');
+  const [photoGrade, setPhotoGrade] = useState('F2');
+  const [photoStatus, setPhotoStatus] = useState('Open');
   const [savingGrade, setSavingGrade] = useState(false);
   const [photoTitle, setPhotoTitle] = useState('');
   const [photoDate, setPhotoDate] = useState('');
@@ -546,7 +547,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (projectPhotos.length > 0 && projectPhotos[editorIndex]) {
       const activePhoto = projectPhotos[editorIndex];
       const obs = activePhoto.comments_text || activePhoto.caption || '';
-      const initialGrade = activePhoto.grade || 'F2 - Major';
+      const initialGrade = activePhoto.grade || activePhoto.assessment_grade || 'F2';
+      const initialStatus = activePhoto.latest_status || activePhoto.status || 'Open';
       const initialLang = activePhoto.recommendations_lang || 'EN';
       const isManual = Boolean(activePhoto.manualOverride);
       setCommentsText(obs);
@@ -555,6 +557,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setRecommendationsLang(initialLang);
       setCaption(obs);
       setPhotoGrade(initialGrade);
+      setPhotoStatus(initialStatus);
       setPhotoTitle(activePhoto.title || activePhoto.asset_title || activePhoto.filename || '');
       setPhotoDate(activePhoto.date || activePhoto.exif_date || new Date().toISOString().split('T')[0]);
       setPhotoLocation(activePhoto.location || selectedProject.location || 'Site');
@@ -566,7 +569,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setCommentsText('');
       setRecommendations([]);
       setCaption('');
-      setPhotoGrade('F2 - Major');
+      setPhotoGrade('F2');
+      setPhotoStatus('Open');
       setPhotoTitle('');
       setPhotoDate(new Date().toISOString().split('T')[0]);
       setPhotoLocation(selectedProject?.location || 'Site');
@@ -1247,6 +1251,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         recommendations_lang: recommendationsLang,
         caption: commentsText.substring(0, 300),
         grade: photoGrade,
+        assessment_grade: photoGrade,
+        latest_status: photoStatus || 'Open',
+        status: photoStatus || 'Open',
         title: photoTitle,
         asset_title: photoTitle,
         date: photoDate,
@@ -1983,7 +1990,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 </p>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col overflow-hidden gap-3 min-h-0">
+              <div className="flex-1 flex flex-col overflow-hidden gap-1.5 min-h-0">
                 {projectPhotos.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600 min-h-0">
                     <ImageIcon className="h-10 w-10 stroke-1 mb-2" />
@@ -1994,14 +2001,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   </div>
                 ) : (
                   <>
-                    {/* Canvas flex-[6] overflow-hidden */}
-                    <div className="flex-[6] w-full relative flex flex-col group shrink-0 min-h-0 overflow-hidden items-center justify-center bg-slate-950/40 rounded-2xl border border-slate-800/80 p-1">
-                      <div className="w-full h-full relative flex flex-col items-center justify-center overflow-hidden">
+                    {/* Canvas flush with no extra outer spacing or height gaps */}
+                    <div className="w-full relative flex flex-col group shrink-0 overflow-hidden">
+                      <div className="w-full relative flex flex-col items-center justify-center overflow-hidden">
                         <AnnotatedImageCanvas
                           photo={projectPhotos[editorIndex]}
                           onSaveAnnotatedImage={handleSaveAnnotatedImage}
                           stageWidth={800}
                           stageHeight={450}
+                          photoCounter={`${editorIndex + 1} / ${projectPhotos.length}`}
                         />
 
                         {/* Left arrow overlay */}
@@ -2025,16 +2033,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         >
                           <ChevronRight className="h-5 w-5" />
                         </button>
-
-                      {/* Index badge */}
-                        <span className="absolute top-4 right-4 z-10 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-400 pointer-events-none">
-                          {editorIndex + 1} / {projectPhotos.length}
-                        </span>
                       </div>
                     </div>
 
-                    <div className="flex-[4] flex flex-col overflow-y-auto min-h-0 gap-3 pr-1">
-                      {/* COMPACT METADATA CARD (Above Assessment Grade) */}
+                    <div className="flex-1 flex flex-col overflow-y-auto min-h-0 gap-2 pr-1">
+                      {/* COMPACT METADATA CARD (Flush below canvas without blur auto-saves) */}
                       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm shrink-0">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                           {/* Title / Name */}
@@ -2046,7 +2049,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               type="text"
                               value={photoTitle}
                               onChange={(e) => setPhotoTitle(e.target.value)}
-                              onBlur={handleSaveMetadata}
                               placeholder="e.g. Main Switchboard 01"
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
@@ -2061,7 +2063,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               type="date"
                               value={photoDate}
                               onChange={(e) => setPhotoDate(e.target.value)}
-                              onBlur={handleSaveMetadata}
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
                           </div>
@@ -2075,7 +2076,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               type="text"
                               value={photoLocation}
                               onChange={(e) => setPhotoLocation(e.target.value)}
-                              onBlur={handleSaveMetadata}
                               placeholder="e.g. Electrical Room A"
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
@@ -2083,39 +2083,104 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         </div>
                       </div>
 
-                      {/* GRADE SELECTOR */}
-                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm flex items-center justify-between flex-wrap gap-2 shrink-0">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                          <ShieldAlert className="h-4 w-4 text-emerald-400" />
-                          <span>Assessment Grade:</span>
-                        </label>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="flex gap-1.5 flex-wrap">
-                            {['F1 - Minor', 'F2 - Major', 'F3 - Critical'].map((g) => {
-                              const active = photoGrade === g;
-                              const color = g.includes('F3') ? (active ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-500/20' : 'bg-slate-950 text-rose-400 border-rose-900/40 hover:bg-rose-950/40') : g.includes('F2') ? (active ? 'bg-amber-600 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-slate-950 text-amber-400 border-amber-900/40 hover:bg-amber-950/40') : (active ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-slate-950 text-emerald-400 border-emerald-900/40 hover:bg-emerald-950/40');
+                      {/* GRADES PRIORITY & LATEST STATUS CONTROL ROW */}
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+                        {/* Grades Priority */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                            <ShieldAlert className="h-4 w-4 text-emerald-400 shrink-0" />
+                            <span>Grades Priority:</span>
+                          </label>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {[
+                              {
+                                id: 'F1',
+                                label: 'F1',
+                                activeClass: 'bg-red-500 text-white border-red-500 shadow-md shadow-red-500/25 font-bold scale-[1.03]',
+                                inactiveClass: 'bg-slate-950/80 text-red-400 border-slate-800 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300 font-medium'
+                              },
+                              {
+                                id: 'F2',
+                                label: 'F2',
+                                activeClass: 'bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/25 font-bold scale-[1.03]',
+                                inactiveClass: 'bg-slate-950/80 text-orange-400 border-slate-800 hover:border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-300 font-medium'
+                              },
+                              {
+                                id: 'F3',
+                                label: 'F3',
+                                activeClass: 'bg-yellow-500 text-slate-950 border-yellow-400 shadow-md shadow-yellow-500/25 font-extrabold scale-[1.03]',
+                                inactiveClass: 'bg-slate-950/80 text-yellow-400 border-slate-800 hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-300 font-medium'
+                              },
+                              {
+                                id: 'F4',
+                                label: 'F4',
+                                activeClass: 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/25 font-bold scale-[1.03]',
+                                inactiveClass: 'bg-slate-950/80 text-emerald-400 border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300 font-medium'
+                              }
+                            ].map((item) => {
+                              const isChecked = photoGrade === item.id || photoGrade?.startsWith(item.id);
                               return (
-                                <button
-                                  key={g}
-                                  type="button"
-                                  onClick={() => handleSaveGrade(g)}
-                                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${color}`}
+                                <label
+                                  key={item.id}
+                                  className={`inline-flex items-center justify-center cursor-pointer px-3.5 py-1.5 rounded-xl border text-xs transition-all duration-200 ease-in-out active:scale-95 select-none ${
+                                    isChecked ? item.activeClass : item.inactiveClass
+                                  }`}
                                 >
-                                  {g}
-                                </button>
+                                  <input
+                                    type="radio"
+                                    name="gradesPriority"
+                                    value={item.id}
+                                    checked={isChecked}
+                                    onChange={() => setPhotoGrade(item.id)}
+                                    className="sr-only"
+                                  />
+                                  <span>{item.label}</span>
+                                </label>
                               );
                             })}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleSaveGrade(photoGrade)}
-                            disabled={savingGrade}
-                            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50 ml-2"
-                            title="Save Assessment Grade"
-                          >
-                            {savingGrade ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                            <span>Save Grade</span>
-                          </button>
+                        </div>
+
+                        {/* Latest Status */}
+                        <div className="flex items-center gap-3 sm:border-l sm:border-slate-800 sm:pl-4 flex-wrap">
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                            Latest Status:
+                          </span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {[
+                              {
+                                id: 'Open',
+                                label: 'Open',
+                                isChecked: !photoStatus || photoStatus === 'Open',
+                                activeClass: 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/25 font-bold scale-[1.03]',
+                                inactiveClass: 'bg-slate-950/80 text-emerald-400 border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300 font-medium'
+                              },
+                              {
+                                id: 'Close',
+                                label: 'Close',
+                                isChecked: photoStatus === 'Close',
+                                activeClass: 'bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-500/25 font-bold scale-[1.03]',
+                                inactiveClass: 'bg-slate-950/80 text-rose-400 border-slate-800 hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-300 font-medium'
+                              }
+                            ].map((statusItem) => (
+                              <label
+                                key={statusItem.id}
+                                className={`inline-flex items-center justify-center cursor-pointer px-3.5 py-1.5 rounded-xl border text-xs transition-all duration-200 ease-in-out active:scale-95 select-none ${
+                                  statusItem.isChecked ? statusItem.activeClass : statusItem.inactiveClass
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="latestStatus"
+                                  value={statusItem.id}
+                                  checked={statusItem.isChecked}
+                                  onChange={() => setPhotoStatus(statusItem.id)}
+                                  className="sr-only"
+                                />
+                                <span>{statusItem.label}</span>
+                              </label>
+                            ))}
+                          </div>
                         </div>
                       </div>
 

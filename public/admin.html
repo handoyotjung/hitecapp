@@ -533,20 +533,14 @@
       }
 
       store.feedback = feedbackList;
-      if (!store.whitelist_users["handoyo.tjung@gmail.com"]) {
-        store.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
-      }
-      if (!store.whitelist_users["admin@hitec.id"]) {
-        store.whitelist_users["admin@hitec.id"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" };
-      }
-      if (!store.whitelist_users["demo@hitec.id"]) {
-        store.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
-      }
-      if (!store.whitelist_users["dummy@hitec.id"]) {
-        store.whitelist_users["dummy@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
-      }
-      if (!store.whitelist_users["budi.santoso@safety-id.co.id"]) {
-        store.whitelist_users["budi.santoso@safety-id.co.id"] = { role: "user", company_id: "safety_id", plan: "pro", password: "demopassword", created_at: "2026-06-01" };
+      // Only seed default accounts if localStorage is completely uninitialized or missing a super_admin
+      if (!cached) {
+        store.whitelist_users = { ...defaultMockStore.whitelist_users };
+      } else if (!Object.values(store.whitelist_users || {}).some(u => u.role === 'super_admin' || u.role === 'admin')) {
+        // Ensure at least the primary super_admin exists as a failsafe against accidental lockout
+        if (!store.whitelist_users["handoyo.tjung@gmail.com"]) {
+          store.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
+        }
       }
       return store;
     }
@@ -1233,7 +1227,7 @@
 
       function purgeDemoAccounts() {
         const store = loadStore();
-        const demoEmails = ["demo@hitec.id", "dummy@hitec.id", "admin@hitec.id", "johan@example.com"];
+        const demoEmails = ["demo@hitec.id", "dummy@hitec.id", "admin@hitec.id", "johan@example.com", "budi.santoso@safety-id.co.id"];
         let removedCount = 0;
         demoEmails.forEach(email => {
           if (store.whitelist_users[email]) {
