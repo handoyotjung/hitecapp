@@ -172,6 +172,82 @@
         </div>
       </div>
 
+      <!-- FULL WIDTH ROW: Daily Usage Monitoring Dashboard for Each User Role Account -->
+      <div class="lg:col-span-3 space-y-6">
+        <div class="rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                Daily Usage Monitoring Dashboard
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Real-time daily photo upload consumption, plan threshold tracking (<span class="text-emerald-400 font-medium">Starter</span> / <span class="text-indigo-400 font-medium">Pro</span> / <span class="text-amber-400 font-medium">Admin</span>), and quota monitoring across every account role.</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Summary Badges -->
+              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold">
+                <span class="text-slate-400">Total Uploaded Today:</span>
+                <span id="daily-total-photos" class="text-indigo-400 font-bold">0</span>
+              </div>
+              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold">
+                <span class="text-slate-400">Active Accounts:</span>
+                <span id="daily-active-accounts" class="text-emerald-400 font-bold">0</span>
+              </div>
+              <div id="daily-alert-badge" class="flex items-center gap-1.5 rounded-xl bg-slate-800 border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300">
+                <span>0 At Limit</span>
+              </div>
+              <!-- Action Controls -->
+              <button onclick="renderDailyUsageDashboard()" title="Refresh Usage Stats" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all">
+                ↻ Refresh Stats
+              </button>
+              <button onclick="adminResetAllDailyUsage()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md">
+                Reset All Quotas Today
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter & Search Bar -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter Role:</span>
+              <button type="button" onclick="filterDailyUsageRole('all')" id="btn-du-role-all" class="px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white transition-all">All Accounts</button>
+              <button type="button" onclick="filterDailyUsageRole('user')" id="btn-du-role-user" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all">Users Only</button>
+              <button type="button" onclick="filterDailyUsageRole('admin')" id="btn-du-role-admin" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all">Admins Only</button>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status:</span>
+              <select id="du-status-filter" onchange="renderDailyUsageDashboard()" class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                <option value="all">All Quota Status</option>
+                <option value="normal">Normal (&lt;70%)</option>
+                <option value="warning">Warning (70% - 89%)</option>
+                <option value="limit">Limit Reached (≥90%)</option>
+              </select>
+              <input type="text" id="du-search-input" oninput="renderDailyUsageDashboard()" placeholder="Search user account..." class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors w-48" />
+            </div>
+          </div>
+
+          <!-- Daily Usage Accounts Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                  <th class="pb-3 pr-2">User / Role Account</th>
+                  <th class="pb-3 px-2">Plan & Quota Ceiling</th>
+                  <th class="pb-3 px-2 min-w-[200px]">Daily Usage Progress Bar</th>
+                  <th class="pb-3 px-2">Usage Count</th>
+                  <th class="pb-3 px-2">Quota Status</th>
+                  <th class="pb-3 px-2">Last Upload Activity</th>
+                  <th class="pb-3 pl-2 text-right">Admin Actions</th>
+                </tr>
+              </thead>
+              <tbody id="daily-usage-body" class="divide-y divide-slate-800/60 font-medium">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- FULL WIDTH ROW: Security Events & Email Alerts (admin@hitec.id) -->
       <div class="lg:col-span-3 space-y-6">
         <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col">
@@ -389,7 +465,8 @@
         "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
         "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
         "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
-        "dummy@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
+        "dummy@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
+        "budi.santoso@safety-id.co.id": { role: "user", company_id: "safety_id", plan: "pro", password: "demopassword", created_at: "2026-06-01" }
       },
       plan: {
         "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
@@ -468,6 +545,9 @@
       if (!store.whitelist_users["dummy@hitec.id"]) {
         store.whitelist_users["dummy@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
       }
+      if (!store.whitelist_users["budi.santoso@safety-id.co.id"]) {
+        store.whitelist_users["budi.santoso@safety-id.co.id"] = { role: "user", company_id: "safety_id", plan: "pro", password: "demopassword", created_at: "2026-06-01" };
+      }
       return store;
     }
 
@@ -545,6 +625,7 @@
       document.getElementById('user-expires').value = '';
       renderUsers();
       renderOnlineSessions();
+      renderDailyUsageDashboard();
       loadEmailAlerts();
       renderFeedbackSection();
       renderCommentLogs();
@@ -748,6 +829,277 @@
       } catch (e) {}
 
       renderOnlineSessions();
+    }
+
+    let currentDailyUsageRoleFilter = 'all';
+
+    function filterDailyUsageRole(role) {
+      currentDailyUsageRoleFilter = role;
+      document.getElementById('btn-du-role-all')?.className.replace('bg-indigo-600 text-white', 'bg-slate-800 text-slate-400 hover:text-white');
+      ['all', 'user', 'admin'].forEach(r => {
+        const btn = document.getElementById('btn-du-role-' + r);
+        if (btn) {
+          if (r === role) {
+            btn.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white transition-all';
+          } else {
+            btn.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all';
+          }
+        }
+      });
+      renderDailyUsageDashboard();
+    }
+
+    function renderDailyUsageDashboard() {
+      const store = loadStore();
+      const tbody = document.getElementById('daily-usage-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const getLocalTodayStr = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      const todayStr = getLocalTodayStr();
+
+      // Ensure default usage overrides exist if not previously reset or calculated
+      if (!store.daily_usage_overrides) {
+        store.daily_usage_overrides = {
+          "demo@hitec.id": 45,
+          "dummy@hitec.id": 95,
+          "budi.santoso@safety-id.co.id": 180,
+          "admin@hitec.id": 12,
+          "handoyo.tjung@gmail.com": 28
+        };
+      }
+
+      const users = store.whitelist_users || {};
+      const statusFilter = document.getElementById('du-status-filter')?.value || 'all';
+      const searchVal = (document.getElementById('du-search-input')?.value || '').toLowerCase().trim();
+
+      let totalPhotosToday = 0;
+      let activeAccountsToday = 0;
+      let accountsAtLimitToday = 0;
+
+      const userEntries = Object.keys(users).map(email => {
+        const u = users[email];
+        const cleanEmail = email.toLowerCase();
+        const role = u.role || 'user';
+        const plan = u.plan || 'starter';
+        const companyId = u.company_id || 'co_hitec';
+
+        const isAdmin = role === 'admin' || role === 'super_admin' || cleanEmail === 'handoyo.tjung@gmail.com';
+        const photosLimit = isAdmin ? 9999 : (store.plan && store.plan[plan] ? store.plan[plan].max_daily_photos : (plan === 'pro' ? 300 : 100));
+
+        // Count photos from store.photos matching today
+        let actualPhotosFromStore = 0;
+        let lastActivity = 'No upload today';
+        let latestTimestamp = 0;
+
+        if (Array.isArray(store.photos)) {
+          store.photos.forEach(p => {
+            const matchUser = p.uploaded_by?.toLowerCase() === cleanEmail || p.created_by?.toLowerCase() === cleanEmail || p.user_id?.toLowerCase() === cleanEmail || (!p.uploaded_by && !p.created_by && u.company_id && p.company_id === u.company_id);
+            const matchDate = p.upload_date === todayStr || (p.upload_timestamp && (Date.now() - p.upload_timestamp <= 24 * 60 * 60 * 1000)) || p.created_at?.startsWith(todayStr);
+            if (matchUser && matchDate) {
+              actualPhotosFromStore++;
+              const t = p.upload_timestamp || (p.created_at ? new Date(p.created_at).getTime() : 0);
+              if (t > latestTimestamp) {
+                latestTimestamp = t;
+              }
+            }
+          });
+        }
+
+        let photosUsed = actualPhotosFromStore;
+        if (store.daily_usage_overrides && store.daily_usage_overrides[cleanEmail] !== undefined) {
+          photosUsed = Math.max(actualPhotosFromStore, store.daily_usage_overrides[cleanEmail]);
+        }
+
+        if (latestTimestamp > 0) {
+          lastActivity = new Date(latestTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' (' + todayStr + ')';
+        } else if (photosUsed > 0 && store.daily_usage_overrides && store.daily_usage_overrides[cleanEmail] > 0) {
+          lastActivity = 'Today, active session (' + todayStr + ')';
+        }
+
+        const pct = isAdmin ? Math.min(100, Math.round((photosUsed / 500) * 100)) : Math.min(100, Math.round((photosUsed / photosLimit) * 100));
+
+        let statusType = 'normal';
+        if (!isAdmin) {
+          if (pct >= 90 || photosUsed >= photosLimit) statusType = 'limit';
+          else if (pct >= 70) statusType = 'warning';
+        }
+
+        return {
+          email: cleanEmail,
+          role,
+          plan,
+          companyId,
+          isAdmin,
+          photosLimit,
+          photosUsed,
+          pct,
+          statusType,
+          lastActivity
+        };
+      });
+
+      // Calculate aggregate stats across all accounts
+      userEntries.forEach(item => {
+        totalPhotosToday += item.photosUsed;
+        if (item.photosUsed > 0) activeAccountsToday++;
+        if (item.statusType === 'limit') accountsAtLimitToday++;
+      });
+
+      const totalEl = document.getElementById('daily-total-photos');
+      if (totalEl) totalEl.innerText = totalPhotosToday;
+      const activeEl = document.getElementById('daily-active-accounts');
+      if (activeEl) activeEl.innerText = activeAccountsToday;
+      const alertEl = document.getElementById('daily-alert-badge');
+      if (alertEl) {
+        if (accountsAtLimitToday > 0) {
+          alertEl.className = 'flex items-center gap-1.5 rounded-xl bg-rose-500/10 border border-rose-500/40 px-3 py-1.5 text-xs font-bold text-rose-400 animate-pulse';
+          alertEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-rose-400"></span><span>${accountsAtLimitToday} At Limit / Exceeded</span>`;
+        } else {
+          alertEl.className = 'flex items-center gap-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-xs font-bold text-emerald-400';
+          alertEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>0 Accounts At Limit</span>`;
+        }
+      }
+
+      // Apply filtering
+      const filtered = userEntries.filter(item => {
+        if (currentDailyUsageRoleFilter === 'user' && item.isAdmin) return false;
+        if (currentDailyUsageRoleFilter === 'admin' && !item.isAdmin) return false;
+        if (statusFilter !== 'all' && item.statusType !== statusFilter) return false;
+        if (searchVal && !item.email.includes(searchVal) && !item.companyId.toLowerCase().includes(searchVal)) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-8 text-center text-slate-500 italic">No user accounts found matching the current role or status filter.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors';
+
+        const roleBadge = item.isAdmin
+          ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Admin</span>'
+          : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
+
+        const planBadge = item.isAdmin
+          ? '<span class="rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 font-bold text-[10px]">Unlimited Quota</span>'
+          : (item.plan === 'pro'
+            ? '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold text-[10px]">Pro (300/day)</span>'
+            : '<span class="rounded bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 font-bold text-[10px]">Starter (100/day)</span>');
+
+        // Progress bar styling
+        let barColor = 'bg-emerald-500';
+        let statusBadge = '<span class="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 text-[10px] font-bold">Normal</span>';
+        if (item.statusType === 'warning') {
+          barColor = 'bg-yellow-500';
+          statusBadge = '<span class="inline-flex items-center gap-1 rounded bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-2 py-0.5 text-[10px] font-bold">Warning (≥70%)</span>';
+        } else if (item.statusType === 'limit') {
+          barColor = 'bg-rose-500';
+          statusBadge = '<span class="inline-flex items-center gap-1 rounded bg-rose-500/10 border border-rose-500/40 text-rose-400 px-2 py-0.5 text-[10px] font-bold animate-pulse">Limit Reached</span>';
+        } else if (item.isAdmin) {
+          barColor = 'bg-indigo-500';
+          statusBadge = '<span class="inline-flex items-center gap-1 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-2 py-0.5 text-[10px] font-bold">Admin Privileged</span>';
+        }
+
+        const limitDisplay = item.isAdmin ? 'Unlimited' : item.photosLimit;
+        const progressWidth = Math.min(100, item.pct);
+
+        tr.innerHTML = `
+          <td class="py-3.5 pr-2">
+            <div class="font-bold text-white text-xs flex items-center gap-2">
+              <span>${item.email}</span>
+              ${roleBadge}
+            </div>
+            <div class="text-[10px] text-slate-500 mt-0.5 font-mono">Company: ${item.companyId}</div>
+          </td>
+          <td class="py-3.5 px-2">
+            ${planBadge}
+          </td>
+          <td class="py-3.5 px-2">
+            <div class="w-full max-w-xs bg-slate-950 rounded-full h-2.5 border border-slate-800 overflow-hidden relative">
+              <div class="${barColor} h-2.5 rounded-full transition-all duration-500" style="width: ${progressWidth}%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1 max-w-xs">
+              <span>${item.pct}% consumed today</span>
+              <span>${item.photosUsed} / ${limitDisplay}</span>
+            </div>
+          </td>
+          <td class="py-3.5 px-2 font-mono font-bold ${item.statusType === 'limit' ? 'text-rose-400' : 'text-slate-200'}">
+            ${item.photosUsed} <span class="text-slate-500 font-normal text-[10px]">photos</span>
+          </td>
+          <td class="py-3.5 px-2">
+            ${statusBadge}
+          </td>
+          <td class="py-3.5 px-2 text-[11px] text-slate-400 font-mono">
+            ${item.lastActivity}
+          </td>
+          <td class="py-3.5 pl-2 text-right">
+            <button onclick="adminResetUserQuota('${item.email}')" class="rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 hover:text-white px-2.5 py-1 text-[10px] font-bold text-indigo-300 transition-colors" title="Reset today's usage quota to 0 for ${item.email}">
+              Reset Quota
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function adminResetUserQuota(email) {
+      if (!confirm(`Are you sure you want to reset today's daily photo usage quota for account ${email} to 0?`)) return;
+      const store = loadStore();
+      if (!store.daily_usage_overrides) store.daily_usage_overrides = {};
+      store.daily_usage_overrides[email.toLowerCase()] = 0;
+
+      const getLocalTodayStr = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+      const todayStr = getLocalTodayStr();
+
+      if (Array.isArray(store.photos)) {
+        store.photos = store.photos.filter(p => {
+          const matchUser = p.uploaded_by?.toLowerCase() === email.toLowerCase() || p.created_by?.toLowerCase() === email.toLowerCase() || p.user_id?.toLowerCase() === email.toLowerCase();
+          const matchDate = p.upload_date === todayStr;
+          return !(matchUser && matchDate);
+        });
+      }
+      saveStore(store);
+      renderDailyUsageDashboard();
+      alert(`Daily usage quota for ${email} has been reset to 0.`);
+    }
+
+    function adminResetAllDailyUsage() {
+      if (!confirm("Are you sure you want to reset all daily usage counts across EVERY user account today?")) return;
+      const store = loadStore();
+      const getLocalTodayStr = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+      const todayStr = getLocalTodayStr();
+
+      store.daily_usage_overrides = {};
+      const users = store.whitelist_users || {};
+      Object.keys(users).forEach(email => {
+        store.daily_usage_overrides[email.toLowerCase()] = 0;
+      });
+
+      if (Array.isArray(store.photos)) {
+        store.photos = store.photos.filter(p => p.upload_date !== todayStr);
+      }
+      saveStore(store);
+      renderDailyUsageDashboard();
+      alert("All daily usage quotas have been reset to 0 for today.");
     }
 
     function renderUsers() {

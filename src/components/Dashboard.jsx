@@ -55,6 +55,14 @@ const saveProjectsToCache = (user, projectsList) => {
   }
 };
 
+export const getLocalTodayStr = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Mobile Tab State: 'upload' | 'editor' | 'export'
   const [activeTab, setActiveTab] = useState('upload');
@@ -315,8 +323,17 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     setActiveTab('editor'); // switch mobile tab to editor
   };
 
-  const cleanUsername = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-  const todayStr = new Date().toISOString().split('T')[0];
+  const [todayStr, setTodayStr] = useState(getLocalTodayStr);
+
+  useEffect(() => {
+    const checkMidnight = setInterval(() => {
+      const currentLocalDay = getLocalTodayStr();
+      if (currentLocalDay !== todayStr) {
+        setTodayStr(currentLocalDay);
+      }
+    }, 30 * 1000);
+    return () => clearInterval(checkMidnight);
+  }, [todayStr]);
 
   // Fetch plan limit
   useEffect(() => {
@@ -404,20 +421,52 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     return () => unsubscribe();
   }, [user]);
 
-  // Sync daily uploaded photo count
+  // Dynamic Daily Usage Metric Counter: real-time aggregation across Desktop & Mobile viewports
+  // Strictly filtered by target fields: Company (company_id) and City/Location (city_name / location)
+  const activeCityScope = selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '';
+
   useEffect(() => {
-    if (!user.companyId) return;
+    if (!user?.companyId) return;
+
+    const constraints = [
+      where('company_id', '==', user.companyId)
+    ];
+    if (activeCityScope) {
+      constraints.push(where('city_name', '==', activeCityScope));
+    }
+    constraints.push(where('upload_date', '==', todayStr));
+
     const q = query(
       collection(db, 'photos'),
-      where('company_id', '==', user.companyId),
-      where('upload_date', '==', todayStr),
-      where('status', '==', 'done')
+      ...constraints
     );
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setDailyUploadCount(snapshot.size);
+      const uniquePhotos = new Set();
+      const rollingWindowMs = 24 * 60 * 60 * 1000;
+      const nowMs = Date.now();
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data && (data.status === 'done' || data.status === 'pending' || !data.status)) {
+          // Strictly verify company_id and city_name / location to avoid cross-project pollution
+          const matchesCompany = (data.company_id === user.companyId);
+          const matchesCity = !activeCityScope || (data.city_name === activeCityScope) || (data.location === activeCityScope);
+
+          if (matchesCompany && matchesCity) {
+            // Verify within rolling 24-hour day period or localized today window
+            const uploadTime = data.upload_timestamp || (data.created_at ? new Date(data.created_at).getTime() : nowMs);
+            if (data.upload_date === todayStr || (nowMs - uploadTime) <= rollingWindowMs) {
+              // Deduplicate across devices/viewports by unique photo ID or filename
+              uniquePhotos.add(data.id || docSnap.id || data.filename);
+            }
+          }
+        }
+      });
+      setDailyUploadCount(uniquePhotos.size);
     });
     return () => unsubscribe();
-  }, [user.companyId, todayStr]);
+  }, [user?.companyId, activeCityScope, todayStr]);
 
   // Sync photos in current project (auto-saved & persist permanently across logout/relogin)
   useEffect(() => {
@@ -917,12 +966,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           id: photoId,
           project_id: selectedProject.id,
           company_id: user.companyId,
+          city_name: selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '',
           filename: item.finalFilename,
           original_filename: item.originalName,
           gcs_path: filePath,
           url: downloadUrl,
           size_kb: item.sizeKb,
           upload_date: todayStr,
+          upload_timestamp: Date.now(),
           uploaded_by: user.email,
           caption: '',
           status: 'pending',
@@ -961,12 +1012,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       id: photoId,
       project_id: selectedProject.id,
       company_id: user.companyId,
+      city_name: selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '',
       filename: item.finalFilename,
       original_filename: item.originalName,
       gcs_path: filePath,
       url: '',
       size_kb: item.sizeKb,
       upload_date: todayStr,
+      upload_timestamp: Date.now(),
       uploaded_by: user.email,
       caption: '',
       status: 'pending',
@@ -1440,7 +1493,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               status: 'done',
               expires_at: expiresIso,
               retention_days: 3,
-              company_id: user.companyId || 'hitec'
+              company_id: user.companyId || 'hitec',
+              city_name: selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '',
+              upload_date: p.upload_date || todayStr,
+              upload_timestamp: p.upload_timestamp || Date.now()
             });
           } catch (e) {}
         }
