@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, doc, setDoc, updateDoc } from '../firebase';
 
 // Helper to queue failed PATCH requests to localStorage for retry on reconnect
 function queueOfflineSave(projectId, payload) {

@@ -52,6 +52,33 @@ export default function AnnotatedImageCanvas({
   const [strokeWidth, setStrokeWidth] = useState(3);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Live container size measured via ResizeObserver
+  const containerRef = useRef(null);
+  const [containerSize, setContainerSize] = useState({ width: stageWidth, height: stageHeight });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setContainerSize({ width: Math.floor(width), height: Math.floor(height) });
+        }
+      }
+    });
+    ro.observe(el);
+    // Initial measurement
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      setContainerSize({ width: Math.floor(rect.width), height: Math.floor(rect.height) });
+    }
+    return () => ro.disconnect();
+  }, []);
+
+  const liveWidth = containerSize.width || stageWidth;
+  const liveHeight = containerSize.height || stageHeight;
+
   const isDrawing = useRef(false);
   const stageRef = useRef();
 
@@ -143,9 +170,9 @@ export default function AnnotatedImageCanvas({
   const imageSrc = photo?.annotatedBase64 || photo?.base64 || photo?.url || photo?.thumbnailUrl;
 
   return (
-    <div className="flex flex-col w-full justify-start">
-      {/* TOOLBAR BAR (Same row as filename on left, annotation tools centered, Save Image on right) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5 shrink-0">
+    <div className="flex flex-col w-full" style={{height:'100%', minHeight:0}}>
+      {/* TOOLBAR — sticky to top of the right column under the header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5 shrink-0" style={{position:'sticky', top:0, zIndex:10, backdropFilter:'blur(8px)'}}>
         {/* Left: Filename */}
         <div className="text-xs font-bold text-slate-300 uppercase tracking-wider truncate max-w-[150px] md:max-w-[200px]">
           {photo?.filename || "Preview"}
@@ -253,9 +280,10 @@ export default function AnnotatedImageCanvas({
         </button>
       </div>
 
-      {/* CANVAS STAGE */}
+      {/* CANVAS STAGE — fills entire height of its flex-grown container */}
       <div
-        className={`w-full h-[220px] sm:h-[240px] xl:h-[260px] relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden flex items-center justify-center select-none shrink-0 ${
+        ref={containerRef}
+        className={`w-full flex-1 min-h-0 relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden flex items-center justify-center select-none ${
           tool !== 'select' ? 'cursor-crosshair' : 'cursor-default'
         }`}
       >
@@ -267,8 +295,8 @@ export default function AnnotatedImageCanvas({
         )}
 
         <Stage
-          width={stageWidth}
-          height={stageHeight}
+          width={liveWidth}
+          height={liveHeight}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -283,8 +311,8 @@ export default function AnnotatedImageCanvas({
             {imageSrc && (
               <CanvasBackgroundImage
                 src={imageSrc}
-                stageWidth={stageWidth}
-                stageHeight={stageHeight}
+                stageWidth={liveWidth}
+                stageHeight={liveHeight}
               />
             )}
 

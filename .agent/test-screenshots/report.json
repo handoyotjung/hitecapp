@@ -1,0 +1,14 @@
+{
+  "login": true,
+  "projectCreated": true,
+  "photoUploaded": true,
+  "editorOpened": true,
+  "footerAligned": true,
+  "footerTopDiff": 0,
+  "commentsBlankByDefault": true,
+  "captionCommentsDecoupled": true,
+  "autoHeightWorks": true,
+  "errors": [],
+  "passed": 8,
+  "failed": 0
+}

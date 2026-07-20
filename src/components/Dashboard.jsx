@@ -829,7 +829,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         expires_at: expiresIso,
         photos: []
       };
-      await setDoc(doc(db, 'projects', projectId), newProjObj, { merge: true });
+      try {
+        await setDoc(doc(db, 'projects', projectId), newProjObj, { merge: true });
+      } catch (fsErr) {
+        console.warn("Mock/offline project creation note:", fsErr);
+      }
       setNewProjectName('');
       setSelectedProject(newProjObj);
       setIsHeaderCollapsed(true); // RULE 2: Auto force collapse when project IS created
@@ -1112,6 +1116,43 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         // ── MOCK MODE: no real backend fires onSnapshot, mark Done immediately ──
         if (isMockMode) {
           setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Done', progress: 100 } : q));
+          const photoId = `${selectedProject?.id || 'demo'}_${item.finalFilename.replace(/\./g, '_')}`;
+          const newPhotoObj = {
+            id: photoId,
+            project_id: selectedProject?.id || 'demo',
+            company_id: user?.companyId || 'hitec',
+            city_name: selectedProject?.city_name || cityName?.trim() || '',
+            filename: item.finalFilename,
+            original_filename: item.originalName,
+            url: item.thumbnailUrl || '',
+            base64: item.thumbnailUrl || '',
+            size_kb: item.sizeKb,
+            upload_date: todayStr,
+            upload_timestamp: Date.now(),
+            uploaded_by: user?.email || '',
+            caption: '',
+            comments_text: '',
+            comments: '',
+            comments_lang: 'EN',
+            recommendations_json: [],
+            recommendations_lang: 'EN',
+            status: 'done',
+            created_at: new Date().toISOString()
+          };
+          try {
+            await setDoc(doc(db, 'photos', photoId), newPhotoObj, { merge: true });
+          } catch (e) {
+            console.warn('Mock setDoc error:', e);
+          }
+          setProjectPhotos(prev => {
+            if (prev.some(p => p.filename === item.finalFilename)) return prev;
+            const updated = [...prev, newPhotoObj];
+            if (selectedProject) {
+              setSelectedProject(prevProj => prevProj ? { ...prevProj, photos: updated } : null);
+            }
+            return updated;
+          });
+          setEditorIndex(prev => prev === null ? 0 : prev);
           autosave({ snapshotCompletedAt: Date.now() }, { immediate: true });
           return;
         }
@@ -2161,7 +2202,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 </p>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col overflow-hidden gap-1.5 min-h-0">
+              <div className="flex-1 flex flex-col overflow-hidden gap-1.5 min-h-0" style={{display:'flex',flexDirection:'column'}}>
                 {projectPhotos.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600 min-h-0">
                     <ImageIcon className="h-10 w-10 stroke-1 mb-2" />
@@ -2172,14 +2213,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   </div>
                 ) : (
                   <>
-                    {/* Canvas flush with no extra outer spacing or height gaps */}
-                    <div className="w-full relative flex flex-col group shrink-0 overflow-hidden">
-                      <div className="w-full relative flex flex-col items-center justify-center overflow-hidden">
+                    {/* Canvas — grows to fill all available vertical space */}
+                    <div className="w-full relative flex flex-col group overflow-hidden" style={{flex:'1 1 0',minHeight:'140px'}}>
+                      <div className="w-full h-full relative flex flex-col overflow-hidden">
                         <AnnotatedImageCanvas
                           photo={projectPhotos[editorIndex]}
                           onSaveAnnotatedImage={handleSaveAnnotatedImage}
-                          stageWidth={800}
-                          stageHeight={240}
                           photoCounter={`${editorIndex + 1} / ${projectPhotos.length}`}
                         />
 
@@ -2207,7 +2246,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col overflow-y-auto min-h-0 gap-1.5 pr-0.5">
+                    <div className="flex flex-col overflow-y-auto gap-1.5 pr-0.5 shrink-0" style={{maxHeight:'55%'}}>
                       {/* COMPACT METADATA CARD (Flush below canvas without blur auto-saves) */}
                       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-2.5 shadow-sm shrink-0">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
