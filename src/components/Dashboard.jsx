@@ -219,26 +219,19 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const updatePhotoFieldAndAutosave = (fieldUpdates) => {
     if (projectPhotos.length === 0 || editorIndex === null || !projectPhotos[editorIndex]) return;
     const currentPhoto = projectPhotos[editorIndex];
-    const updatedPhoto = { 
-      ...currentPhoto, 
-      ...fieldUpdates,
-      base64: fieldUpdates.base64 || currentPhoto.base64 || '',
-      thumbnailUrl: fieldUpdates.thumbnailUrl || currentPhoto.thumbnailUrl || '',
-      url: fieldUpdates.url || currentPhoto.url || '',
-      annotatedBase64: fieldUpdates.annotatedBase64 || currentPhoto.annotatedBase64 || ''
+    const updatedPhoto = {
+      ...currentPhoto,
+      ...fieldUpdates
     };
     const updatedPhotos = projectPhotos.map((p, idx) => idx === editorIndex ? updatedPhoto : p);
     setProjectPhotos(updatedPhotos);
-    if (selectedProject) {
-      setSelectedProject(prev => prev ? { ...prev, photos: updatedPhotos } : null);
-    }
     if (currentPhoto.id) {
       updateDoc(doc(db, 'photos', currentPhoto.id), fieldUpdates).catch(() => {});
     }
-    autosave({ 
-      photos: updatedPhotos, 
-      lastEditedPhotoId: currentPhoto.id, 
-      ...fieldUpdates 
+    autosave({
+      photos: updatedPhotos,
+      lastEditedPhotoId: currentPhoto.id,
+      ...fieldUpdates
     });
   };
 
@@ -786,14 +779,24 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         filename: p.filename || p.originalFilename || '',
         url: p.url || '',
         base64: p.base64 || p.thumbnailUrl || '',
+        thumbnailUrl: p.thumbnailUrl || p.base64 || p.url || '',
+        annotatedBase64: p.annotatedBase64 || '',
         caption: p.caption || '',
+        title: p.title || p.caption || '',
+        asset_title: p.asset_title || p.caption || '',
+        date: p.date || p.exif_date || '',
+        location: p.location || p.exif_gps || '',
+        grade: p.grade || p.assessment_grade || 'F2',
+        assessment_grade: p.assessment_grade || p.grade || 'F2',
+        status: p.status || p.latest_status || 'Open',
+        latest_status: p.latest_status || p.status || 'Open',
         comments_text: p.comments_text || p.comments || '',
         comments: p.comments || p.comments_text || '',
         comments_lang: p.comments_lang || 'EN',
         recommendations_json: Array.isArray(p.recommendations_json) ? p.recommendations_json : [],
         recommendations_lang: p.recommendations_lang || 'EN',
-        exif_date: p.exif_date || '',
-        exif_gps: p.exif_gps || '',
+        exif_date: p.exif_date || p.date || '',
+        exif_gps: p.exif_gps || p.location || '',
         size_kb: p.size_kb || p.sizeKb || 0,
         created_at: p.created_at || nowIso
       }));
