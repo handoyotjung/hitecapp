@@ -219,7 +219,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const updatePhotoFieldAndAutosave = (fieldUpdates) => {
     if (projectPhotos.length === 0 || editorIndex === null || !projectPhotos[editorIndex]) return;
     const currentPhoto = projectPhotos[editorIndex];
-    const updatedPhoto = { ...currentPhoto, ...fieldUpdates };
+    const updatedPhoto = { 
+      ...currentPhoto, 
+      ...fieldUpdates,
+      base64: fieldUpdates.base64 || currentPhoto.base64 || '',
+      thumbnailUrl: fieldUpdates.thumbnailUrl || currentPhoto.thumbnailUrl || '',
+      url: fieldUpdates.url || currentPhoto.url || '',
+      annotatedBase64: fieldUpdates.annotatedBase64 || currentPhoto.annotatedBase64 || ''
+    };
     const updatedPhotos = projectPhotos.map((p, idx) => idx === editorIndex ? updatedPhoto : p);
     setProjectPhotos(updatedPhotos);
     if (selectedProject) {
@@ -645,12 +652,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         photos.forEach(p => {
           const key = p.filename || p.id;
           if (key) {
-            photoMap.set(key, { ...(photoMap.get(key) || {}), ...p });
+            const existing = photoMap.get(key) || {};
+            const merged = { ...existing, ...p };
+            // Preserve local image previews if DB snapshot lacks them
+            if (!merged.base64 && existing.base64) merged.base64 = existing.base64;
+            if (!merged.url && existing.url) merged.url = existing.url;
+            if (!merged.thumbnailUrl && existing.thumbnailUrl) merged.thumbnailUrl = existing.thumbnailUrl;
+            if (!merged.annotatedBase64 && existing.annotatedBase64) merged.annotatedBase64 = existing.annotatedBase64;
+            photoMap.set(key, merged);
           }
         });
-        return Array.from(photoMap.values());
+        const resultList = Array.from(photoMap.values());
+        // Fix 1: Preserve current editor index unless out of bounds
+        setEditorIndex(prevIndex => (prevIndex !== null && prevIndex >= 0 && prevIndex < resultList.length) ? prevIndex : (resultList.length > 0 ? 0 : null));
+        return resultList;
       });
-      setEditorIndex(0);
       autosave({ snapshotsSyncedAt: Date.now() });
 
       // Automatically sync saved Firestore photos into projectQueues so photo list persists after relogging in
@@ -659,6 +675,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         const activeItems = existingQueue.filter(item => item.status !== 'Done');
         const doneItemsFromDb = photos.map(photo => {
           const existingItem = existingQueue.find(q => q.finalFilename === photo.filename);
+          const thumb = photo.base64 || photo.thumbnailUrl || photo.url || existingItem?.thumbnailUrl || '';
           return {
             id: photo.id,
             originalFilename: photo.filename,
@@ -666,14 +683,20 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             sizeKb: photo.size_kb || photo.sizeKb || existingItem?.sizeKb || 0,
             status: 'Done',
             progress: 100,
-            thumbnailUrl: photo.base64 || existingItem?.thumbnailUrl || photo.url,
+            thumbnailUrl: thumb,
             created_at: photo.created_at
           };
         });
         const combinedQueue = [...activeItems, ...doneItemsFromDb];
         const uniqueMap = new Map();
         combinedQueue.forEach(item => {
-          if (item.finalFilename) uniqueMap.set(item.finalFilename, item);
+          if (item.finalFilename) {
+            const existingInMap = uniqueMap.get(item.finalFilename);
+            if (existingInMap && !item.thumbnailUrl && existingInMap.thumbnailUrl) {
+              item.thumbnailUrl = existingInMap.thumbnailUrl;
+            }
+            uniqueMap.set(item.finalFilename, item);
+          }
         });
         return {
           ...prev,
@@ -684,30 +707,38 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     return () => unsubscribe();
   }, [selectedProject?.id]);
 
-  // Update caption & assessor inputs when editor photo changes
+  const lastActivePhotoKeyRef = useRef(null);
+
+  // Update caption & assessor inputs ONLY when selected photo actually changes
   useEffect(() => {
-    if (projectPhotos.length > 0 && projectPhotos[editorIndex]) {
+    if (projectPhotos.length > 0 && editorIndex !== null && projectPhotos[editorIndex]) {
       const activePhoto = projectPhotos[editorIndex];
-      const obs = activePhoto.comments_text || '';
-      const initialGrade = activePhoto.grade || activePhoto.assessment_grade || 'F2';
-      const initialStatus = activePhoto.latest_status || activePhoto.status || 'Open';
-      const initialLang = activePhoto.recommendations_lang || 'EN';
-      const isManual = Boolean(activePhoto.manualOverride);
-      setCommentsText(obs);
-      setCommentsLang(activePhoto.comments_lang || 'EN');
-      setRecommendations(Array.isArray(activePhoto.recommendations_json) ? activePhoto.recommendations_json : []);
-      setRecommendationsLang(initialLang);
-      setCaption(activePhoto.caption || '');
-      setPhotoGrade(initialGrade);
-      setPhotoStatus(initialStatus);
-      setPhotoTitle(activePhoto.caption || activePhoto.title || activePhoto.asset_title || '');
-      setPhotoDate(activePhoto.date || activePhoto.exif_date || new Date().toISOString().split('T')[0]);
-      setPhotoLocation(activePhoto.location || selectedProject.location || 'Site');
-      setRecMode(isManual ? 'Manual' : 'Auto');
-      const suggestions = getAISuggestions(obs, initialGrade, activePhoto.comments_lang || 'EN') || [];
-      setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
-      setAiSuggestedRecText(activePhoto.aiSuggestedRec || '');
-    } else {
+      const activePhotoKey = activePhoto.id || activePhoto.filename;
+
+      if (lastActivePhotoKeyRef.current !== activePhotoKey) {
+        lastActivePhotoKeyRef.current = activePhotoKey;
+        const obs = activePhoto.comments_text || activePhoto.comments || '';
+        const initialGrade = activePhoto.grade || activePhoto.assessment_grade || 'F2';
+        const initialStatus = activePhoto.latest_status || activePhoto.status || 'Open';
+        const initialLang = activePhoto.recommendations_lang || 'EN';
+        const isManual = Boolean(activePhoto.manualOverride);
+        setCommentsText(obs);
+        setCommentsLang(activePhoto.comments_lang || 'EN');
+        setRecommendations(Array.isArray(activePhoto.recommendations_json) ? activePhoto.recommendations_json : []);
+        setRecommendationsLang(initialLang);
+        setCaption(activePhoto.caption || '');
+        setPhotoGrade(initialGrade);
+        setPhotoStatus(initialStatus);
+        setPhotoTitle(activePhoto.caption || activePhoto.title || activePhoto.asset_title || '');
+        setPhotoDate(activePhoto.date || activePhoto.exif_date || new Date().toISOString().split('T')[0]);
+        setPhotoLocation(activePhoto.location || selectedProject?.location || 'Site');
+        setRecMode(isManual ? 'Manual' : 'Auto');
+        const suggestions = getAISuggestions(obs, initialGrade, activePhoto.comments_lang || 'EN') || [];
+        setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
+        setAiSuggestedRecText(activePhoto.aiSuggestedRec || '');
+      }
+    } else if (projectPhotos.length === 0 || editorIndex === null) {
+      lastActivePhotoKeyRef.current = null;
       setCommentsText('');
       setRecommendations([]);
       setCaption('');
@@ -2258,6 +2289,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             <input
                               type="text"
                               value={photoTitle}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              onKeyUp={(e) => e.stopPropagation()}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setPhotoTitle(val);
@@ -2276,6 +2309,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             <input
                               type="date"
                               value={photoDate}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              onKeyUp={(e) => e.stopPropagation()}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setPhotoDate(val);
@@ -2293,6 +2328,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             <input
                               type="text"
                               value={photoLocation}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              onKeyUp={(e) => e.stopPropagation()}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setPhotoLocation(val);
@@ -2471,6 +2508,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           rows={2}
                           style={{ height: 'auto', minHeight: '44px' }}
                           value={commentsText}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onKeyUp={(e) => e.stopPropagation()}
                           onInput={(e) => {
                             e.target.style.height = 'auto';
                             e.target.style.height = `${e.target.scrollHeight}px`;
@@ -2557,6 +2596,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           rows={2}
                           style={{ height: 'auto', minHeight: '44px' }}
                           value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onKeyUp={(e) => e.stopPropagation()}
                           onInput={(e) => {
                             e.target.style.height = 'auto';
                             e.target.style.height = `${e.target.scrollHeight}px`;
