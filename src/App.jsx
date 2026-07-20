@@ -3,7 +3,7 @@ import { auth, db, onAuthStateChanged, signOut, doc, getDoc } from './firebase';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import SecurityPage from './components/SecurityPage';
-import { validateSession, getClientDeviceId, runSessionCleanupJob, apiLogout, apiLogoutOtherDevices } from './sessionSecurity';
+import { runSessionCleanupJob, apiLogout } from './sessionSecurity';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -143,21 +143,8 @@ export default function App() {
     }
   }, [user]);
 
-  // Periodic liveness check: verify session token still valid every 30 seconds
-  useEffect(() => {
-    if (!user || !user.token) return;
-    const interval = setInterval(async () => {
-      const res = await validateSession({
-        token: user.token,
-        device_id: getClientDeviceId()
-      });
-      if (res.status === 403) {
-        setForceLogoutNotice("Session terminated: Another device has logged into this account.");
-        handleLogout(true);
-      }
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+  // Concurrent session liveness check disabled — up to 10 simultaneous sessions
+  // are allowed per account (e.g. demo@hitec.id shared by multiple assessors).
 
   const handleLoginSuccess = (sessionData) => {
     setUser({
@@ -176,7 +163,7 @@ export default function App() {
 
     try {
       if (user && user.email) {
-        await apiLogoutOtherDevices({ email: user.email });
+        // Only log out the current session — do NOT terminate other concurrent sessions
         await apiLogout({ email: user.email });
       }
       await signOut(auth);
