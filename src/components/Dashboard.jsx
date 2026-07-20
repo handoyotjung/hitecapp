@@ -159,6 +159,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     });
   };
   
+  // Data retention window: 7 days for shared demo/hitec.id accounts, 3 days otherwise
+  const retentionDays = (() => {
+    const email = (user?.email || '').trim().toLowerCase();
+    if (email === 'demo@hitec.id' || email.endsWith('@hitec.id')) return 7;
+    return 3;
+  })();
+  const retentionMs = retentionDays * 24 * 60 * 60 * 1000;
+
   // Photo Editor state
   const [projectPhotos, setProjectPhotos] = useState([]);
   const [editorIndex, setEditorIndex] = useState(0);
@@ -803,12 +811,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
       // 1. Save data to Firestore (projects/{projectId}) immediately with merge: true
       try {
-        const expiresIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+        const expiresIso = new Date(Date.now() + retentionMs).toISOString();
         await setDoc(doc(db, 'projects', selectedProject.id), {
           userId: user.uid || '',
           created_by: (user.email || '').trim().toLowerCase(),
           company_id: user.companyId || 'hitec',
-          retention_days: 3,
+          retention_days: retentionDays,
           expires_at: expiresIso,
           photos: cleanPhotos,
           lastModified: nowIso
@@ -847,7 +855,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     setFieldValidationErrors({ company: false, city: false });
     try {
       const nowIso = new Date().toISOString();
-      const expiresIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      const expiresIso = new Date(Date.now() + retentionMs).toISOString();
       const projectId = "proj_" + Math.random().toString(36).substring(2, 11);
       const newProjObj = {
         id: projectId,
@@ -859,7 +867,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         company_id: user.companyId || 'hitec',
         company_name: companyName.trim(),
         city_name: cityName.trim(),
-        retention_days: 3,
+        retention_days: retentionDays,
         expires_at: expiresIso,
         photos: []
       };
@@ -1658,12 +1666,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (key === 'confirm' || key === 'save') {
       if (!selectedProject) return;
       const nowIso = new Date().toISOString();
-      const expiresIso = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      const expiresIso = new Date(Date.now() + retentionMs).toISOString();
       
       try {
         await setDoc(doc(db, 'projects', selectedProject.id), {
           status: 'active',
-          retention_days: 3,
+          retention_days: retentionDays,
           expires_at: expiresIso,
           updated_at: nowIso,
           last_saved_by: user.email || '',
@@ -1679,7 +1687,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             await updateDoc(doc(db, 'photos', p.id), {
               status: 'done',
               expires_at: expiresIso,
-              retention_days: 3,
+              retention_days: retentionDays,
               company_id: user.companyId || 'hitec',
               city_name: selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '',
               upload_date: p.upload_date || todayStr,
