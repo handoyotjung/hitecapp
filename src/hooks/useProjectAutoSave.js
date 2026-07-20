@@ -23,7 +23,10 @@ function queueOfflineSave(projectId, payload) {
 export function useProjectAutoSave(projectId) {
   const queryClient = useQueryClient();
   const timeoutRef = useRef(null);
+  const minVisualTimerRef = useRef(null);
   const [lastSavedAt, setLastSavedAt] = useState(() => Date.now());
+  const [isDebouncing, setIsDebouncing] = useState(false);
+  const [isVisualSaving, setIsVisualSaving] = useState(false);
 
   useEffect(() => {
     setLastSavedAt(Date.now());
@@ -33,6 +36,10 @@ export function useProjectAutoSave(projectId) {
     mutationFn: async (payload) => {
       if (!projectId) return payload;
       const nowIso = new Date().toISOString();
+
+      // Ensure Saving... shows visually for at least 400ms so user clearly notices the save action
+      setIsVisualSaving(true);
+      clearTimeout(minVisualTimerRef.current);
 
       // 1. Instant local cache persistence (Optimistic UI & Offline prevention)
       try {
@@ -87,23 +94,38 @@ export function useProjectAutoSave(projectId) {
     },
     onSuccess: () => {
       setLastSavedAt(Date.now());
-      // Refresh project for all users across active queries
+      setIsDebouncing(false);
+      // Keep visual saving for at least 400ms for clear user confirmation
+      minVisualTimerRef.current = setTimeout(() => {
+        setIsVisualSaving(false);
+      }, 400);
       if (projectId) {
         queryClient.invalidateQueries(['project', projectId]);
       }
+    },
+    onError: () => {
+      setIsDebouncing(false);
+      setIsVisualSaving(false);
     }
   });
 
-  // Debounced autosave (700ms) to avoid spam on typing
-  const autosave = (payload) => {
+  // Debounced autosave (700ms by default, or immediate if options.immediate is set)
+  const autosave = (payload, options = {}) => {
     clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => mutate(payload), 700);
+    setIsDebouncing(true);
+    if (options.immediate) {
+      mutate(payload);
+    } else {
+      timeoutRef.current = setTimeout(() => {
+        mutate(payload);
+      }, 700);
+    }
   };
 
   // Data Loss Prevention Rule: beforeunload check warning if currently saving
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (isPending) {
+      if (isPending || isDebouncing || isVisualSaving) {
         e.preventDefault();
         e.returnValue = 'Still saving...';
         return 'Still saving...';
@@ -111,7 +133,7 @@ export function useProjectAutoSave(projectId) {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isPending]);
+  }, [isPending, isDebouncing, isVisualSaving]);
 
   // Offline Queue recovery: Flush queue on network reconnect
   useEffect(() => {
@@ -158,7 +180,7 @@ export function useProjectAutoSave(projectId) {
 
   return {
     autosave,
-    isSaving: isPending,
+    isSaving: isPending || isDebouncing || isVisualSaving,
     isError,
     lastSavedAt
   };

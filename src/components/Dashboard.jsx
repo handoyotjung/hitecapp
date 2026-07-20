@@ -162,6 +162,35 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Photo Editor state
   const [projectPhotos, setProjectPhotos] = useState([]);
   const [editorIndex, setEditorIndex] = useState(0);
+
+  // Global Watchdog: automatically remove any photo stuck at 100% loading indicator or stuck processing indefinitely
+  useEffect(() => {
+    if (!queue || queue.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      let hasStuck = false;
+      const cleanQueue = queue.filter(item => {
+        if (item.status === 'Done' || item.status === 'Rejected') return true;
+        const started = item.startedAt || item.queuedAt || now;
+        // If stuck at 100% for over 20 seconds, or stuck Uploading for over 35 seconds, auto-remove
+        if (item.progress === 100 && (now - (item.reached100At || started)) > 20000) {
+          console.warn('[Global Watchdog] Auto-removing photo stuck at 100% loading:', item.finalFilename);
+          hasStuck = true;
+          return false;
+        }
+        if (item.status === 'Uploading' && (now - started) > 35000) {
+          console.warn('[Global Watchdog] Auto-removing photo stuck processing:', item.finalFilename);
+          hasStuck = true;
+          return false;
+        }
+        return true;
+      });
+      if (hasStuck) {
+        setQueue(cleanQueue);
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [queue]);
   const [caption, setCaption] = useState('');
   const [savingCaption, setSavingCaption] = useState(false);
   const [manualMode, setManualMode] = useState(false);
@@ -232,8 +261,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         photos: updatedPhotos,
         lastEditedPhotoId: targetPhoto ? targetPhoto.id : null,
         caption: newCaption,
-        comments_text: newCaption
-      });
+        comments_text: newCaption,
+        captionSavedAt: Date.now()
+      }, { immediate: true });
       return updatedPhotos;
     });
     // If the updated photo is currently open in editor, also update commentsText
@@ -362,6 +392,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     });
 
     // 2. Reorder projectPhotos array so that its ordering stays in sync with the updated queue
+    let reorderedPhotos = [...projectPhotos];
     setProjectPhotos(prevPhotos => {
       const newQueueItem = queue[fromIndex];
       const targetQueueItem = queue[toIndex];
@@ -378,10 +409,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       } else {
         newPhotos.splice(photoToIdx, 0, movedPhoto);
       }
+      reorderedPhotos = newPhotos;
+      if (selectedProject) {
+        setSelectedProject(prev => prev ? { ...prev, photos: newPhotos } : null);
+      }
       return newPhotos;
     });
 
-    autosave({ reorderedAt: Date.now() });
+    autosave({ photos: reorderedPhotos, reorderedAt: Date.now() }, { immediate: true });
     setDraggedItemIndex(null);
     setDragOverItemIndex(null);
   };
@@ -968,7 +1003,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     // Immediately commit all queue items to state — thumbnails render at once
     setQueue(prev => [...prev, ...newQueueItems]);
     if (newQueueItems.length > 0) {
-      autosave({ newSnapshotsAddedAt: Date.now() });
+      autosave({ newSnapshotsAddedAt: Date.now() }, { immediate: true });
     }
 
     // Pipe all eligible items through the parallel worker pool (6 concurrent slots)
@@ -983,7 +1018,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     const filePath = `projects/${selectedProject.id}/${todayStr}/${item.finalFilename}`;
     const storageRef = ref(storage, filePath);
 
-    setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Uploading' } : q));
+    setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Uploading', startedAt: Date.now() } : q));
 
     // In production: request a GCS Signed URL and PUT directly to GCS
     // In mock mode: signed_url will be empty, we fall back to uploadBytesResumable
@@ -1007,7 +1042,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                   const pct = Math.round((e.loaded / e.total) * 100);
-                  setQueue(prev => prev.map(q => q.id === item.id ? { ...q, progress: pct } : q));
+                  setQueue(prev => prev.map(q => q.id === item.id ? { ...q, progress: pct, reached100At: (pct === 100 ? (q.reached100At || Date.now()) : q.reached100At) } : q));
                 }
               };
               xhr.onload = () => xhr.status < 300 ? resolve() : reject(new Error(`PUT ${xhr.status}`));
@@ -1036,7 +1071,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             'state_changed',
             (snapshot) => {
               const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-              setQueue(prev => prev.map(q => q.id === item.id ? { ...q, progress: pct } : q));
+              setQueue(prev => prev.map(q => q.id === item.id ? { ...q, progress: pct, reached100At: (pct === 100 ? (q.reached100At || Date.now()) : q.reached100At) } : q));
             },
             (error) => reject(error),
             () => resolve(uploadTask.snapshot.ref)
@@ -1049,6 +1084,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           ));
         }
       ).then(async (snapshotRef) => {
+        // ── MOCK MODE: no real backend fires onSnapshot, mark Done immediately ──
+        if (isMockMode) {
+          setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Done', progress: 100 } : q));
+          autosave({ snapshotCompletedAt: Date.now() }, { immediate: true });
+          return;
+        }
+
         const downloadUrl = await getDownloadURL(snapshotRef || storageRef);
 
         // Pre-create Firestore photo doc
@@ -1073,20 +1115,35 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           created_at: new Date().toISOString()
         });
 
-        // Listen for backend validation result
+        // Listen for backend validation result, with 30s stuck-watchdog
         const unsub = onSnapshot(photoDocRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.status === 'done') {
               setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Done', progress: 100 } : q));
-              autosave({ snapshotCompletedAt: Date.now() });
+              autosave({ snapshotCompletedAt: Date.now() }, { immediate: true });
               if (unsub) unsub();
+              clearTimeout(stuckTimer);
             } else if (data.status === 'rejected') {
               setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server' } : q));
               if (unsub) unsub();
+              clearTimeout(stuckTimer);
             }
           }
         });
+
+        // Watchdog: if still Uploading after 30s, auto-remove the stuck item
+        const stuckTimer = setTimeout(() => {
+          if (unsub) unsub();
+          setQueue(prev => {
+            const stuckItem = prev.find(q => q.id === item.id);
+            if (stuckItem && stuckItem.status === 'Uploading') {
+              console.warn('[Watchdog] Removing stuck upload item:', item.finalFilename);
+              return prev.filter(q => q.id !== item.id);
+            }
+            return prev;
+          });
+        }, 30000);
       }).catch((err) => {
         console.error('Upload failed after retries:', err);
         setQueue(prev => prev.map(q =>
@@ -1125,19 +1182,35 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         const data = docSnap.data();
         if (data.status === 'done') {
           setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Done', progress: 100 } : q));
-          autosave({ snapshotCompletedAt: Date.now() });
+          autosave({ snapshotCompletedAt: Date.now() }, { immediate: true });
           if (unsub) unsub();
+          clearTimeout(stuckTimer);
         } else if (data.status === 'rejected') {
           setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server' } : q));
           if (unsub) unsub();
+          clearTimeout(stuckTimer);
         }
       }
     });
+
+    // Watchdog: if still Uploading after 30s, auto-remove the stuck item
+    const stuckTimer = setTimeout(() => {
+      if (unsub) unsub();
+      setQueue(prev => {
+        const stuckItem = prev.find(q => q.id === item.id);
+        if (stuckItem && stuckItem.status === 'Uploading') {
+          console.warn('[Watchdog] Removing stuck upload item:', item.finalFilename);
+          return prev.filter(q => q.id !== item.id);
+        }
+        return prev;
+      });
+    }, 30000);
   };
 
   const handleRefreshPhotoOrder = () => {
     if (!selectedProject) return;
     const orderedQueue = queue.filter(item => item.status === 'Done');
+    let reorderedPhotos = [...projectPhotos];
     setProjectPhotos(prev => {
       const prevMap = new Map();
       prev.forEach(p => {
@@ -1162,9 +1235,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           created_at: existing.created_at || new Date().toISOString()
         };
       });
+      reorderedPhotos = updatedPhotos;
+      if (selectedProject) {
+        setSelectedProject(prevProj => prevProj ? { ...prevProj, photos: updatedPhotos } : null);
+      }
       return updatedPhotos;
     });
-    autosave({ orderRefreshedAt: Date.now() });
+    autosave({ photos: reorderedPhotos, orderRefreshedAt: Date.now() }, { immediate: true });
     setEditorIndex(0);
   };
 
@@ -1611,7 +1688,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       try {
         await updateDoc(doc(db, 'projects', selectedProject.id), { photos: remainingPhotos });
       } catch (e) {}
-      autosave({ photos: remainingPhotos });
+      autosave({ photos: remainingPhotos }, { immediate: true });
     }
   };
 

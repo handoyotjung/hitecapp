@@ -12,10 +12,10 @@ export default function AutoSaveIndicator({ isSaving, isError, lastSavedAt }) {
 
   const timeDiff = Math.max(0, Math.floor((now - (lastSavedAt || now)) / 1000));
   let timeStr = `${timeDiff} seconds ago`;
-  if (timeDiff === 1) {
-    timeStr = '1 second ago';
-  } else if (timeDiff === 0) {
+  if (timeDiff <= 4) {
     timeStr = 'just now';
+  } else if (timeDiff === 1) {
+    timeStr = '1 second ago';
   } else if (timeDiff >= 60) {
     const mins = Math.floor(timeDiff / 60);
     timeStr = `${mins} minute${mins > 1 ? 's' : ''} ago`;
