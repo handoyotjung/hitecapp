@@ -234,7 +234,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     const updatedPhotos = projectPhotos.map((p, idx) => idx === editorIndex ? updatedPhoto : p);
     setProjectPhotos(updatedPhotos);
     if (currentPhoto.id) {
-      updateDoc(doc(db, 'photos', currentPhoto.id), fieldUpdates).catch(() => {});
+      // Always include project_id and expires_at so the photo stays bound to its project
+      const expiresIso = new Date(Date.now() + retentionMs).toISOString();
+      updateDoc(doc(db, 'photos', currentPhoto.id), {
+        ...fieldUpdates,
+        project_id: currentPhoto.project_id || selectedProject?.id || '',
+        company_id: currentPhoto.company_id || user?.companyId || 'hitec',
+        expires_at: expiresIso,
+        lastModified: new Date().toISOString()
+      }).catch(() => {});
     }
     autosave({
       photos: updatedPhotos,
@@ -474,6 +482,87 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   };
 
   const [todayStr, setTodayStr] = useState(getLocalTodayStr);
+
+  // Live ref always pointing to the current state — used in emergency flush closures
+  const latestStateRef = useRef({ projectPhotos: [], selectedProject: null, user: null, retentionMs: 0 });
+  useEffect(() => {
+    latestStateRef.current = { projectPhotos, selectedProject, user, retentionMs };
+  });
+
+  // Emergency flush: persist ALL unsaved photo edits to Firestore on tab hide or page close.
+  // This guarantees no data loss when an assessor closes the browser mid-edit.
+  useEffect(() => {
+    const flushAllPhotos = () => {
+      const { projectPhotos: photos, selectedProject: proj, user: u, retentionMs: rms } = latestStateRef.current;
+      if (!proj || !photos.length || !u) return;
+      const nowIso = new Date().toISOString();
+      const expiresIso = new Date(Date.now() + rms).toISOString();
+      // Write each photo doc synchronously — fire-and-forget (no await in pagehide)
+      photos.forEach(p => {
+        if (!p.id) return;
+        const payload = {
+          project_id: proj.id,
+          company_id: u.companyId || p.company_id || 'hitec',
+          caption: p.caption || '',
+          title: p.title || p.caption || '',
+          asset_title: p.asset_title || p.caption || '',
+          comments_text: p.comments_text || p.comments || '',
+          comments: p.comments || p.comments_text || '',
+          comments_lang: p.comments_lang || 'EN',
+          grade: p.grade || p.assessment_grade || 'F2',
+          assessment_grade: p.assessment_grade || p.grade || 'F2',
+          latest_status: p.latest_status || p.status || 'Open',
+          date: p.date || p.exif_date || '',
+          location: p.location || '',
+          recommendations_json: Array.isArray(p.recommendations_json) ? p.recommendations_json : [],
+          recommendations_lang: p.recommendations_lang || 'EN',
+          expires_at: expiresIso,
+          lastModified: nowIso
+        };
+        // updateDoc is fire-and-forget — browsers may or may not complete it on pagehide
+        updateDoc(doc(db, 'photos', p.id), payload).catch(() => {});
+      });
+      // Also flush the project doc with cleanPhotos
+      const cleanPhotos = photos.map(p => ({
+        id: p.id || '',
+        filename: p.filename || '',
+        url: p.url || '',
+        base64: p.base64 || p.thumbnailUrl || '',
+        thumbnailUrl: p.thumbnailUrl || p.base64 || p.url || '',
+        caption: p.caption || '',
+        comments_text: p.comments_text || p.comments || '',
+        comments: p.comments || p.comments_text || '',
+        grade: p.grade || 'F2',
+        assessment_grade: p.assessment_grade || p.grade || 'F2',
+        latest_status: p.latest_status || p.status || 'Open',
+        date: p.date || '',
+        location: p.location || '',
+        recommendations_json: Array.isArray(p.recommendations_json) ? p.recommendations_json : [],
+        expires_at: expiresIso,
+        size_kb: p.size_kb || 0
+      }));
+      setDoc(doc(db, 'projects', proj.id), {
+        photos: cleanPhotos,
+        lastModified: nowIso,
+        expires_at: expiresIso,
+        retention_days: Math.round(rms / 86400000)
+      }, { merge: true }).catch(() => {});
+    };
+
+    // Flush when tab is hidden (most reliable browser lifecycle hook)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushAllPhotos();
+    };
+    // Fallback: flush on page unload
+    const handlePageHide = () => flushAllPhotos();
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, []); // empty deps — intentionally uses latestStateRef to avoid stale closure
 
   useEffect(() => {
     const checkMidnight = setInterval(() => {
