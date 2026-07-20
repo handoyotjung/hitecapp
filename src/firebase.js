@@ -888,12 +888,20 @@ export const httpsCallable = (functionsInstance, name) => {
             recs = ["No specific recommendation noted."];
           }
 
-          // 1. Green header bar with label PT. Safety Indonesia Utama
+          const isMobileMode = data.view_mode === 'Mobile';
+
+          // 1. Green header bar with label (Replace header PT. Safety....... with File name (replace underscore with space) in Mobile mode)
           slide.addShape(pptx.ShapeType.rect, {
             x: 0, y: 0, w: SLIDE_W, h: 0.55,
             fill: { color: "059669" }
           });
-          slide.addText("PT. Safety Indonesia Utama", {
+          const rawHeaderTitle = isMobileMode
+            ? (photo.original_filename || photo.filename || data.export_filename || "Photo")
+            : "PT. Safety Indonesia Utama";
+          const headerTitle = isMobileMode
+            ? rawHeaderTitle.replace(/\.[^/.]+$/, "").replace(/_/g, " ")
+            : "PT. Safety Indonesia Utama";
+          slide.addText(headerTitle, {
             x: 0.5, y: 0.08, w: 5.5, h: 0.4,
             fontName: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
           });
@@ -903,14 +911,13 @@ export const httpsCallable = (functionsInstance, name) => {
           });
 
           // 4. Image with original ratio (no stretching)
-          const isMobileMode = data.view_mode === 'Mobile';
           const rawImgSrc = isMobileMode
             ? (photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null))
             : (photo.annotatedBase64 || photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null));
           if (rawImgSrc) {
             const dims = await getImageSizePx(rawImgSrc);
             const boxW = isMobileMode ? 9.0 : 4.3;
-            const boxH = 4.25;
+            const boxH = isMobileMode ? 3.80 : 4.25;
             const imgRatio = dims.width / dims.height;
             const boxRatio = boxW / boxH;
             let drawW = boxW;
@@ -923,13 +930,24 @@ export const httpsCallable = (functionsInstance, name) => {
               drawH = boxH;
               drawW = drawH * imgRatio;
             }
-            const drawX = 0.4 + (boxW - drawW) / 2;
-            const drawY = 0.75 + (boxH - drawH) / 2;
+            const drawX = (isMobileMode ? 0.5 : 0.4) + (boxW - drawW) / 2;
+            const drawY = (isMobileMode ? 0.65 : 0.75) + (boxH - drawH) / 2;
 
             slide.addImage({
               data: rawImgSrc,
               x: drawX, y: drawY, w: drawW, h: drawH
             });
+          }
+
+          if (isMobileMode) {
+            // Add caption under photo, center aligned text
+            const captionText = photo.caption || photo.comments_text || photo.comments || "";
+            if (captionText && captionText.trim() !== "") {
+              slide.addText(captionText.trim(), {
+                x: 0.5, y: 4.55, w: 9.0, h: 0.65,
+                fontName: "Arial", fontSize: 13, color: "222222", align: "center", valign: "top"
+              });
+            }
           }
 
           if (!isMobileMode) {

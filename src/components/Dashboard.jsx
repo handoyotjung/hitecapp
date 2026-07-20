@@ -1471,8 +1471,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           ...p,
           base64: rawBase64Str,
           annotatedBase64: isMobileMode ? rawBase64Str : (p.annotatedBase64 || rawBase64Str),
-          caption: isMobileMode ? "" : (p.caption || ""),
-          comments: isMobileMode ? "" : (p.comments || p.caption || ""),
+          caption: p.caption || p.comments_text || p.comments || "",
+          comments: p.comments || p.comments_text || p.caption || "",
           recommendation: isMobileMode ? "" : (p.recommendation || ""),
           recommendations: isMobileMode ? [] : (p.recommendations || [])
         };
