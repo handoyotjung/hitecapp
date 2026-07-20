@@ -676,7 +676,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setCaption(obs);
       setPhotoGrade(initialGrade);
       setPhotoStatus(initialStatus);
-      setPhotoTitle(activePhoto.title || activePhoto.asset_title || activePhoto.filename || '');
+      setPhotoTitle(activePhoto.caption || activePhoto.comments_text || activePhoto.comments || activePhoto.title || activePhoto.asset_title || '');
       setPhotoDate(activePhoto.date || activePhoto.exif_date || new Date().toISOString().split('T')[0]);
       setPhotoLocation(activePhoto.location || selectedProject.location || 'Site');
       setRecMode(isManual ? 'Manual' : 'Auto');
@@ -2184,10 +2184,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       {/* COMPACT METADATA CARD (Flush below canvas without blur auto-saves) */}
                       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm shrink-0">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                          {/* Title / Name */}
+                          {/* Caption */}
                           <div>
                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                              Asset Title / Name
+                              Caption
                             </label>
                             <input
                               type="text"
@@ -2195,9 +2195,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setPhotoTitle(val);
-                                updatePhotoFieldAndAutosave({ title: val, asset_title: val });
+                                setCommentsText(val);
+                                updatePhotoFieldAndAutosave({ caption: val, comments_text: val, comments: val, title: val, asset_title: val });
                               }}
-                              placeholder="e.g. Main Switchboard 01"
+                              placeholder="Add or edit caption..."
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
                           </div>
