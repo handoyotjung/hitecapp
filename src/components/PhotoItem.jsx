@@ -3,7 +3,7 @@ import { Mic as MicIcon } from 'lucide-react';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 
 export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
-  const [caption, setCaption] = useState(photo.caption || photo.comments_text || '');
+  const [caption, setCaption] = useState(photo.caption || '');
   const [isEditing, setIsEditing] = useState(false);
   const { isRecording, transcript, detectedLang, start, stop, supported } = useSpeechToText();
 
@@ -19,14 +19,14 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
     if (currentId !== lastPhotoIdRef.current) {
       // Different photo entirely — reset everything
       lastPhotoIdRef.current = currentId;
-      setCaption(photo.caption || photo.comments_text || '');
+      setCaption(photo.caption || '');
       setIsEditing(false);
     } else if (!isFocusedRef.current && !isRecording && !isEditing) {
       // Same photo, not focused, not recording, not in edit mode — safe to sync
-      const incoming = photo.caption || photo.comments_text || '';
+      const incoming = photo.caption || '';
       setCaption(incoming);
     }
-  }, [photo.id, photo.filename, photo.caption, photo.comments_text, isRecording, isEditing]);
+  }, [photo.id, photo.filename, photo.caption, isRecording, isEditing]);
 
   // Commit speech transcript once recording stops
   useEffect(() => {

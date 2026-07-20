@@ -235,12 +235,38 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     });
   };
 
+  const handleSaveReport = () => {
+    if (projectPhotos.length === 0 || editorIndex === null || !projectPhotos[editorIndex]) return;
+    const currentPhoto = projectPhotos[editorIndex];
+    const updates = {
+      caption: photoTitle || '',
+      title: photoTitle || '',
+      asset_title: photoTitle || '',
+      date: photoDate || '',
+      exif_date: photoDate || '',
+      location: photoLocation || '',
+      exif_gps: photoLocation || '',
+      grade: photoGrade || 'F2',
+      assessment_grade: photoGrade || 'F2',
+      status: photoStatus || 'Open',
+      latest_status: photoStatus || 'Open',
+      comments_text: commentsText || '',
+      comments: commentsText || '',
+      recommendations_json: recommendations || [],
+      aiSuggestedRec: aiSuggestedRecText || '',
+      comments_lang: commentsLang || 'EN',
+      recommendations_lang: recommendationsLang || 'EN',
+      lastModifiedAt: Date.now()
+    };
+    updatePhotoFieldAndAutosave(updates);
+  };
+
   const cardASpeech = useSpeechToText();
 
   useEffect(() => {
     if (cardASpeech.transcript && !cardASpeech.isRecording) {
       setCommentsText(cardASpeech.transcript);
-      updatePhotoFieldAndAutosave({ comments_text: cardASpeech.transcript, caption: cardASpeech.transcript });
+      updatePhotoFieldAndAutosave({ comments_text: cardASpeech.transcript });
     }
   }, [cardASpeech.transcript, cardASpeech.isRecording]);
 
@@ -248,28 +274,26 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (!photoIdOrFilename || newCaption === undefined || newCaption === null) return;
     setProjectPhotos(prev => {
       const updatedPhotos = prev.map(p => 
-        (p.id && p.id === photoIdOrFilename) || p.filename === photoIdOrFilename ? { ...p, caption: newCaption, comments_text: newCaption } : p
+        (p.id && p.id === photoIdOrFilename) || p.filename === photoIdOrFilename ? { ...p, caption: newCaption } : p
       );
       if (selectedProject) {
         setSelectedProject(prevProj => prevProj ? { ...prevProj, photos: updatedPhotos } : null);
       }
       const targetPhoto = prev.find(p => (p.id && p.id === photoIdOrFilename) || p.filename === photoIdOrFilename);
       if (targetPhoto && targetPhoto.id) {
-        updateDoc(doc(db, 'photos', targetPhoto.id), { caption: newCaption, comments_text: newCaption }).catch(() => {});
+        updateDoc(doc(db, 'photos', targetPhoto.id), { caption: newCaption }).catch(() => {});
       }
       autosave({
         photos: updatedPhotos,
         lastEditedPhotoId: targetPhoto ? targetPhoto.id : null,
         caption: newCaption,
-        comments_text: newCaption,
         captionSavedAt: Date.now()
       }, { immediate: true });
       return updatedPhotos;
     });
-    // If the updated photo is currently open in editor, also update commentsText
     const currentPhoto = projectPhotos[editorIndex];
     if (currentPhoto && ((currentPhoto.id && currentPhoto.id === photoIdOrFilename) || currentPhoto.filename === photoIdOrFilename)) {
-      setCommentsText(newCaption);
+      setPhotoTitle(newCaption);
     }
   };
 
@@ -664,7 +688,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   useEffect(() => {
     if (projectPhotos.length > 0 && projectPhotos[editorIndex]) {
       const activePhoto = projectPhotos[editorIndex];
-      const obs = activePhoto.comments_text || activePhoto.caption || '';
+      const obs = activePhoto.comments_text || '';
       const initialGrade = activePhoto.grade || activePhoto.assessment_grade || 'F2';
       const initialStatus = activePhoto.latest_status || activePhoto.status || 'Open';
       const initialLang = activePhoto.recommendations_lang || 'EN';
@@ -673,10 +697,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setCommentsLang(activePhoto.comments_lang || 'EN');
       setRecommendations(Array.isArray(activePhoto.recommendations_json) ? activePhoto.recommendations_json : []);
       setRecommendationsLang(initialLang);
-      setCaption(obs);
+      setCaption(activePhoto.caption || '');
       setPhotoGrade(initialGrade);
       setPhotoStatus(initialStatus);
-      setPhotoTitle(activePhoto.caption || activePhoto.comments_text || activePhoto.comments || activePhoto.title || activePhoto.asset_title || '');
+      setPhotoTitle(activePhoto.caption || activePhoto.title || activePhoto.asset_title || '');
       setPhotoDate(activePhoto.date || activePhoto.exif_date || new Date().toISOString().split('T')[0]);
       setPhotoLocation(activePhoto.location || selectedProject.location || 'Site');
       setRecMode(isManual ? 'Manual' : 'Auto');
@@ -731,8 +755,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         filename: p.filename || p.originalFilename || '',
         url: p.url || '',
         base64: p.base64 || p.thumbnailUrl || '',
-        caption: p.comments_text || p.caption || '',
-        comments_text: p.comments_text || p.caption || '',
+        caption: p.caption || '',
+        comments_text: p.comments_text || p.comments || '',
+        comments: p.comments || p.comments_text || '',
         comments_lang: p.comments_lang || 'EN',
         recommendations_json: Array.isArray(p.recommendations_json) ? p.recommendations_json : [],
         recommendations_lang: p.recommendations_lang || 'EN',
@@ -1227,7 +1252,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           url: existing.url || q.previewUrl || q.thumbnailUrl || '',
           base64: existing.base64 || q.thumbnailUrl || '',
           caption: existing.caption || '',
-          comments_text: existing.comments_text || existing.caption || '',
+          comments_text: existing.comments_text || existing.comments || '',
+          comments: existing.comments || existing.comments_text || '',
           comments_lang: existing.comments_lang || 'EN',
           recommendations_json: existing.recommendations_json || [],
           recommendations_lang: existing.recommendations_lang || 'EN',
@@ -1253,7 +1279,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       if (res && res.observations) {
         const obsText = res.observations.join('\n');
         setCommentsText(obsText);
-        updatePhotoFieldAndAutosave({ comments_text: obsText, caption: obsText });
+        updatePhotoFieldAndAutosave({ comments_text: obsText, comments: obsText });
 
         if (photoObj) {
           const recRes = await aiGenerateRecommendation(
@@ -1264,7 +1290,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           );
           if (recRes && recRes.recommendations) {
             setRecommendations(recRes.recommendations);
-            updatePhotoFieldAndAutosave({ recommendations_json: recRes.recommendations });
+            updatePhotoFieldAndAutosave({ recommendations_json: recRes.recommendations, recommendations: recRes.recommendations });
           }
         }
       }
@@ -1292,14 +1318,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         if (translatedObs) {
           updatedComments = translatedObs;
           setCommentsText(updatedComments);
-          updatePhotoFieldAndAutosave({ comments_text: updatedComments, caption: updatedComments, comments_lang: targetLang });
+          updatePhotoFieldAndAutosave({ comments_text: updatedComments, comments: updatedComments, comments_lang: targetLang });
         }
       } else {
         const res = await aiObservationAssessor(photoObj, commentsText, targetLang);
         if (res && res.observations) {
           updatedComments = res.observations.join('\n');
           setCommentsText(updatedComments);
-          updatePhotoFieldAndAutosave({ comments_text: updatedComments, caption: updatedComments, comments_lang: targetLang });
+          updatePhotoFieldAndAutosave({ comments_text: updatedComments, comments: updatedComments, comments_lang: targetLang });
         }
       }
 
@@ -1310,7 +1336,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         if (translatedRecsText) {
           const translatedRecsArr = translatedRecsText.split('\n').map(r => r.trim()).filter(Boolean);
           setRecommendations(translatedRecsArr);
-          updatePhotoFieldAndAutosave({ recommendations_json: translatedRecsArr, recommendations_lang: targetLang });
+          updatePhotoFieldAndAutosave({ recommendations_json: translatedRecsArr, recommendations: translatedRecsArr, recommendations_lang: targetLang });
         }
       } else if (photoObj) {
         const recRes = await aiGenerateRecommendation(
@@ -1320,7 +1346,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         );
         if (recRes && recRes.recommendations) {
           setRecommendations(recRes.recommendations);
-          updatePhotoFieldAndAutosave({ recommendations_json: recRes.recommendations, recommendations_lang: targetLang });
+          updatePhotoFieldAndAutosave({ recommendations_json: recRes.recommendations, recommendations: recRes.recommendations, recommendations_lang: targetLang });
         }
       }
     } catch (err) {
@@ -1340,7 +1366,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         setRecommendations(lines);
         setAiSuggestedRecText(recText);
         setRecMode('Auto');
-        updatePhotoFieldAndAutosave({ recommendations_json: lines, aiSuggestedRec: recText });
+        updatePhotoFieldAndAutosave({ recommendations_json: lines, recommendations: lines, aiSuggestedRec: recText });
       } else {
         const res = await aiGenerateRecommendation(
           projectPhotos[editorIndex],
@@ -1351,7 +1377,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           setRecommendations(res.recommendations);
           setAiSuggestedRecText(res.recommendations.join('\n'));
           setRecMode('Auto');
-          updatePhotoFieldAndAutosave({ recommendations_json: res.recommendations, aiSuggestedRec: res.recommendations.join('\n') });
+          updatePhotoFieldAndAutosave({ recommendations_json: res.recommendations, recommendations: res.recommendations, aiSuggestedRec: res.recommendations.join('\n') });
         }
       }
     } catch (err) {
@@ -1471,8 +1497,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           ...p,
           base64: rawBase64Str,
           annotatedBase64: isMobileMode ? rawBase64Str : (p.annotatedBase64 || rawBase64Str),
-          caption: p.caption || p.comments_text || p.comments || "",
-          comments: p.comments || p.comments_text || p.caption || "",
+          caption: p.caption || p.title || p.asset_title || "",
+          comments: p.comments || p.comments_text || "",
+          comments_text: p.comments_text || p.comments || "",
           recommendation: isMobileMode ? "" : (p.recommendation || ""),
           recommendations: isMobileMode ? [] : (p.recommendations || [])
         };
@@ -2122,9 +2149,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           {/* Right Side: Photo Carousel Editor and Exporters */}
 
           {!isMobileMode && (
-          <div className="column-container right-column w-[100vw] md:w-1/2 h-full shrink-0 flex flex-col overflow-hidden bg-slate-900/10">
+          <div className="column-container right-column w-[100vw] md:w-1/2 h-full shrink-0 flex flex-col justify-between overflow-hidden bg-slate-900/10 relative">
             {/* Photo Editor Tab View / Main Pane */}
-            <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6">
+            <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4 min-h-0 w-full min-w-0">
             {!selectedProject ? (
               <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-slate-900 bg-slate-900/20 p-8 text-center text-slate-600">
                 <Folder className="h-10 w-10 stroke-1 mb-2 text-slate-500" />
@@ -2152,7 +2179,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           photo={projectPhotos[editorIndex]}
                           onSaveAnnotatedImage={handleSaveAnnotatedImage}
                           stageWidth={800}
-                          stageHeight={450}
+                          stageHeight={240}
                           photoCounter={`${editorIndex + 1} / ${projectPhotos.length}`}
                         />
 
@@ -2180,10 +2207,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col overflow-y-auto min-h-0 gap-2 pr-1">
+                    <div className="flex-1 flex flex-col overflow-y-auto min-h-0 gap-1.5 pr-0.5">
                       {/* COMPACT METADATA CARD (Flush below canvas without blur auto-saves) */}
-                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm shrink-0">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-2.5 shadow-sm shrink-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           {/* Caption */}
                           <div>
                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
@@ -2195,11 +2222,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setPhotoTitle(val);
-                                setCommentsText(val);
-                                updatePhotoFieldAndAutosave({ caption: val, comments_text: val, comments: val, title: val, asset_title: val });
+                                updatePhotoFieldAndAutosave({ caption: val, title: val, asset_title: val });
                               }}
                               placeholder="Add or edit caption..."
-                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
                           </div>
 
@@ -2216,7 +2242,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 setPhotoDate(val);
                                 updatePhotoFieldAndAutosave({ date: val, exif_date: val });
                               }}
-                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
                           </div>
 
@@ -2234,21 +2260,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                 updatePhotoFieldAndAutosave({ location: val, exif_gps: val });
                               }}
                               placeholder="e.g. Electrical Room A"
-                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
                           </div>
                         </div>
                       </div>
 
                       {/* GRADES PRIORITY & LATEST STATUS CONTROL ROW */}
-                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-2 px-2.5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
                         {/* Grades Priority */}
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
-                            <ShieldAlert className="h-4 w-4 text-emerald-400 shrink-0" />
-                            <span>Grades Priority:</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+                            <ShieldAlert className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                            <span>Grades:</span>
                           </label>
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             {[
                               {
                                 id: 'F1',
@@ -2279,7 +2305,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               return (
                                 <label
                                   key={item.id}
-                                  className={`inline-flex items-center justify-center cursor-pointer px-3.5 py-1.5 rounded-xl border text-xs transition-all duration-200 ease-in-out active:scale-95 select-none ${
+                                  className={`inline-flex items-center justify-center cursor-pointer px-2.5 py-1 rounded-lg border text-xs transition-all duration-200 ease-in-out active:scale-95 select-none ${
                                     isChecked ? item.activeClass : item.inactiveClass
                                   }`}
                                 >
@@ -2302,11 +2328,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         </div>
 
                         {/* Latest Status */}
-                        <div className="flex items-center gap-3 sm:border-l sm:border-slate-800 sm:pl-4 flex-wrap">
+                        <div className="flex items-center gap-2 sm:border-l sm:border-slate-800 sm:pl-3 flex-wrap">
                           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">
-                            Latest Status:
+                            Status:
                           </span>
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             {[
                               {
                                 id: 'Open',
@@ -2325,7 +2351,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             ].map((statusItem) => (
                               <label
                                 key={statusItem.id}
-                                className={`inline-flex items-center justify-center cursor-pointer px-3.5 py-1.5 rounded-xl border text-xs transition-all duration-200 ease-in-out active:scale-95 select-none ${
+                                className={`inline-flex items-center justify-center cursor-pointer px-2.5 py-1 rounded-lg border text-xs transition-all duration-200 ease-in-out active:scale-95 select-none ${
                                   statusItem.isChecked ? statusItem.activeClass : statusItem.inactiveClass
                                 }`}
                               >
@@ -2348,8 +2374,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       </div>
 
                       {/* CARD A: COMMENTS / KOMENTAR */}
-                      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 shadow-sm shrink-0">
-                        <div className="flex items-center justify-between mb-2">
+                      <div className="shrink-0 flex flex-col rounded-2xl border border-slate-800 bg-slate-900/60 p-2 shadow-sm overflow-hidden">
+                        <div className="flex items-center justify-between mb-1 shrink-0">
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-bold text-white uppercase tracking-wide">
                               {commentsLang === 'ID' ? 'KOMENTAR' : 'COMMENTS'}
@@ -2391,7 +2417,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               type="button"
                               onClick={() => {
                                 setCommentsText('');
-                                updatePhotoFieldAndAutosave({ comments_text: '', caption: '' });
+                                updatePhotoFieldAndAutosave({ comments_text: '', comments: '' });
                               }}
                               title="Clear"
                               className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm shrink-0"
@@ -2403,8 +2429,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         </div>
 
                         <textarea
-                          rows={3}
+                          rows={2}
+                          style={{ height: 'auto', minHeight: '44px' }}
                           value={commentsText}
+                          onInput={(e) => {
+                            e.target.style.height = 'auto';
+                            e.target.style.height = `${e.target.scrollHeight}px`;
+                          }}
                           onChange={(e) => {
                             const lines = e.target.value.split('\n');
                             let newText = e.target.value;
@@ -2414,19 +2445,20 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               newText = lines.slice(0, 3).join('\n');
                               setCommentsText(newText);
                             }
-                            updatePhotoFieldAndAutosave({ comments_text: newText, caption: newText });
+                            updatePhotoFieldAndAutosave({ comments_text: newText, comments: newText });
+                            e.target.style.height = 'auto';
+                            e.target.style.height = `${e.target.scrollHeight}px`;
                           }}
                           placeholder={commentsLang === 'ID' ? 'Tulis komentar observasi...' : 'Write observation comments...'}
-                          className="comments-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-none h-[calc(3*1.4rem)] leading-relaxed overflow-y-auto"
+                          className="comments-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-y leading-relaxed overflow-y-auto"
                         />
 
                         {aiAssistOn && aiSuggestions.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-slate-800/80">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                              <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
-                              <span>AI Suggestions (Click to insert):</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
+                          <div className="mt-1 pt-1 border-t border-slate-800/80 shrink-0">
+                            <div className="flex flex-wrap gap-1 items-center">
+                              <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-0.5 shrink-0">
+                                <Sparkles className="h-2.5 w-2.5" /> Suggestions:
+                              </span>
                               {aiSuggestions.map((pill, pIdx) => (
                                 <button
                                   key={pIdx}
@@ -2435,9 +2467,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                                     const newLines = commentsText ? (commentsText + '\n' + pill) : pill;
                                     const splitted = newLines.split('\n').slice(0, 3).join('\n');
                                     setCommentsText(splitted);
-                                    updatePhotoFieldAndAutosave({ comments_text: splitted, caption: splitted });
+                                    updatePhotoFieldAndAutosave({ comments_text: splitted, comments: splitted });
+                                    const ta = document.querySelector('.comments-textarea');
+                                    if (ta) {
+                                      ta.style.height = 'auto';
+                                      ta.style.height = `${ta.scrollHeight}px`;
+                                    }
                                   }}
-                                  className="rounded-lg bg-slate-950 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 px-2 py-1 text-left text-[11px] font-medium text-slate-300 hover:text-emerald-300 transition-all max-w-full truncate"
+                                  className="rounded-lg bg-slate-950 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 px-2 py-0.5 text-left text-[10px] font-medium text-slate-300 hover:text-emerald-300 transition-all max-w-full truncate"
                                   title={pill}
                                 >
                                   + {pill}
@@ -2449,8 +2486,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       </div>
 
                       {/* CARD B: ASSESSOR RECOMMENDATION - AI Fire Safety Assessor */}
-                      <div className="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-3 shadow-sm shrink-0">
-                        <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                      <div className="shrink-0 flex flex-col rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-2 shadow-sm overflow-hidden">
+                        <div className="flex items-center justify-between flex-wrap gap-1.5 mb-1 shrink-0">
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-bold text-white uppercase tracking-wide">
                               {commentsLang === 'ID' ? 'REKOMENDASI AI' : 'AI RECOMMENDATION'}
@@ -2470,7 +2507,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               updatePhotoFieldAndAutosave({ recommendations_json: [] });
                             }}
                             title="Clear"
-                            className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm"
+                            className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm shrink-0"
                           >
                             <X className="h-3 w-3" />
                             <span>Clear</span>
@@ -2478,8 +2515,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         </div>
 
                         <textarea
-                          rows={3}
+                          rows={2}
+                          style={{ height: 'auto', minHeight: '44px' }}
                           value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
+                          onInput={(e) => {
+                            e.target.style.height = 'auto';
+                            e.target.style.height = `${e.target.scrollHeight}px`;
+                          }}
                           onChange={(e) => {
                             const lines = e.target.value.split('\n');
                             let newRecs;
@@ -2492,56 +2534,12 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             }
                             if (recMode === 'Auto') setRecMode('Manual');
                             updatePhotoFieldAndAutosave({ recommendations_json: newRecs });
+                            e.target.style.height = 'auto';
+                            e.target.style.height = `${e.target.scrollHeight}px`;
                           }}
                           placeholder={commentsLang === 'ID' ? 'Rekomendasi tindakan mitigasi...' : 'Mitigation recommendation actions...'}
-                          className="ai-recommendation-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-none h-[calc(3*1.4rem)] leading-relaxed overflow-y-auto"
+                          className="ai-recommendation-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-y leading-relaxed overflow-y-auto"
                         />
-
-                        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={handleGenerateRecommendation}
-                              disabled={aiGeneratingRec}
-                              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white transition-all disabled:opacity-50 shadow-sm"
-                              title="Regenerate recommendation based on current comment and grade"
-                            >
-                              {aiGeneratingRec ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                              <span>{commentsLang === 'ID' ? 'Regenerate' : 'Regenerate'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setRecMode(prev => prev === 'Auto' ? 'Manual' : 'Auto')}
-                              className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all shadow-sm ${
-                                recMode === 'Manual' ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500 hover:text-white' : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-600'
-                              }`}
-                              title="Toggle between Auto-fill and Manual Override mode"
-                            >
-                              <span>{recMode === 'Manual' ? 'Edit Manually (Active)' : 'Edit Manually'}</span>
-                            </button>
-                          </div>
-
-                          <div className="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5" title="Auto Translate & Grammar Check all texts">
-                            <button
-                              type="button"
-                              onClick={() => handleLanguageSwitch('ID')}
-                              className={`px-2.5 py-1 text-xs font-bold rounded transition-all ${
-                                commentsLang === 'ID' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-                              }`}
-                            >
-                              Bahasa
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleLanguageSwitch('EN')}
-                              className={`px-2.5 py-1 text-xs font-bold rounded transition-all ${
-                                commentsLang === 'EN' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-                              }`}
-                            >
-                              English
-                            </button>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </>
@@ -2549,6 +2547,75 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               </div>
             )}
           </div>
+
+          {/* Sticky right-column bottom footer aligned horizontally and vertically with left-column's PublishBar */}
+          {selectedProject && projectPhotos.length > 0 && (
+            <footer
+              className="right-publish-bar w-full border-t border-slate-800 bg-[#020617] shrink-0 px-3 flex items-center justify-between gap-2 z-50 sticky bottom-0 left-0 right-0 shadow-2xl overflow-hidden"
+              style={{ position: 'sticky', bottom: 0, height: '63px', minHeight: '63px', maxHeight: '63px', backgroundColor: '#020617', zIndex: 50, flexShrink: 0 }}
+            >
+              {/* Left side: Regenerate & Edit Manually */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleGenerateRecommendation}
+                  disabled={aiGeneratingRec}
+                  className="h-[38px] flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-2.5 text-xs font-bold text-white transition-all disabled:opacity-50 shadow-md shrink-0"
+                  title="Regenerate recommendation based on current comment and grade"
+                >
+                  {aiGeneratingRec ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <Sparkles className="h-4 w-4 shrink-0" />}
+                  <span>{commentsLang === 'ID' ? 'Regenerate' : 'Regenerate'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecMode(prev => prev === 'Auto' ? 'Manual' : 'Auto')}
+                  className={`h-[38px] flex items-center gap-1.5 rounded-xl border px-2.5 text-xs font-bold transition-all shadow-md shrink-0 ${
+                    recMode === 'Manual'
+                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500 hover:text-white'
+                      : 'border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700 hover:text-white'
+                  }`}
+                  title="Toggle between Auto-fill and Manual Override mode"
+                >
+                  <span>{recMode === 'Manual' ? 'Edit Manually (Active)' : 'Edit Manually'}</span>
+                </button>
+              </div>
+
+              {/* Right side: Bahasa / English & Save Report (#1) */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="h-[38px] flex items-center rounded-xl border border-slate-800 bg-slate-900 p-0.5 shadow-md shrink-0" title="Auto Translate & Grammar Check all texts">
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageSwitch('ID')}
+                    className={`h-full px-2.5 flex items-center justify-center text-xs font-bold rounded-lg transition-all ${
+                      commentsLang === 'ID' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Bahasa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageSwitch('EN')}
+                    className={`h-full px-2.5 flex items-center justify-center text-xs font-bold rounded-lg transition-all ${
+                      commentsLang === 'EN' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    English
+                  </button>
+                </div>
+
+                {/* #1: Save Report button positioned right next to Bahasa/English toggle */}
+                <button
+                  type="button"
+                  onClick={handleSaveReport}
+                  className="h-[38px] flex items-center gap-1.5 rounded-xl bg-[#107C41] hover:bg-[#0C5E31] px-3 text-xs font-bold text-white shadow-md shadow-[#107C41]/25 active:scale-95 transition-all cursor-pointer shrink-0"
+                  title="Save all report details and attach attributes to this photo entry in left column list"
+                >
+                  <Save className="h-4 w-4 shrink-0" />
+                  <span>Save Report</span>
+                </button>
+              </div>
+            </footer>
+          )}
           </div>
           )}
         </div>

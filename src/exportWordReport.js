@@ -252,8 +252,8 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
       photoContent.push(createDarkRow(`Location: ${locationText}`, true));
 
       photoContent.push(createDarkRow(isEnglish ? "Comments:" : "KOMENTAR:", true));
-      const komLines = typeof (photo.komentar || photo.caption || photo.observation) === 'string'
-        ? (photo.komentar || photo.caption || photo.observation).split('\n').map(l => l.trim()).filter(Boolean)
+      const komLines = typeof (photo.comments_text || photo.comments || photo.komentar || photo.observation) === 'string'
+        ? (photo.comments_text || photo.comments || photo.komentar || photo.observation).split('\n').map(l => l.trim()).filter(Boolean)
         : [];
       const finalKomLines = komLines.length > 0 ? komLines : ["No comments noted."];
       finalKomLines.forEach(line => {

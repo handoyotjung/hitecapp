@@ -911,7 +911,7 @@ export function getAISuggestions(commentText, grade = 'F2', language = 'EN') {
 export async function learnComment(user, project, photo) {
   if (!photo) return;
   const gradeShort = (photo.grade || 'F2').split(' - ')[0].trim();
-  const commentText = photo.komentar || photo.comments_text || photo.caption || '';
+  const commentText = photo.komentar || photo.comments_text || photo.comments || '';
   const recommendationText = photo.rekomendasi || (Array.isArray(photo.recommendations_json) ? photo.recommendations_json.join('\n') : '') || '';
   const aiSuggestedRec = photo.aiSuggestedRec || '';
   const manualOverride = Boolean(photo.manualOverride || recommendationText !== aiSuggestedRec);

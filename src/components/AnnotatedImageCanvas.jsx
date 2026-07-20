@@ -41,7 +41,7 @@ export default function AnnotatedImageCanvas({
   photo,
   onSaveAnnotatedImage,
   stageWidth = 800,
-  stageHeight = 450,
+  stageHeight = 240,
   photoCounter = ''
 }) {
   const [tool, setTool] = useState('select'); // 'doodle', 'arrow', 'rect', 'select'
@@ -255,7 +255,7 @@ export default function AnnotatedImageCanvas({
 
       {/* CANVAS STAGE */}
       <div
-        className={`w-full aspect-[16/9] relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden flex items-center justify-center select-none ${
+        className={`w-full h-[220px] sm:h-[240px] xl:h-[260px] relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden flex items-center justify-center select-none shrink-0 ${
           tool !== 'select' ? 'cursor-crosshair' : 'cursor-default'
         }`}
       >

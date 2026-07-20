@@ -6,17 +6,17 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
 
   return (
     <footer 
-      className="publish-bar-container publish-section w-full border-t border-slate-800 bg-[#020617] shrink-0 p-3 pb-safe z-50 sticky bottom-0 left-0 right-0 shadow-2xl"
-      style={{ position: 'sticky', bottom: 0, backgroundColor: '#020617', zIndex: 50, flexShrink: 0 }}
+      className="publish-bar-container publish-section w-full border-t border-slate-800 bg-[#020617] shrink-0 px-3 flex items-center z-50 sticky bottom-0 left-0 right-0 shadow-2xl"
+      style={{ position: 'sticky', bottom: 0, height: '63px', minHeight: '63px', maxHeight: '63px', backgroundColor: '#020617', zIndex: 50, flexShrink: 0 }}
     >
       {/* Arranged side-by-side in a single row */}
-      <div className="grid grid-cols-4 gap-1.5 w-full">
+      <div className="grid grid-cols-4 gap-1.5 w-full items-center">
         {/* 1. Save / Selected Button */}
         <button
           type="button"
           onClick={() => !isLocked && !isSaved && onExport('confirm')}
           disabled={isLocked || isSaved}
-          className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
+          className={`h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
               : isSaved
@@ -34,7 +34,7 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
           type="button"
           onClick={() => !isLocked && isSaved && onExport('pdf')}
           disabled={isLocked || !isSaved}
-          className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs transition-all truncate ${
+          className={`h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs transition-all truncate ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
               : isSaved
@@ -52,7 +52,7 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
           type="button"
           onClick={() => !isLocked && isSaved && onExport('ppt')}
           disabled={isLocked || !isSaved}
-          className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
+          className={`h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
               : isSaved
@@ -70,7 +70,7 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
           type="button"
           onClick={() => !isLocked && isSaved && onExport('word')}
           disabled={isLocked || !isSaved}
-          className={`px-2.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
+          className={`h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
               : isSaved
