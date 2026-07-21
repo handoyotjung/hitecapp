@@ -45,5 +45,10 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isSuperAdmin();
     }
+
+    // Feedback rules
+    match /feedback/{feedbackId} {
+      allow read, write: if true;
+    }
   }
 }

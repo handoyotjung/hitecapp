@@ -92,22 +92,32 @@ export function FeedbackModal({ open, onClose, user, isPro = false, lang = 'ID' 
         antigravity_prompt: synthesis.antigravity_prompt || ''
       };
 
-      // 1. Immediately save to localStorage (hitecmedia_mock_db) so /admin.html sees it instantly
+      const fullRecord = { id: 'fb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7), ...record };
+
+      // 1. Immediately save to localStorage (hitecmedia_mock_db & hitec_feedback_backlog) so /admin.html sees it instantly
       try {
         const cached = localStorage.getItem('hitecmedia_mock_db');
         const store = cached ? JSON.parse(cached) : {};
         if (!Array.isArray(store.feedback)) store.feedback = [];
-        const fullRecord = { id: 'fb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7), ...record };
+        store.feedback = store.feedback.filter(item => item.id !== fullRecord.id);
         store.feedback.unshift(fullRecord);
         localStorage.setItem('hitecmedia_mock_db', JSON.stringify(store));
         localStorage.setItem('hitec_feedback_backlog', JSON.stringify(store.feedback));
+
+        // Dispatch storage event & BroadcastChannel for instant live sync across open tabs
+        window.dispatchEvent(new CustomEvent('hitec_feedback_submitted', { detail: fullRecord }));
+        try {
+          const bc = new BroadcastChannel('hitec_feedback_channel');
+          bc.postMessage(fullRecord);
+          bc.close();
+        } catch (bcErr) {}
       } catch (errLocal) {
         console.warn('Could not save feedback to localStorage:', errLocal);
       }
 
       // 2. Persist feedback to Firebase / Firestore store
       try {
-        await addDoc(collection(db, 'feedback'), record);
+        await addDoc(collection(db, 'feedback'), fullRecord);
       } catch (errFb) {
         console.warn('Firestore feedback addDoc error:', errFb);
       }

@@ -326,11 +326,12 @@
                 </div>
                 <button
                   type="button"
-                  onclick="renderFeedbackSection()"
-                  title="Refresh Feedback List"
-                  class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs font-bold text-emerald-400 hover:bg-slate-800 hover:text-white transition-all"
+                  id="btn-fb-refresh"
+                  onclick="syncFirestoreFeedback()"
+                  title="Sync and Refresh Live Feedback List"
+                  class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs font-bold text-emerald-400 hover:bg-slate-800 hover:text-white transition-all flex items-center gap-1.5"
                 >
-                  ↻ Refresh
+                  <span id="btn-fb-refresh-icon" class="inline-block transition-transform">↻</span> Refresh
                 </button>
               </div>
             </div>
@@ -476,6 +477,30 @@
       photos: [],
       feedback: [
         {
+          id: "fb_demo_01",
+          userEmail: "demo@hitec.id",
+          userId: "demo@hitec.id",
+          planTier: "starter",
+          timestamp: "2026-07-21 14:10:00",
+          title: "ATEX Fire Safety Assessment Trial: Field Workflow & Live Backlog Sync",
+          summary: "Lead Fire Safety Assessor trial evaluator (demo@hitec.id) validated ATEX Zone (Directive 2014/34/EU & 1999/92/EC) equipment inspection workflows, requesting guaranteed cross-device feedback backlog sync, 7-day draft retention, and multi-device session support.",
+          satisfaction_note: "Highly Positive Trial — Assessor validated ATEX compliance checklist, requesting enhanced multi-device sync and fast draft persistence.",
+          transcript: [
+            { role: "assistant", text: "Halo PT Safety Indonesia Utama team! Terima kasih telah mengevaluasi HitecApp untuk penilaian ATEX & Explosive Atmosphere risk assessment. Bagaimana hasil uji coba Anda hari ini?" },
+            { role: "user", text: "Saya tes berulang kali akun demo@hitec.id untuk evaluasi klien fire safety assessor tingkat dunia. Pengen pastikan masukan feedback terintegrasi langsung di backlog admin dan tersinkronisasi lintas perangkat." },
+            { role: "assistant", text: "Terima kasih atas masukan penting ini! Feedback backlog kini tersinkronisasi otomatis lintas perangkat dan draft penilaian tersimpan aman selama 7 hari." }
+          ],
+          issues: [
+            { title: "Cross-Device Feedback Backlog Sync", description: "Ensure user feedback submitted by demo@hitec.id is synced live to Admin Backlog across all devices and refreshed automatically.", screen: "In-App Feedback Modal / Admin Backlog", severity: "high" },
+            { title: "Concurrent Assessor Session Support", description: "Support up to 10 simultaneous assessor logins on shared demo@hitec.id account without session termination.", screen: "Session Security & Authentication", severity: "medium" }
+          ],
+          feature_requests: [
+            { title: "ATEX Zone & Ex Protection Level Tagging", description: "Add quick selector for Zone 0/1/2, Zone 20/21/22, and Ex protection types (Ex d, Ex e, Ex i) in Photo Editor." },
+            { title: "7-Day Project Retention for Demo Accounts", description: "Maintain auto-saved photo drafts and report edits bound to project for 7 days for demo@hitec.id trial account." }
+          ],
+          antigravity_prompt: "Task: Ensure real-time cross-device feedback backlog sync for demo@hitec.id and PT Safety Indonesia Utama ATEX assessors\n\nContext:\nSubmitted by user account: demo@hitec.id (Lead Fire Safety Assessor Trial)\nEvaluation Summary: User validated ATEX compliance assessment workflow and requested guaranteed multi-device feedback backlog sync.\n\nIssues to address:\n1. [Screen: In-App Feedback / Admin Backlog | Severity: HIGH] Ensure live cross-device sync for user feedback submissions.\n2. [Screen: Session Security | Severity: MEDIUM] Maintain 10 concurrent logins for shared assessor accounts.\n\nAcceptance criteria:\n- Synchronize feedback submissions across all devices and local/cloud stores.\n- Provide one-click refresh and real-time listeners on admin backlog view."
+        },
+        {
           id: "fb_sample_01",
           userEmail: "budi.santoso@safety-id.co.id",
           userId: "budi.santoso@safety-id.co.id",
@@ -506,43 +531,117 @@
       let store = { ...defaultMockStore, whitelist_users: { ...defaultMockStore.whitelist_users } };
       const cached = localStorage.getItem("hitecmedia_mock_db");
       const backlog = localStorage.getItem("hitec_feedback_backlog");
-      let feedbackList = [];
+      
+      const feedbackMap = new Map();
 
+      // 1. Seed defaults first
+      (defaultMockStore.feedback || []).forEach(item => {
+        const key = item.id || (item.userEmail + '_' + item.timestamp);
+        feedbackMap.set(key, item);
+      });
+
+      // 2. Merge cached hitecmedia_mock_db
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
           store = { ...store, ...parsed };
-          store.whitelist_users = parsed.whitelist_users || {};
-          if (Array.isArray(parsed.feedback) && parsed.feedback.length > 0) {
-            feedbackList = parsed.feedback;
+          if (parsed.whitelist_users) store.whitelist_users = parsed.whitelist_users;
+          if (Array.isArray(parsed.feedback)) {
+            parsed.feedback.forEach(item => {
+              const key = item.id || (item.userEmail + '_' + item.timestamp);
+              const prev = feedbackMap.get(key) || {};
+              feedbackMap.set(key, { ...prev, ...item });
+            });
           }
         } catch (e) {}
       }
 
-      if (backlog && feedbackList.length === 0) {
+      // 3. Merge hitec_feedback_backlog
+      if (backlog) {
         try {
           const parsedBacklog = JSON.parse(backlog);
-          if (Array.isArray(parsedBacklog) && parsedBacklog.length > 0) {
-            feedbackList = parsedBacklog;
+          if (Array.isArray(parsedBacklog)) {
+            parsedBacklog.forEach(item => {
+              const key = item.id || (item.userEmail + '_' + item.timestamp);
+              const prev = feedbackMap.get(key) || {};
+              feedbackMap.set(key, { ...prev, ...item });
+            });
           }
         } catch (e) {}
       }
 
-      if (feedbackList.length === 0) {
-        feedbackList = defaultMockStore.feedback || [];
-      }
+      store.feedback = Array.from(feedbackMap.values()).sort((a, b) => new Date(b.timestamp || b.created_at || 0) - new Date(a.timestamp || a.created_at || 0));
 
-      store.feedback = feedbackList;
       // Only seed default accounts if localStorage is completely uninitialized or missing a super_admin
       if (!cached) {
         store.whitelist_users = { ...defaultMockStore.whitelist_users };
       } else if (!Object.values(store.whitelist_users || {}).some(u => u.role === 'super_admin' || u.role === 'admin')) {
-        // Ensure at least the primary super_admin exists as a failsafe against accidental lockout
         if (!store.whitelist_users["handoyo.tjung@gmail.com"]) {
           store.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
         }
       }
       return store;
+    }
+
+    async function syncFirestoreFeedback() {
+      const btn = document.getElementById('btn-fb-refresh');
+      const icon = document.getElementById('btn-fb-refresh-icon');
+      if (icon) icon.classList.add('animate-spin');
+
+      try {
+        let fetchedList = [];
+        // Attempt REST API fetch from Cloudflare / Firebase
+        try {
+          const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/feedback');
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.documents)) {
+              data.documents.forEach(docItem => {
+                const fields = docItem.fields || {};
+                const parseVal = (v) => {
+                  if (!v) return '';
+                  if (v.stringValue !== undefined) return v.stringValue;
+                  if (v.integerValue !== undefined) return parseInt(v.integerValue);
+                  if (v.timestampValue !== undefined) return v.timestampValue;
+                  if (v.arrayValue) return (v.arrayValue.values || []).map(parseVal);
+                  if (v.mapValue) {
+                    const m = {};
+                    Object.keys(v.mapValue.fields || {}).forEach(k => { m[k] = parseVal(v.mapValue.fields[k]); });
+                    return m;
+                  }
+                  return v;
+                };
+                const item = {};
+                Object.keys(fields).forEach(k => { item[k] = parseVal(fields[k]); });
+                item.id = docItem.name ? docItem.name.split('/').pop() : 'fb_' + Date.now();
+                fetchedList.push(item);
+              });
+            }
+          }
+        } catch (errRest) {}
+
+        const store = loadStore();
+        if (fetchedList.length > 0) {
+          const feedbackMap = new Map();
+          (store.feedback || []).forEach(i => {
+            const key = i.id || (i.userEmail + '_' + i.timestamp);
+            feedbackMap.set(key, i);
+          });
+          fetchedList.forEach(i => {
+            const key = i.id || (i.userEmail + '_' + i.timestamp);
+            const prev = feedbackMap.get(key) || {};
+            feedbackMap.set(key, { ...prev, ...i });
+          });
+          store.feedback = Array.from(feedbackMap.values()).sort((a, b) => new Date(b.timestamp || b.created_at || 0) - new Date(a.timestamp || a.created_at || 0));
+          saveStore(store);
+          localStorage.setItem("hitec_feedback_backlog", JSON.stringify(store.feedback));
+        }
+      } catch (err) {
+        console.error("syncFirestoreFeedback error:", err);
+      } finally {
+        if (icon) icon.classList.remove('animate-spin');
+        renderFeedbackSection();
+      }
     }
 
     function saveStore(store) {
@@ -623,6 +722,7 @@
       loadEmailAlerts();
       renderFeedbackSection();
       renderCommentLogs();
+      syncFirestoreFeedback();
     }
 
     function renderOnlineSessions() {
@@ -1902,6 +2002,17 @@ Acceptance Criteria:
         renderCommentLogs();
       }
     });
+
+    window.addEventListener('hitec_feedback_submitted', () => {
+      syncFirestoreFeedback();
+    });
+
+    try {
+      const bc = new BroadcastChannel('hitec_feedback_channel');
+      bc.onmessage = () => {
+        syncFirestoreFeedback();
+      };
+    } catch (bcErr) {}
   </script>
 
   <!-- Email Preview Modal -->
