@@ -115,7 +115,18 @@ export function FeedbackModal({ open, onClose, user, isPro = false, lang = 'ID' 
         console.warn('Could not save feedback to localStorage:', errLocal);
       }
 
-      // 2. Persist feedback to Firebase / Firestore store
+      // 2. POST to /api/feedback endpoint for real-time cross-device & incognito cloud sync
+      try {
+        await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fullRecord)
+        });
+      } catch (errApi) {
+        console.warn('API feedback post note:', errApi);
+      }
+
+      // 3. Persist feedback to Firebase / Firestore store
       try {
         await addDoc(collection(db, 'feedback'), fullRecord);
       } catch (errFb) {

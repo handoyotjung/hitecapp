@@ -590,7 +590,19 @@
 
       try {
         let fetchedList = [];
-        // Attempt REST API fetch from Cloudflare / Firebase
+
+        // 1. Fetch from /api/feedback Cloudflare Pages Function endpoint for cross-device/incognito cloud sync
+        try {
+          const resApi = await fetch('/api/feedback');
+          if (resApi.ok) {
+            const apiItems = await resApi.json();
+            if (Array.isArray(apiItems)) {
+              fetchedList.push(...apiItems);
+            }
+          }
+        } catch (errApi) {}
+
+        // 2. Attempt REST API fetch from Cloudflare / Firebase
         try {
           const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/feedback');
           if (res.ok) {
@@ -723,6 +735,11 @@
       renderFeedbackSection();
       renderCommentLogs();
       syncFirestoreFeedback();
+
+      // 5-second real-time auto polling for feedback submitted from any device or incognito mode
+      setInterval(() => {
+        syncFirestoreFeedback();
+      }, 5000);
     }
 
     function renderOnlineSessions() {
