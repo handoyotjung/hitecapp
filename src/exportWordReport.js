@@ -13,8 +13,8 @@ import {
 } from 'docx';
 import { saveAs } from 'file-saver';
 
-// HELPER 1: 2 COLUMN TABLE (70% / 30%)
-function createTwoColTable(label, value, labelColor, valueColor) {
+// HELPER 1: 2 COLUMN TABLE (70% / 30%) - WHITE PAPER THEME
+function createTwoColTable(label, value, labelBg = "F1F5F9", valueBg = "E2E8F0") {
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
@@ -27,13 +27,15 @@ function createTwoColTable(label, value, labelColor, valueColor) {
                 children: [
                   new TextRun({
                     text: String(label || ''),
-                    color: "FFFFFF",
-                    size: 22
+                    color: "1E293B",
+                    bold: true,
+                    size: 20
                   })
                 ]
               })
             ],
-            shading: { fill: labelColor }
+            shading: { fill: labelBg },
+            margins: { top: 72, bottom: 72, left: 100, right: 100 }
           }),
           new TableCell({
             width: { size: 30, type: WidthType.PERCENTAGE },
@@ -42,14 +44,15 @@ function createTwoColTable(label, value, labelColor, valueColor) {
                 children: [
                   new TextRun({
                     text: String(value || ''),
-                    color: "FFFFFF",
+                    color: "0F172A",
                     bold: true,
-                    size: 22
+                    size: 20
                   })
                 ]
               })
             ],
-            shading: { fill: valueColor }
+            shading: { fill: valueBg },
+            margins: { top: 72, bottom: 72, left: 100, right: 100 }
           })
         ]
       })
@@ -72,29 +75,31 @@ function getImageSize(bytes) {
   });
 }
 
-// HELPER 3: DARK ROW & BULLET
-function createDarkRow(text, bold = false) {
+// HELPER 3: LIGHT PAPER ROW & BULLET
+function createLightRow(text, bold = false, color = "1E293B") {
   return new Paragraph({
     children: [
       new TextRun({
         text: String(text || ''),
-        color: "FFFFFF",
+        color: color,
         bold: bold,
         size: 22
       })
-    ]
+    ],
+    spacing: { before: 40, after: 40 }
   });
 }
 
-function createDarkBullet(text) {
+function createLightBullet(text, color = "334155") {
   return new Paragraph({
     children: [
       new TextRun({
-        text: `- ${String(text || '')}`,
-        color: "FFFFFF",
-        size: 22
+        text: `• ${String(text || '')}`,
+        color: color,
+        size: 20
       })
-    ]
+    ],
+    spacing: { before: 30, after: 30 }
   });
 }
 
@@ -245,9 +250,26 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
               })
             ],
             alignment: AlignmentType.CENTER,
-            spacing: { after: isOddIndex ? 0 : 360 } // ~18pt space between 1st and 2nd photo on the page
+            spacing: { after: 120 }
           })
         );
+
+        const captionText = photo.caption || photo.comments_text || photo.comments || "";
+        if (captionText && captionText.trim() !== "") {
+          docChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: captionText.trim(),
+                  color: "1E293B",
+                  size: 20
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: isOddIndex ? 0 : 280 }
+            })
+          );
+        }
       }
     } else {
       const maxWidth = 500;
@@ -282,30 +304,30 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
       const standardsText = photo.standards || photo.standard || '-';
       const locationText = photo.location || project.location || 'Site';
 
-      photoContent.push(createDarkRow(`${filenameText}, ${dateText}`, true));
-      photoContent.push(createDarkRow(`Standard references ${standardsText}`));
-      photoContent.push(createDarkRow(`Location: ${locationText}`, true));
+      photoContent.push(createLightRow(`${filenameText}, ${dateText}`, true, "0F172A"));
+      photoContent.push(createLightRow(`Standard references: ${standardsText}`, false, "334155"));
+      photoContent.push(createLightRow(`Location: ${locationText}`, true, "0F172A"));
 
-      photoContent.push(createDarkRow(isEnglish ? "Comments:" : "KOMENTAR:", true));
+      photoContent.push(createLightRow(isEnglish ? "Comments:" : "KOMENTAR:", true, "C00000"));
       const komLines = typeof (photo.comments_text || photo.comments || photo.komentar || photo.observation) === 'string'
         ? (photo.comments_text || photo.comments || photo.komentar || photo.observation).split('\n').map(l => l.trim()).filter(Boolean)
         : [];
       const finalKomLines = komLines.length > 0 ? komLines : ["No comments noted."];
       finalKomLines.forEach(line => {
-        if (line) photoContent.push(createDarkBullet(line));
+        if (line) photoContent.push(createLightBullet(line));
       });
 
-      // GRADE TABLE 70/30
+      // GRADE TABLE 70/30 - WHITE PAPER THEME
       photoContent.push(
         createTwoColTable(
           isEnglish ? "Grades Priority" : "Tingkat Prioritas",
           gradeShort,
-          "404040",
-          "7A7A00"
+          "F1F5F9",
+          "FEF3C7"
         )
       );
 
-      photoContent.push(createDarkRow(isEnglish ? "Recommendation:" : "REKOMENDASI:", true));
+      photoContent.push(createLightRow(isEnglish ? "Recommendation:" : "REKOMENDASI:", true, "1F4E79"));
       let recs = photo.rekomendasi || photo.recommendation || photo.recommendations_json || photo.recommendations;
       if (typeof recs === 'string') {
         recs = recs.split('\n').map(r => r.trim()).filter(Boolean);
@@ -314,20 +336,20 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
         recs = [photo.rekomendasi || photo.recommendation || "No recommendation noted."];
       }
       recs.forEach(line => {
-        if (line) photoContent.push(createDarkBullet(line));
+        if (line) photoContent.push(createLightBullet(line));
       });
 
-      // STATUS TABLE 70/30
+      // STATUS TABLE 70/30 - WHITE PAPER THEME
       photoContent.push(
         createTwoColTable(
           isEnglish ? "Latest status" : "Status Terbaru",
           "Open",
-          "404040",
-          "404040"
+          "F1F5F9",
+          "DCFCE7"
         )
       );
 
-      // WRAP EVERYTHING IN 1 DARK CONTAINER TABLE WITH 10PT PADDING
+      // WRAP EVERYTHING IN CLEAN WHITE PAPER CONTAINER TABLE WITH 10PT PADDING
       const containerTable = new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: [
@@ -335,7 +357,7 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
             children: [
               new TableCell({
                 children: photoContent,
-                shading: { fill: "2B2B2B" },
+                shading: { fill: "FFFFFF" },
                 margins: { top: 144, bottom: 144, left: 144, right: 144 } // ~10pt padding
               })
             ]
