@@ -15,21 +15,6 @@
   </head>
   <body class="h-full bg-slate-950 text-slate-50 antialiased selection:bg-indigo-500 selection:text-white overflow-hidden">
     <div id="root" class="h-full"></div>
-    <script>
-      // Automatic Asset & Stylesheet Load Error Recovery: force cache-busting query parameter if asset load error occurs
-      window.addEventListener('error', function(e) {
-        var msg = e && e.message ? String(e.message).toLowerCase() : '';
-        var target = e && e.target ? e.target : null;
-        var isAssetError = msg.indexOf('script') !== -1 || msg.indexOf('style') !== -1 || msg.indexOf('mime type') !== -1 || (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK'));
-        if (isAssetError) {
-          var reloadKey = 'hitec_asset_reload_' + Math.floor(Date.now() / 15000);
-          if (!sessionStorage.getItem(reloadKey)) {
-            sessionStorage.setItem(reloadKey, '1');
-            window.location.replace(window.location.pathname + '?v=' + Date.now());
-          }
-        }
-      }, true);
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

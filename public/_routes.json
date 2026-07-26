@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": ["/assets/*", "/admin.html", "/favicon.ico", "/logo-hs-white.png", "/logo-hs-original.png", "/logo-icon.png"]
+}
