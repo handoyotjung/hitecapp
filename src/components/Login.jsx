@@ -98,7 +98,7 @@ export default function Login({ onLoginSuccess, errorOverride }) {
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-500/25 bg-neutral-950/90 p-8 shadow-2xl shadow-emerald-950/30 backdrop-blur-md">
         <div className="flex flex-col items-center text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-emerald-700/20 border border-emerald-500/40 p-3.5 shadow-lg shadow-emerald-500/10 mb-2">
-            <img src="/logo-hs-white.png" alt="HS Logo" className="h-full w-full object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+            <img src="/logo-hs-white.png" alt="HS Logo" style={{ maxWidth: '64px', maxHeight: '64px', objectFit: 'contain' }} className="h-full w-full object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
           </div>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white font-outfit">
             HitecApp
