@@ -121,7 +121,7 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
     }
   };
 
-  const isAtLimit = photosUsed >= photosLimit;
+  const isAtLimit = false;
   const handleUploadFolderClick = () => onUploadFolder ? onUploadFolder() : folderInputRef.current?.click();
   const handleSelectPhotosClick = () => {
     if (onSelectPhotos) {
@@ -173,7 +173,7 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
         <button
           type="button"
           onClick={handleUploadFolderClick}
-          disabled={isLocked || isAtLimit || isCompressing}
+          disabled={isLocked || isCompressing}
           className={`flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed'
@@ -187,7 +187,7 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
         <button
           type="button"
           onClick={handleSelectPhotosClick}
-          disabled={isLocked || isAtLimit || isCompressing}
+          disabled={isLocked || isCompressing}
           className={`flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed'
@@ -204,10 +204,6 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
           <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-emerald-400" />
           <span>Compressing photos to &lt; 300KB...</span>
         </div>
-      )}
-
-      {isAtLimit && (
-        <p className="text-xs text-red-400 mt-2 text-center">Daily limit reached: {photosLimit}/100</p>
       )}
     </div>
   );

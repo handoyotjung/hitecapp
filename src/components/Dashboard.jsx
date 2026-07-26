@@ -1155,18 +1155,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       let status = 'Queued';
       let error = null;
 
-      // 1. Client size check
+      // Client size check (< 300 KB)
       if (sizeKb > planLimits.maxKb) {
         oversizedFiles.push({ name: file.name, sizeKb: Math.round(sizeKb) });
         return;
-      } 
-      // 2. Client daily count check
-      else if (currentRemaining <= 0) {
-        status = 'Blocked';
-        error = 'Daily Limit Reached';
-        limitReachedHit = true;
-      } else {
-        currentRemaining--;
       }
 
       // Find highest existing sequence number for today across queue, projectPhotos, and newly added items
@@ -1208,29 +1200,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         originalName: file.name,
         finalFilename,
         sizeKb,
-        status,
-        error,
+        status: 'Queued',
+        error: null,
         progress: 0,
         retries: 0,
         thumbnailUrl   // instant local preview URL
       });
     });
 
-    // Show alert popup if file exceeded 300 KB or daily usage hit limit
+    // Show alert popup if file exceeded 300 KB
     if (oversizedFiles.length > 0) {
       setAlertPopup({
         title: "File Size Limit Exceeded",
         message: `${oversizedFiles.length === 1 ? `"${oversizedFiles[0].name}" (${oversizedFiles[0].sizeKb} KB)` : `${oversizedFiles.length} photos`} exceeds your plan limit of ${planLimits.maxKb} KB. Maximum allowed size per photo is ${planLimits.maxKb} KB (300 KB).`,
         type: 'error'
       });
-    } else if (limitReachedHit) {
-      setAlertPopup({
-        title: "Daily Upload Limit Reached",
-        message: `You have reached your daily upload limit of ${planLimits.maxDaily} photos. Please upgrade your plan or try again tomorrow.`,
-        type: 'warning',
-        showUpgradeButton: true
-      });
-      setShowUpgradeModal(true);
     }
 
     // Immediately commit all queue items to state — thumbnails render at once

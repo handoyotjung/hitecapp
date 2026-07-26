@@ -29,16 +29,14 @@ export default function App() {
         const parsed = JSON.parse(localSession);
         if (parsed && parsed.email) {
           const role = parsed.role || 'user';
-          const dailyLimit = typeof parsed.plan === 'object' && parsed.plan?.dailyPhotoLimit
-            ? parsed.plan.dailyPhotoLimit
-            : (parsed.dailyPhotoLimit || (role === 'user' ? 100 : 9999));
+          const monthlyLimit = role === 'user' ? 300 : 9999;
           setUser({
             ...parsed,
             role: role,
             viewMode: parsed.viewMode || localStorage.getItem('hitec_view_mode') || 'Mobile',
             plan: {
               ...((typeof parsed.plan === 'object' && parsed.plan) || {}),
-              dailyPhotoLimit: dailyLimit
+              monthlyReportLimit: monthlyLimit
             }
           });
           setLoading(false);
@@ -64,9 +62,7 @@ export default function App() {
           if (docSnap.exists()) {
             const userData = docSnap.data();
             const role = userData.role || firebaseUser.role || 'user';
-            const dailyLimit = typeof userData.plan === 'object' && userData.plan?.dailyPhotoLimit
-              ? userData.plan.dailyPhotoLimit
-              : (userData.dailyPhotoLimit || firebaseUser.plan?.dailyPhotoLimit || (role === 'user' ? 100 : 9999));
+            const monthlyLimit = role === 'user' ? 300 : 9999;
             const sessionUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
@@ -76,7 +72,7 @@ export default function App() {
               viewMode: userData.viewMode || localStorage.getItem('hitec_view_mode') || 'Mobile',
               plan: {
                 ...((typeof userData.plan === 'object' && userData.plan) || {}),
-                dailyPhotoLimit: dailyLimit
+                monthlyReportLimit: monthlyLimit
               },
               companyId: userData.company_id || 'default_company'
             };
