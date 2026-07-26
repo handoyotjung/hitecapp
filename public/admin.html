@@ -891,41 +891,58 @@
         }
       } catch (e) {}
 
-      const activeEmails = Array.from(activeEmailsSet);
+      const allAccountEmails = Array.from(new Set([...Object.keys(users), ...activeEmailsSet])).sort((a, b) => {
+        const isAOnline = activeEmailsSet.has(a.toLowerCase());
+        const isBOnline = activeEmailsSet.has(b.toLowerCase());
+        if (isAOnline !== isBOnline) return isAOnline ? -1 : 1;
+        return a.localeCompare(b);
+      });
 
       if (countEl) {
-        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${activeEmails.length} Online`;
+        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${activeEmailsSet.size} Online / ${allAccountEmails.length} Registered Accounts`;
       }
 
-      if (activeEmails.length === 0) {
+      if (allAccountEmails.length === 0) {
         tbody.innerHTML = `
           <tr>
             <td colspan="6" class="py-8 text-center text-slate-400 font-medium">
-              No assessors are currently logged in online.
+              No assessor accounts found. Click <strong>+ Add New Account</strong> above to register an account.
             </td>
           </tr>
         `;
         return;
       }
 
-      activeEmails.forEach(email => {
-        const u = users[email] || { role: (sessionsMap[email] && sessionsMap[email].role) || 'user' };
-        const s = sessionsMap[email] || {};
+      allAccountEmails.forEach(email => {
+        const cleanE = email.toLowerCase().trim();
+        const isOnline = activeEmailsSet.has(cleanE);
+        const u = users[cleanE] || users[email] || { role: (sessionsMap[cleanE] && sessionsMap[cleanE].role) || 'user' };
+        const s = sessionsMap[cleanE] || {};
+
         const roleBadge = u.role === 'super_admin' 
           ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Super Admin</span>'
           : u.role === 'admin'
           ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Admin</span>'
           : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
 
-        const deviceName = u.session_device_name || s.device_name || 'Windows PC - Assessor Device';
-        const ipAddress = u.session_ip_address || s.ip_address || '127.0.0.1';
-        const loginAt = u.session_login_at ? new Date(u.session_login_at).toLocaleString() : (s.login_at ? new Date(s.login_at).toLocaleString() : 'Active Now');
+        const statusBadge = isOnline
+          ? '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online</span>'
+          : '<span class="rounded bg-slate-800/80 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Offline</span>';
+
+        const deviceName = isOnline ? (u.session_device_name || s.device_name || 'Assessor Mobile / Web') : 'Offline / Inactive';
+        const ipAddress = isOnline ? (u.session_ip_address || s.ip_address || '127.0.0.1') : '—';
+        const loginAt = isOnline 
+          ? (u.session_login_at ? new Date(u.session_login_at).toLocaleString() : (s.login_at ? new Date(s.login_at).toLocaleString() : 'Active Now'))
+          : 'Offline';
 
         const tr = document.createElement('tr');
-        tr.className = 'border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors';
+        tr.className = `border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors ${isOnline ? 'bg-emerald-950/10' : ''}`;
         tr.innerHTML = `
           <td class="py-3.5 pr-2">
-            <p class="font-bold text-white">${email}</p>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white">${cleanE}</span>
+              ${statusBadge}
+            </div>
           </td>
           <td class="py-3.5 px-2">
             ${roleBadge}
@@ -933,16 +950,20 @@
           <td class="py-3.5 px-2 font-medium text-slate-300">
             ${deviceName}
           </td>
-          <td class="py-3.5 px-2 font-mono text-emerald-400">
+          <td class="py-3.5 px-2 font-mono ${isOnline ? 'text-emerald-400' : 'text-slate-500'}">
             ${ipAddress}
           </td>
           <td class="py-3.5 px-2 text-slate-400">
             ${loginAt}
           </td>
           <td class="py-3.5 pl-2 text-right">
-            <button onclick="adminForceLogoutSession('${email}')" class="rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-600 px-3 py-1 text-xs font-bold text-rose-400 hover:text-white transition-all">
-              Force Logout
-            </button>
+            ${isOnline ? `
+              <button onclick="adminForceLogoutSession('${cleanE}')" class="rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-600 px-3 py-1 text-xs font-bold text-rose-400 hover:text-white transition-all">
+                Force Logout
+              </button>
+            ` : `
+              <span class="text-slate-500 text-[10px] italic">No active session</span>
+            `}
           </td>
         `;
         tbody.appendChild(tr);
