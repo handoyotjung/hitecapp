@@ -683,20 +683,11 @@
       document.getElementById('admin-container').classList.remove('hidden');
       document.getElementById('admin-email').innerText = sessionUser.email;
       
-      const roleSelect = document.getElementById('user-role');
       const titleElem = document.getElementById('dashboard-title-text');
       if (sessionUser.role === 'super_admin') {
-        titleElem.innerText = 'Super Admin Dashboard';
-        roleSelect.innerHTML = `
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
-          <option value="super_admin">Super Admin</option>
-        `;
+        if (titleElem) titleElem.innerText = 'Super Admin Dashboard';
       } else {
-        titleElem.innerText = 'Admin Dashboard';
-        roleSelect.innerHTML = `
-          <option value="user">User</option>
-        `;
+        if (titleElem) titleElem.innerText = 'Admin Dashboard';
       }
 
       initAdminPanel();
@@ -730,11 +721,11 @@
     function setExpiryTemplate(months) {
       const d = new Date();
       d.setMonth(d.getMonth() + months);
-      document.getElementById('user-expires').value = d.toISOString().split('T')[0];
+      const el = document.getElementById('user-expires-inline');
+      if (el) el.value = d.toISOString().split('T')[0];
     }
 
     function initAdminPanel() {
-      document.getElementById('user-expires').value = '';
       renderUsers();
       renderOnlineSessions();
       syncReportDownloads();
