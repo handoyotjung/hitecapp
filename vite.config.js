@@ -14,6 +14,13 @@ export default defineConfig({
     allowedHosts: true
   },
   build: {
-    cssCodeSplit: false
+    cssCodeSplit: false,
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]'
+      }
+    }
   }
 })
