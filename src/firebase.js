@@ -75,8 +75,7 @@ const mockStore = {
   whitelist_users: {
     "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
     "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
-    "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
-    "dummy@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
+    "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
   },
   plan: {
     "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
@@ -93,6 +92,9 @@ const loadMockStore = () => {
     try {
       const parsed = JSON.parse(cached);
       parsed.whitelist_users = parsed.whitelist_users || {};
+      delete parsed.whitelist_users["dummy@hitec.id"];
+      delete parsed.whitelist_users["budi.santoso@safety-id.co.id"];
+
       if (!parsed.whitelist_users["handoyo.tjung@gmail.com"]) {
         parsed.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
       }
@@ -101,9 +103,6 @@ const loadMockStore = () => {
       }
       if (!parsed.whitelist_users["demo@hitec.id"]) {
         parsed.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
-      }
-      if (!parsed.whitelist_users["dummy@hitec.id"]) {
-        parsed.whitelist_users["dummy@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
       }
       if (!Array.isArray(parsed.projects)) {
         parsed.projects = [];

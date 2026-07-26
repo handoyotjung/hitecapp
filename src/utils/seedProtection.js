@@ -12,10 +12,11 @@ export function ensureStaticAccountsExist(store) {
     store.whitelist_users = {};
   }
 
+  delete store.whitelist_users["dummy@hitec.id"];
+  delete store.whitelist_users["budi.santoso@safety-id.co.id"];
+
   const staticUsers = {
     "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword" },
-    "dummy@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword" },
-    "budi.santoso@safety-id.co.id": { role: "user", company_id: "safety_id", plan: "pro", password: "demopassword" },
     "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword" },
     "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword" }
   };

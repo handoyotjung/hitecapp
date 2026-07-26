@@ -71,14 +71,13 @@ const loadStore = () => {
       password: store.whitelist_users[handoyoEmail]?.password || "adminpassword"
     };
   }
+  delete store.whitelist_users["dummy@hitec.id"];
+  delete store.whitelist_users["budi.santoso@safety-id.co.id"];
   if (!store.whitelist_users["admin@hitec.id"]) {
     store.whitelist_users["admin@hitec.id"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" };
   }
   if (!store.whitelist_users["demo@hitec.id"]) {
     store.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
-  }
-  if (!store.whitelist_users["dummy@hitec.id"]) {
-    store.whitelist_users["dummy@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
   }
   return store;
 };

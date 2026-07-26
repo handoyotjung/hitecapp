@@ -498,9 +498,7 @@
       whitelist_users: {
         "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
         "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
-        "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
-        "dummy@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" },
-        "budi.santoso@safety-id.co.id": { role: "user", company_id: "safety_id", plan: "pro", password: "demopassword", created_at: "2026-06-01" }
+        "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
       },
       plan: {
         "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
@@ -532,30 +530,6 @@
             { title: "7-Day Project Retention for Demo Accounts", description: "Maintain auto-saved photo drafts and report edits bound to project for 7 days for demo@hitec.id trial account." }
           ],
           antigravity_prompt: "Task: Ensure real-time cross-device feedback backlog sync for demo@hitec.id and PT Safety Indonesia Utama ATEX assessors\n\nContext:\nSubmitted by user account: demo@hitec.id (Lead Fire Safety Assessor Trial)\nEvaluation Summary: User validated ATEX compliance assessment workflow and requested guaranteed multi-device feedback backlog sync.\n\nIssues to address:\n1. [Screen: In-App Feedback / Admin Backlog | Severity: HIGH] Ensure live cross-device sync for user feedback submissions.\n2. [Screen: Session Security | Severity: MEDIUM] Maintain 10 concurrent logins for shared assessor accounts.\n\nAcceptance criteria:\n- Synchronize feedback submissions across all devices and local/cloud stores.\n- Provide one-click refresh and real-time listeners on admin backlog view."
-        },
-        {
-          id: "fb_sample_01",
-          userEmail: "budi.santoso@safety-id.co.id",
-          userId: "budi.santoso@safety-id.co.id",
-          planTier: "pro",
-          timestamp: "2026-07-14 10:15:22",
-          title: "Product Feedback: 2 UX/Performance Item(s) Reported",
-          summary: "User (budi.santoso@safety-id.co.id, Plan: PRO) reported slow Word export when canvas has high resolution images and requested dark mode toggle.",
-          satisfaction_note: "Constructive Feedback — Satisfied overall with minor optimization requests.",
-          transcript: [
-            { role: "assistant", text: "Halo! Senang bisa ngobrol sebentar. Bagaimana kesan pertama Anda saat mulai menggunakan HitecApp dan proses onboarding-nya?" },
-            { role: "user", text: "Kesan pertama mantap sih, onboarding simpel dan langsung paham." },
-            { role: "assistant", text: "Senang sekali dengarnya kalau bagian itu terasa mudah! Bagaimana pengalaman Anda dengan alur kerja utama kami: dari Upload foto → Anotasi canvas → Buat Rekomendasi AI → hingga Export laporan?" },
-            { role: "user", text: "Alur udah oke, cuma pas export word rasanya agak lemot kalau fotonya banyak resolusi tinggi." }
-          ],
-          issues: [
-            { title: "Performance latency during Export Report / Word", description: "pas export word rasanya agak lemot kalau fotonya banyak resolusi tinggi", screen: "Export Report / Word", severity: "medium" },
-            { title: "UX confusion or workflow friction", description: "kadang bingung ukuran brush canvas", screen: "Annotated Canvas", severity: "low" }
-          ],
-          feature_requests: [
-            { title: "User Feature Request", description: "Pengen ada opsi shortcut keyboard buat anotasi canvas supaya lebih cepat" }
-          ],
-          antigravity_prompt: "Task: Resolve HitecApp product experience issues and evaluate feature enhancement proposals\n\nContext:\nSubmitted by user account: budi.santoso@safety-id.co.id (PRO Plan)\nEvaluation Summary: User reported slow Word export when canvas has high resolution images.\n\nIssues to address:\n1. [Screen: Export Report / Word | Severity: MEDIUM] Performance latency during Export Report / Word: \"pas export word rasanya agak lemot kalau fotonya banyak resolusi tinggi\"\n2. [Screen: Annotated Canvas | Severity: LOW] UX confusion or workflow friction: \"kadang bingung ukuran brush canvas\"\n\nFeature Requests to evaluate:\n1. User Feature Request: \"Pengen ada opsi shortcut keyboard buat anotasi canvas supaya lebih cepat\"\n\nAcceptance criteria:\n- Optimize Word export performance for large image counts.\n- Maintain existing dark slate + emerald HitecApp visual identity across all updated workflows."
         }
       ]
     };
@@ -605,11 +579,13 @@
 
       store.feedback = Array.from(feedbackMap.values()).sort((a, b) => new Date(b.timestamp || b.created_at || 0) - new Date(a.timestamp || a.created_at || 0));
 
-      // Always ensure all default static accounts exist with their settings
+      // Always ensure core default static accounts exist and purge removed accounts
       store.whitelist_users = {
         ...defaultMockStore.whitelist_users,
         ...(store.whitelist_users || {})
       };
+      delete store.whitelist_users["dummy@hitec.id"];
+      delete store.whitelist_users["budi.santoso@safety-id.co.id"];
 
       return store;
     }
@@ -1098,9 +1074,7 @@
       // Ensure default usage overrides exist for user accounts if not previously set
       if (!store.daily_usage_overrides) {
         store.daily_usage_overrides = {
-          "demo@hitec.id": 5,
-          "dummy@hitec.id": 12,
-          "budi.santoso@safety-id.co.id": 18
+          "demo@hitec.id": 5
         };
       }
 
@@ -1109,12 +1083,8 @@
       if (!store.whitelist_users["demo@hitec.id"]) {
         store.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
       }
-      if (!store.whitelist_users["dummy@hitec.id"]) {
-        store.whitelist_users["dummy@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
-      }
-      if (!store.whitelist_users["budi.santoso@safety-id.co.id"]) {
-        store.whitelist_users["budi.santoso@safety-id.co.id"] = { role: "user", company_id: "safety_id", plan: "pro", password: "demopassword", created_at: "2026-06-01" };
-      }
+      delete store.whitelist_users["dummy@hitec.id"];
+      delete store.whitelist_users["budi.santoso@safety-id.co.id"];
 
       const users = store.whitelist_users || {};
       const statusFilter = document.getElementById('du-status-filter')?.value || 'all';

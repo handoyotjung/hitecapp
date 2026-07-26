@@ -37,11 +37,13 @@ export function runDatabaseMigrations(store) {
       store.whitelist_users = {};
     }
 
-    // Additive migration: Ensure static accounts exist without overwriting custom passwords
+    // Purge unwanted deprecated accounts permanently
+    delete store.whitelist_users["dummy@hitec.id"];
+    delete store.whitelist_users["budi.santoso@safety-id.co.id"];
+
+    // Additive migration: Ensure core static accounts exist without overwriting custom passwords
     const requiredStaticAccounts = {
       "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword" },
-      "dummy@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword" },
-      "budi.santoso@safety-id.co.id": { role: "user", company_id: "safety_id", plan: "pro", password: "demopassword" },
       "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword" },
       "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword" }
     };
