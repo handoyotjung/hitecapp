@@ -1894,7 +1894,7 @@
 
       function purgeDemoAccounts() {
         const store = loadStore();
-        const demoEmails = ["demo@hitec.id", "dummy@hitec.id", "admin@hitec.id", "johan@example.com", "budi.santoso@safety-id.co.id"];
+        const demoEmails = ["demo@hitec.id", "admin@hitec.id"];
         let removedCount = 0;
         demoEmails.forEach(email => {
           if (store.whitelist_users[email]) {
