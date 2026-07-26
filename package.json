@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:backup": "node .agent/scripts/db_backup_restore.cjs backup",
+    "db:restore": "node .agent/scripts/db_backup_restore.cjs restore",
+    "verify:deploy": "node .agent/scripts/verify_deployment.cjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
