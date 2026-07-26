@@ -65,22 +65,29 @@ export default function Header({ isSaving, isError }) {
         /> 
       </div>
 
-      {/* CENTER: DYNAMIC MONTHLY USAGE - TRACKS GENERATED REPORTS */}
+      {/* CENTER: DYNAMIC MONTHLY USAGE FOR USERS / UNLIMITED FOR ADMINS */}
       <div className="flex-1 flex items-center justify-center px-4 min-w-0">
-        <div className="flex items-center gap-3 w-full max-w-xl">
-          <span className="text-xs text-gray-400 uppercase tracking-wider flex-shrink-0">MONTHLY USAGE</span>
-          
-          <div className="flex-1 h-1.5 bg-[#1F2937] rounded-full overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-              style={{ width: `${percent}%` }}
-            />
-          </div>
+        {!isAdmin ? (
+          <div className="flex items-center gap-3 w-full max-w-xl">
+            <span className="text-xs text-gray-400 uppercase tracking-wider flex-shrink-0">MONTHLY USAGE</span>
+            
+            <div className="flex-1 h-1.5 bg-[#1F2937] rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                style={{ width: `${percent}%` }}
+              />
+            </div>
 
-          <span className={`text-xs font-semibold flex-shrink-0 ${textColor}`}>
-            {reportsUsed} / {reportsLimit} REPORTS
-          </span>
-        </div>
+            <span className={`text-xs font-semibold flex-shrink-0 ${textColor}`}>
+              {reportsUsed} / {reportsLimit} REPORTS
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">UNLIMITED ADMIN ACCESS</span>
+          </div>
+        )}
       </div>
 
       {/* RIGHT: ACTIONS */}
