@@ -1,7 +1,7 @@
 import React from 'react';
-import { Save, CheckCircle2, FileDown, Presentation, FileText } from 'lucide-react';
+import { Save, CheckCircle2, FileDown, Presentation, FileText, Loader2 } from 'lucide-react';
 
-export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport, isLocked = false }) {
+export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport, isLocked = false, isSaving = false }) {
   const isSaved = Boolean(isConfirmed);
 
   return (
@@ -11,22 +11,38 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
     >
       {/* Arranged side-by-side in a single row */}
       <div className="grid grid-cols-4 gap-1.5 w-full items-center">
-        {/* 1. Save / Selected Button */}
+        {/* 1. Manual Save / AutoSave Trigger Button */}
         <button
           type="button"
-          onClick={() => !isLocked && !isSaved && onExport('confirm')}
-          disabled={isLocked || isSaved}
+          onClick={() => !isLocked && onExport('confirm')}
+          disabled={isLocked || isSaving}
           className={`h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
-              : isSaved
-                ? 'bg-slate-900 border border-slate-800 text-slate-500 opacity-60 cursor-not-allowed shadow-none'
-                : 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold'
+              : isSaving
+                ? 'bg-[#0C5E31] text-emerald-200 border border-emerald-500/30 shadow-none'
+                : isSaved
+                  ? 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold border border-emerald-500/40'
+                  : 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold'
           }`}
-          title={isLocked ? "Select or create a project first" : isSaved ? "Photos selected and confirmed" : "Save and confirm selected photos"}
+          title={isLocked ? "Select or create a project first" : "Click to manually save all photo list updates & project changes"}
         >
-          {isSaved ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Save className="h-4 w-4 shrink-0" />}
-          <span className="truncate">{isSaved ? `Selected (${confirmCount})` : (confirmCount > 0 ? `Save (${confirmCount})` : 'Save')}</span>
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+              <span className="truncate">Saving...</span>
+            </>
+          ) : isSaved ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
+              <span className="truncate">{confirmCount > 0 ? `Saved (${confirmCount})` : 'Saved'}</span>
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 shrink-0" />
+              <span className="truncate">{confirmCount > 0 ? `Save (${confirmCount})` : 'Save'}</span>
+            </>
+          )}
         </button>
 
         {/* 2. PDF Button */}

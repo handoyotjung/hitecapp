@@ -1820,9 +1820,24 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       const nowIso = new Date().toISOString();
       const expiresIso = new Date(Date.now() + retentionMs).toISOString();
       
+      // Auto select all queued done photos if none currently selected
+      if (selectedPhotos.length === 0 && projectPhotos.length > 0) {
+        const allDoneNames = projectPhotos.map(p => p.filename).filter(Boolean);
+        setSelectedPhotos(allDoneNames);
+      }
+
+      // Execute immediate manual auto-save of project data & photo list
+      autosave({
+        photos: projectPhotos,
+        manualSaveAt: Date.now(),
+        lastEditedAt: nowIso
+      }, { immediate: true });
+
+      // Save to cloud & local store cache
       try {
         await setDoc(doc(db, 'projects', selectedProject.id), {
           status: 'active',
+          photos: projectPhotos,
           retention_days: retentionDays,
           expires_at: expiresIso,
           updated_at: nowIso,
@@ -2377,6 +2392,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             isConfirmed={confirmedExports}
             onExport={handlePublishBarExport}
             isLocked={!hasProject}
+            isSaving={isSaving}
           />
           </div>
 
