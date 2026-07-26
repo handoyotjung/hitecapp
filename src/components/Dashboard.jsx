@@ -660,30 +660,39 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     return () => unsubscribe();
   }, [user]);
 
-  // Dynamic Daily Report Downloads Counter: tracks generated reports (PDF, PPT, DOC) downloaded today
-  const [dailyReportCount, setDailyReportCount] = useState(0);
+  // Dynamic Monthly Report Downloads Counter: tracks generated reports (PDF, PPT, DOC) created in current calendar month
+  const [monthlyReportCount, setMonthlyReportCount] = useState(0);
+  const currentMonthStr = useMemo(() => {
+    const d = new Date();
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${yy}-${mm}`;
+  }, []);
 
   useEffect(() => {
     if (!user || !user.email) return;
 
     const userEmailClean = (user.email || '').trim().toLowerCase();
     const q = query(
-      collection(db, 'report_downloads'),
-      where('download_date', '==', todayStr)
+      collection(db, 'report_downloads')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const uniqueReportIds = new Set();
-      const rollingWindowMs = 24 * 60 * 60 * 1000;
-      const nowMs = Date.now();
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth();
 
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data) {
           const matchUser = (data.user_email?.toLowerCase() === userEmailClean || data.userId === user.uid || data.user_id === user.uid);
           if (matchUser) {
-            const dlTime = data.download_timestamp || (data.created_at ? new Date(data.created_at).getTime() : nowMs);
-            if (data.download_date === todayStr || (nowMs - dlTime) <= rollingWindowMs) {
+            const dlTime = data.download_timestamp ? new Date(data.download_timestamp) : (data.created_at ? new Date(data.created_at) : null);
+            const isSameMonth = dlTime
+              ? (dlTime.getFullYear() === currentYear && dlTime.getMonth() === currentMonth)
+              : (data.download_date && data.download_date.startsWith(currentMonthStr));
+
+            if (isSameMonth) {
               uniqueReportIds.add(data.id || docSnap.id);
             }
           }
@@ -697,21 +706,28 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           const store = JSON.parse(cached);
           if (Array.isArray(store.report_downloads)) {
             store.report_downloads.forEach(d => {
-              if (d.user_email?.toLowerCase() === userEmailClean && d.download_date === todayStr) {
-                uniqueReportIds.add(d.id || `mock_${d.download_timestamp}`);
+              if (d.user_email?.toLowerCase() === userEmailClean) {
+                const dlTime = d.download_timestamp ? new Date(d.download_timestamp) : (d.created_at ? new Date(d.created_at) : null);
+                const isSameMonth = dlTime
+                  ? (dlTime.getFullYear() === currentYear && dlTime.getMonth() === currentMonth)
+                  : (d.download_date && d.download_date.startsWith(currentMonthStr));
+
+                if (isSameMonth) {
+                  uniqueReportIds.add(d.id || `mock_${d.download_timestamp}`);
+                }
               }
             });
           }
         }
       } catch (e) {}
 
-      setDailyReportCount(uniqueReportIds.size);
+      setMonthlyReportCount(uniqueReportIds.size);
     }, (err) => {
       console.warn("Report downloads listener warning:", err);
     });
 
     return () => unsubscribe();
-  }, [user, todayStr]);
+  }, [user, currentMonthStr]);
 
   const trackReportDownload = async (reportType) => {
     if (!user || !user.email) return;
@@ -726,6 +742,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       city_name: selectedProject?.city_name || cityName.trim() || '',
       report_type: reportType, // 'pdf', 'ppt', 'doc'
       download_date: todayStr,
+      month_key: currentMonthStr,
       download_timestamp: Date.now(),
       created_at: new Date().toISOString()
     };
@@ -752,7 +769,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
 
     // 3. Increment local counter immediately for optimistic feedback
-    setDailyReportCount(prev => prev + 1);
+    setMonthlyReportCount(prev => prev + 1);
 
     // 4. Dispatch event for open tabs & admin dashboard sync
     window.dispatchEvent(new CustomEvent('hitec_report_downloaded', { detail: record }));
@@ -1965,6 +1982,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           }
         },
         usage: {
+          reportsUsedMonthly: monthlyReportCount,
+          reportsUsedToday: monthlyReportCount,
           photosUsedToday: dailyUploadCount
         },
         onLogout,

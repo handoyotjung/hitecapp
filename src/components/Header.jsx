@@ -34,9 +34,9 @@ function UserMenu() {
 export default function Header({ isSaving, isError }) {
   const { user, usage, onOpenFeedback } = useAuth();
 
-  const reportsUsed = usage?.reportsUsedToday ?? usage?.photosUsedToday ?? 0;
-  // Dynamic limit: Read from account. Fallback 100 for user, unlimited for admin
-  const reportsLimit = user?.plan?.dailyReportLimit ?? user?.plan?.dailyPhotoLimit ?? (user?.role === 'user' ? 100 : 9999);
+  const reportsUsed = usage?.reportsUsedMonthly ?? usage?.reportsUsedToday ?? usage?.photosUsedToday ?? 0;
+  // Dynamic monthly limit: Read from account. Fallback 300 for user, 9999 for admin
+  const reportsLimit = user?.plan?.monthlyReportLimit ?? user?.plan?.dailyReportLimit ?? (user?.role === 'user' ? 300 : 9999);
   const percent = reportsLimit > 0 ? Math.min(100, (reportsUsed / reportsLimit) * 100) : 0;
 
   // Determine bar color based on usage percentage
@@ -65,10 +65,10 @@ export default function Header({ isSaving, isError }) {
         /> 
       </div>
 
-      {/* CENTER: DYNAMIC DAILY USAGE - TRACKS GENERATED REPORTS */}
+      {/* CENTER: DYNAMIC MONTHLY USAGE - TRACKS GENERATED REPORTS */}
       <div className="flex-1 flex items-center justify-center px-4 min-w-0">
         <div className="flex items-center gap-3 w-full max-w-xl">
-          <span className="text-xs text-gray-400 uppercase tracking-wider flex-shrink-0">DAILY USAGE</span>
+          <span className="text-xs text-gray-400 uppercase tracking-wider flex-shrink-0">MONTHLY USAGE</span>
           
           <div className="flex-1 h-1.5 bg-[#1F2937] rounded-full overflow-hidden">
             <div 
@@ -89,7 +89,7 @@ export default function Header({ isSaving, isError }) {
           <button 
             type="button"
             onClick={onOpenFeedback}
-            title="Resets daily at 00:00 WIB"
+            title="Resets on the 1st of every month"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm hover:bg-emerald-500/20 transition-colors"
           >
             <MessageSquareIcon className="w-4 h-4 shrink-0" />

@@ -73,6 +73,18 @@ export function useProjectAutoSave(projectId) {
         }
       }
 
+      // Broadcast channel for instant cross-tab and multi-window state sync
+      try {
+        const bc = new BroadcastChannel('hitec_project_sync');
+        bc.postMessage({
+          type: 'PROJECT_UPDATED',
+          projectId,
+          payload,
+          timestamp: Date.now()
+        });
+        bc.close();
+      } catch (bcErr) {}
+
       // 3. API endpoint PATCH check (`/api/project/[id]`) with offline queue fallback
       try {
         const res = await fetch(`/api/project/${projectId}`, {
