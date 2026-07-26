@@ -812,6 +812,7 @@
       document.getElementById('user-expires').value = '';
       renderUsers();
       renderOnlineSessions();
+      syncReportDownloads();
       renderDailyUsageDashboard();
       renderReportHistogram();
       loadEmailAlerts();
@@ -819,9 +820,12 @@
       renderCommentLogs();
       syncFirestoreFeedback();
 
-      // 5-second real-time auto polling for feedback submitted from any device or incognito mode
+      // 5-second real-time auto polling for feedback and report downloads submitted from any device or incognito mode
       setInterval(() => {
+        syncReportDownloads();
         syncFirestoreFeedback();
+        renderDailyUsageDashboard();
+        renderReportHistogram();
       }, 5000);
     }
 
@@ -1043,6 +1047,90 @@
       renderDailyUsageDashboard();
     }
 
+    async function syncReportDownloads() {
+      const store = loadStore();
+      let downloadsMap = new Map();
+
+      // 1. Existing store.report_downloads
+      if (Array.isArray(store.report_downloads)) {
+        store.report_downloads.forEach(d => {
+          if (d && d.id) downloadsMap.set(d.id, d);
+        });
+      }
+
+      // 2. Local Storage
+      try {
+        const rawLocal = localStorage.getItem('hitec_report_downloads');
+        if (rawLocal) {
+          const list = JSON.parse(rawLocal);
+          if (Array.isArray(list)) {
+            list.forEach(d => {
+              if (d && d.id) downloadsMap.set(d.id, d);
+            });
+          }
+        }
+      } catch (e) {}
+
+      // 3. Firestore REST API fetch for report_downloads
+      try {
+        const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/report_downloads');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.documents)) {
+            data.documents.forEach(docItem => {
+              const fields = docItem.fields || {};
+              const parseVal = (v) => {
+                if (!v) return '';
+                if (v.stringValue !== undefined) return v.stringValue;
+                if (v.integerValue !== undefined) return parseInt(v.integerValue);
+                if (v.timestampValue !== undefined) return v.timestampValue;
+                return v;
+              };
+              const item = {
+                id: docItem.name ? docItem.name.split('/').pop() : 'rep_' + Date.now(),
+                user_email: parseVal(fields.user_email || fields.userId || fields.user_id),
+                user_id: parseVal(fields.user_id || fields.user_email),
+                company_id: parseVal(fields.company_id),
+                report_type: parseVal(fields.report_type),
+                download_date: parseVal(fields.download_date),
+                download_timestamp: parseVal(fields.download_timestamp),
+                created_at: parseVal(fields.created_at)
+              };
+              if (item.user_email) {
+                downloadsMap.set(item.id, item);
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      store.report_downloads = Array.from(downloadsMap.values());
+      saveStore(store);
+      try { localStorage.setItem('hitec_report_downloads', JSON.stringify(store.report_downloads)); } catch(e) {}
+    }
+
+    async function refreshAllReportAnalytics() {
+      const btn = document.getElementById('btn-refresh-all-stats');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '↻ Refreshing...';
+      }
+
+      await syncReportDownloads();
+      await syncFirestoreFeedback();
+
+      renderDailyUsageDashboard();
+      renderReportHistogram();
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '✓ Refreshed All Stats';
+        setTimeout(() => {
+          btn.innerHTML = '↻ Refresh All Stats';
+        }, 1500);
+      }
+    }
+
     function renderDailyUsageDashboard() {
       const store = loadStore();
       const tbody = document.getElementById('daily-usage-body');
@@ -1058,15 +1146,25 @@
       };
       const todayStr = getLocalTodayStr();
 
-      // Ensure default usage overrides exist if not previously reset or calculated
+      // Ensure default usage overrides exist for user accounts if not previously set
       if (!store.daily_usage_overrides) {
         store.daily_usage_overrides = {
           "demo@hitec.id": 5,
           "dummy@hitec.id": 12,
-          "budi.santoso@safety-id.co.id": 18,
-          "admin@hitec.id": 3,
-          "handoyo.tjung@gmail.com": 8
+          "budi.santoso@safety-id.co.id": 18
         };
+      }
+
+      // Ensure default user accounts exist in store
+      if (!store.whitelist_users) store.whitelist_users = {};
+      if (!store.whitelist_users["demo@hitec.id"]) {
+        store.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
+      }
+      if (!store.whitelist_users["dummy@hitec.id"]) {
+        store.whitelist_users["dummy@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
+      }
+      if (!store.whitelist_users["budi.santoso@safety-id.co.id"]) {
+        store.whitelist_users["budi.santoso@safety-id.co.id"] = { role: "user", company_id: "safety_id", plan: "pro", password: "demopassword", created_at: "2026-06-01" };
       }
 
       const users = store.whitelist_users || {};
@@ -1093,6 +1191,7 @@
         }
       } catch (e) {}
 
+      // Strictly map & filter USER role accounts only (Exclude Admin accounts)
       const userEntries = Object.keys(users).map(email => {
         const u = users[email];
         const cleanEmail = email.toLowerCase();
@@ -1100,10 +1199,12 @@
         const plan = u.plan || 'starter';
         const companyId = u.company_id || 'co_hitec';
 
-        const isAdmin = role === 'admin' || role === 'super_admin' || cleanEmail === 'handoyo.tjung@gmail.com';
-        const reportsLimit = isAdmin ? 9999 : (store.plan && store.plan[plan] ? (store.plan[plan].max_daily_reports || store.plan[plan].max_daily_photos) : (plan === 'pro' ? 300 : 100));
+        const isAdmin = role === 'admin' || role === 'super_admin' || cleanEmail === 'handoyo.tjung@gmail.com' || cleanEmail === 'admin@hitec.id';
+        if (isAdmin) return null; // Exclude admin accounts from USER analytics section
 
-        // Count downloaded reports matching today
+        const reportsLimit = (store.plan && store.plan[plan] ? (store.plan[plan].max_daily_reports || store.plan[plan].max_daily_photos) : (plan === 'pro' ? 300 : 100));
+
+        // Count downloaded reports matching today for this user
         let actualReportsFromStore = 0;
         let lastActivity = 'No reports downloaded today';
         let latestTimestamp = 0;
@@ -1131,29 +1232,27 @@
           lastActivity = 'Today, active session (' + todayStr + ')';
         }
 
-        const pct = isAdmin ? Math.min(100, Math.round((reportsUsed / 500) * 100)) : Math.min(100, Math.round((reportsUsed / reportsLimit) * 100));
+        const pct = Math.min(100, Math.round((reportsUsed / reportsLimit) * 100));
 
         let statusType = 'normal';
-        if (!isAdmin) {
-          if (pct >= 90 || reportsUsed >= reportsLimit) statusType = 'limit';
-          else if (pct >= 70) statusType = 'warning';
-        }
+        if (pct >= 90 || reportsUsed >= reportsLimit) statusType = 'limit';
+        else if (pct >= 70) statusType = 'warning';
 
         return {
           email: cleanEmail,
           role,
           plan,
           companyId,
-          isAdmin,
+          isAdmin: false,
           reportsLimit,
           reportsUsed,
           pct,
           statusType,
           lastActivity
         };
-      });
+      }).filter(Boolean);
 
-      // Calculate aggregate stats across all accounts
+      // Calculate aggregate stats across all non-admin user accounts
       userEntries.forEach(item => {
         totalReportsToday += item.reportsUsed;
         if (item.reportsUsed > 0) activeAccountsToday++;
@@ -1175,10 +1274,8 @@
         }
       }
 
-      // Apply filtering
+      // Apply status & search filtering
       const filtered = userEntries.filter(item => {
-        if (currentDailyUsageRoleFilter === 'user' && item.isAdmin) return false;
-        if (currentDailyUsageRoleFilter === 'admin' && !item.isAdmin) return false;
         if (statusFilter !== 'all' && item.statusType !== statusFilter) return false;
         if (searchVal && !item.email.includes(searchVal) && !item.companyId.toLowerCase().includes(searchVal)) return false;
         return true;
@@ -1187,7 +1284,7 @@
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" class="py-8 text-center text-slate-500 italic">No user accounts found matching the current role or status filter.</td>
+            <td colspan="7" class="py-8 text-center text-slate-500 italic">No user accounts found matching the current search or status filter.</td>
           </tr>
         `;
         return;
@@ -1197,15 +1294,11 @@
         const tr = document.createElement('tr');
         tr.className = 'border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors';
 
-        const roleBadge = item.isAdmin
-          ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Admin</span>'
-          : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
+        const roleBadge = '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
 
-        const planBadge = item.isAdmin
-          ? '<span class="rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 font-bold text-[10px]">Unlimited Quota</span>'
-          : (item.plan === 'pro'
-            ? '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold text-[10px]">Pro (300/day)</span>'
-            : '<span class="rounded bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 font-bold text-[10px]">Starter (100/day)</span>');
+        const planBadge = item.plan === 'pro'
+          ? '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold text-[10px]">Pro (300/day)</span>'
+          : '<span class="rounded bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 font-bold text-[10px]">Starter (100/day)</span>';
 
         // Progress bar styling
         let barColor = 'bg-emerald-500';
@@ -1216,12 +1309,9 @@
         } else if (item.statusType === 'limit') {
           barColor = 'bg-rose-500';
           statusBadge = '<span class="inline-flex items-center gap-1 rounded bg-rose-500/10 border border-rose-500/40 text-rose-400 px-2 py-0.5 text-[10px] font-bold animate-pulse">Limit Reached</span>';
-        } else if (item.isAdmin) {
-          barColor = 'bg-indigo-500';
-          statusBadge = '<span class="inline-flex items-center gap-1 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-2 py-0.5 text-[10px] font-bold">Admin Privileged</span>';
         }
 
-        const limitDisplay = item.isAdmin ? 'Unlimited' : item.reportsLimit;
+        const limitDisplay = item.reportsLimit;
         const progressWidth = Math.min(100, item.pct);
 
         tr.innerHTML = `
@@ -1303,13 +1393,26 @@
         return `${year}-${month}-${day}`;
       };
 
-      // Seed historical mock data if fewer than 10 records exist
+      // Exclude Admin accounts from histogram & KPI counters
+      const adminEmails = new Set(['handoyo.tjung@gmail.com', 'admin@hitec.id']);
+      Object.keys(store.whitelist_users || {}).forEach(e => {
+        const u = store.whitelist_users[e];
+        if (u && (u.role === 'admin' || u.role === 'super_admin')) {
+          adminEmails.add(e.toLowerCase());
+        }
+      });
+
+      downloads = downloads.filter(d => {
+        const email = (d.user_email || d.user_id || d.userId || '').toLowerCase();
+        return !adminEmails.has(email);
+      });
+
+      // Seed historical mock data for user accounts if fewer than 10 records exist
       if (downloads.length < 10) {
         const mockAccounts = [
           'demo@hitec.id',
           'budi.santoso@safety-id.co.id',
-          'dummy@hitec.id',
-          'handoyo.tjung@gmail.com'
+          'dummy@hitec.id'
         ];
         const mockTypes = ['pdf', 'ppt', 'doc'];
         
