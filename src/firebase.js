@@ -896,25 +896,21 @@ export const httpsCallable = (functionsInstance, name) => {
 
           const isMobileMode = data.view_mode === 'Mobile';
 
-          // 1. Green header bar with label (Replace header PT. Safety....... with File name (replace underscore with space) in Mobile mode)
-          slide.addShape(pptx.ShapeType.rect, {
-            x: 0, y: 0, w: SLIDE_W, h: 0.55,
-            fill: { color: "059669" }
-          });
-          const rawHeaderTitle = isMobileMode
-            ? (photo.original_filename || photo.filename || data.export_filename || "Photo")
-            : "PT. Safety Indonesia Utama";
-          const headerTitle = isMobileMode
-            ? rawHeaderTitle.replace(/\.[^/.]+$/, "").replace(/_/g, " ")
-            : "PT. Safety Indonesia Utama";
-          slide.addText(headerTitle, {
-            x: 0.5, y: 0.08, w: 5.5, h: 0.4,
-            fontName: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
-          });
-          slide.addText(`Project: ${rawProjectName}`, {
-            x: 6.0, y: 0.1, w: 3.5, h: 0.35,
-            fontName: "Arial", fontSize: 12, bold: true, color: "E0EEFF", align: "right"
-          });
+          // 1. Green header bar with label (Desktop mode only — removed in Mobile view)
+          if (!isMobileMode) {
+            slide.addShape(pptx.ShapeType.rect, {
+              x: 0, y: 0, w: SLIDE_W, h: 0.55,
+              fill: { color: "059669" }
+            });
+            slide.addText("PT. Safety Indonesia Utama", {
+              x: 0.5, y: 0.08, w: 5.5, h: 0.4,
+              fontName: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
+            });
+            slide.addText(`Project: ${rawProjectName}`, {
+              x: 6.0, y: 0.1, w: 3.5, h: 0.35,
+              fontName: "Arial", fontSize: 12, bold: true, color: "E0EEFF", align: "right"
+            });
+          }
 
           // 4. Image with original ratio (no stretching)
           let rawImgSrc = photo.base64 || photo.annotatedBase64;
@@ -926,7 +922,7 @@ export const httpsCallable = (functionsInstance, name) => {
           if (rawImgSrc) {
             const dims = await getImageSizePx(rawImgSrc);
             const boxW = isMobileMode ? 9.0 : 4.3;
-            const boxH = isMobileMode ? 3.80 : 4.25;
+            const boxH = isMobileMode ? 4.35 : 4.25;
             const imgRatio = dims.width / dims.height;
             const boxRatio = boxW / boxH;
             let drawW = boxW;
@@ -940,7 +936,7 @@ export const httpsCallable = (functionsInstance, name) => {
               drawW = drawH * imgRatio;
             }
             const drawX = (isMobileMode ? 0.5 : 0.4) + (boxW - drawW) / 2;
-            const drawY = (isMobileMode ? 0.65 : 0.75) + (boxH - drawH) / 2;
+            const drawY = (isMobileMode ? 0.25 : 0.75) + (boxH - drawH) / 2;
 
             slide.addImage({
               data: rawImgSrc,
@@ -953,7 +949,7 @@ export const httpsCallable = (functionsInstance, name) => {
             const captionText = photo.caption || photo.comments_text || photo.comments || "";
             if (captionText && captionText.trim() !== "") {
               slide.addText(captionText.trim(), {
-                x: 0.5, y: 4.55, w: 9.0, h: 0.65,
+                x: 0.5, y: 4.75, w: 9.0, h: 0.70,
                 fontName: "Arial", fontSize: 13, color: "222222", align: "center", valign: "top"
               });
             }
@@ -1019,11 +1015,13 @@ export const httpsCallable = (functionsInstance, name) => {
             });
           }
 
-          // Footer
-          slide.addText(`Page ${idx + 1} of ${photosToExport.length}  |  Generated: ${formattedGenTime}`, {
-            x: 0.5, y: 5.25, w: 9.0, h: 0.25,
-            fontName: "Arial", fontSize: 9, color: "777777", align: "center"
-          });
+          // Footer (Desktop mode only — removed in Mobile view)
+          if (!isMobileMode) {
+            slide.addText(`Page ${idx + 1} of ${photosToExport.length}  |  Generated: ${formattedGenTime}`, {
+              x: 0.5, y: 5.25, w: 9.0, h: 0.25,
+              fontName: "Arial", fontSize: 9, color: "777777", align: "center"
+            });
+          }
         }
 
         await pptx.writeFile({ fileName: data.export_filename || `FSA_Report_${exportFileName}.pptx` });
