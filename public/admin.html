@@ -579,11 +579,60 @@
 
       store.feedback = Array.from(feedbackMap.values()).sort((a, b) => new Date(b.timestamp || b.created_at || 0) - new Date(a.timestamp || a.created_at || 0));
 
-      // Always ensure core default static accounts exist and purge removed accounts
+      // Always ensure whitelist_users is a valid object and contains default accounts + active sessions
+      let activeUsers = store.whitelist_users;
+      if (!activeUsers || Array.isArray(activeUsers) || typeof activeUsers !== 'object') {
+        activeUsers = {};
+      }
+
       store.whitelist_users = {
         ...defaultMockStore.whitelist_users,
-        ...(store.whitelist_users || {})
+        ...activeUsers
       };
+
+      // Merge active logged-in sessions into whitelist_users so all active accounts are visible
+      try {
+        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
+        if (rawSessions) {
+          const sessions = JSON.parse(rawSessions);
+          if (Array.isArray(sessions)) {
+            sessions.forEach(s => {
+              if (s && s.user_id && typeof s.user_id === 'string') {
+                const email = s.user_id.toLowerCase().trim();
+                if (email && !store.whitelist_users[email]) {
+                  store.whitelist_users[email] = {
+                    role: s.role || 'user',
+                    company_id: 'co_hitec',
+                    plan: 'starter',
+                    password: 'demopassword',
+                    created_at: new Date().toISOString()
+                  };
+                }
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const activeSessionRaw = localStorage.getItem('hitecmedia_session');
+        if (activeSessionRaw) {
+          const activeSession = JSON.parse(activeSessionRaw);
+          if (activeSession && activeSession.email) {
+            const email = activeSession.email.toLowerCase().trim();
+            if (email && !store.whitelist_users[email]) {
+              store.whitelist_users[email] = {
+                role: activeSession.role || 'user',
+                company_id: activeSession.companyId || 'co_hitec',
+                plan: activeSession.plan || 'starter',
+                password: activeSession.password || 'demopassword',
+                created_at: new Date().toISOString()
+              };
+            }
+          }
+        }
+      } catch (e) {}
+
       delete store.whitelist_users["dummy@hitec.id"];
       delete store.whitelist_users["budi.santoso@safety-id.co.id"];
 
@@ -1584,6 +1633,15 @@
         activeExpandedUserEmail = 'NEW';
       }
       renderUsers();
+      if (activeExpandedUserEmail === 'NEW') {
+        setTimeout(() => {
+          const emailInput = document.getElementById('user-email-inline');
+          if (emailInput) {
+            emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            emailInput.focus();
+          }
+        }, 60);
+      }
     }
 
     function closeUserDrawer() {
@@ -1609,7 +1667,10 @@
       if (!tbody) return;
       tbody.innerHTML = '';
 
-      const users = store.whitelist_users || {};
+      let users = store.whitelist_users || {};
+      if (Array.isArray(users) || typeof users !== 'object') {
+        users = { ...defaultMockStore.whitelist_users };
+      }
 
       // 1. If activeExpandedUserEmail === 'NEW', render creation drawer at top of table
       if (activeExpandedUserEmail === 'NEW') {
@@ -1617,10 +1678,10 @@
         createTr.className = 'bg-slate-950/90 border-b-2 border-indigo-500/50 transition-all duration-300';
         createTr.innerHTML = `
           <td colspan="5" class="p-4 sm:p-5">
-            <div class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+            <div class="bg-slate-900/90 border border-indigo-500/50 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xl ring-2 ring-indigo-500/30">
               <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
-                  <span class="h-2 w-2 rounded-full bg-indigo-400 animate-ping"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-indigo-400 animate-ping"></span>
                   + Create New Whitelisted User Account
                 </h4>
                 <button type="button" onclick="closeUserDrawer()" class="text-slate-400 hover:text-white text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all">✕ Cancel</button>
@@ -1808,6 +1869,16 @@
           tbody.appendChild(drawerTr);
         }
       });
+
+      if (Object.keys(users).length === 0 && activeExpandedUserEmail !== 'NEW') {
+        const emptyTr = document.createElement('tr');
+        emptyTr.innerHTML = `
+          <td colspan="5" class="py-8 text-center text-slate-400 font-medium">
+            No accounts found in whitelist. Click <strong class="text-indigo-400 cursor-pointer" onclick="toggleAddNewUserDrawer()">+ Add New Account</strong> above to add one.
+          </td>
+        `;
+        tbody.appendChild(emptyTr);
+      }
     }
 
     function saveUserInline(e, originalTargetEmail) {
