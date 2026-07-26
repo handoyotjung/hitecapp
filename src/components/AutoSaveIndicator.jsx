@@ -27,7 +27,7 @@ export default function AutoSaveIndicator({ isSaving, isError, lastSavedAt }) {
       {!isSaving && !isError && (
         <span className="flex items-center">
           <span className="text-emerald-400 font-semibold">✓ Saved</span>
-          <span className="text-slate-400 font-normal ml-1.5">: {timeStr}</span>
+          <span className="text-slate-400 font-normal ml-1.5">{timeStr}</span>
         </span>
       )}
       {isError && <span className="text-red-400 font-semibold flex items-center gap-1">! Retry</span>}
