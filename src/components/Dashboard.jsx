@@ -870,6 +870,58 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     return () => unsubscribe();
   }, [selectedProject?.id]);
 
+  // 20-Second Auto-Removal Engine for Warning/Error/Rejected/Blocked Photos across Desktop & Mobile
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const TIMEOUT_MS = 20000; // 20 seconds
+
+      setProjectQueues(prevQueues => {
+        let hasChanges = false;
+        const nextQueues = {};
+
+        Object.keys(prevQueues).forEach(projId => {
+          const list = prevQueues[projId];
+          if (!Array.isArray(list)) {
+            nextQueues[projId] = list;
+            return;
+          }
+
+          const filtered = list.filter(item => {
+            const isWarningItem = item.status === 'Rejected' || item.status === 'Blocked' || item.status === 'Warning' || Boolean(item.error) || Boolean(item.warning);
+            if (!isWarningItem) return true;
+
+            const startedAt = item.warningStartedAt || item.startedAt || item.timestamp || now;
+            const isExpired = (now - startedAt) >= TIMEOUT_MS;
+            if (isExpired) {
+              hasChanges = true;
+              return false; // Auto-remove warning photo after 20 seconds
+            }
+            return true;
+          });
+
+          nextQueues[projId] = filtered;
+        });
+
+        return hasChanges ? nextQueues : prevQueues;
+      });
+
+      setProjectPhotos(prevPhotos => {
+        const filtered = prevPhotos.filter(photo => {
+          const isWarningPhoto = photo.status === 'Rejected' || photo.status === 'Blocked' || photo.status === 'Warning' || Boolean(photo.error) || Boolean(photo.warning);
+          if (!isWarningPhoto) return true;
+
+          const startedAt = photo.warningStartedAt || photo.timestamp || now;
+          return (now - startedAt) < TIMEOUT_MS;
+        });
+
+        return filtered.length !== prevPhotos.length ? filtered : prevPhotos;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const lastActivePhotoKeyRef = useRef(null);
 
   // Update caption & assessor inputs ONLY when selected photo actually changes
@@ -1379,7 +1431,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               if (unsub) unsub();
               clearTimeout(stuckTimer);
             } else if (data.status === 'rejected') {
-              setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server' } : q));
+              setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server', warningStartedAt: Date.now() } : q));
               if (unsub) unsub();
               clearTimeout(stuckTimer);
             }
@@ -1401,7 +1453,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       }).catch((err) => {
         console.error('Upload failed after retries:', err);
         setQueue(prev => prev.map(q =>
-          q.id === item.id ? { ...q, status: 'Rejected', error: 'Upload failed after 3 retries' } : q
+          q.id === item.id ? { ...q, status: 'Rejected', error: 'Upload failed after 3 retries', warningStartedAt: Date.now() } : q
         ));
       });
     }
@@ -1440,7 +1492,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           if (unsub) unsub();
           clearTimeout(stuckTimer);
         } else if (data.status === 'rejected') {
-          setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server' } : q));
+          setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server', warningStartedAt: Date.now() } : q));
           if (unsub) unsub();
           clearTimeout(stuckTimer);
         }
