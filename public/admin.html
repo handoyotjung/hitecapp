@@ -636,6 +636,11 @@
       delete store.whitelist_users["dummy@hitec.id"];
       delete store.whitelist_users["budi.santoso@safety-id.co.id"];
 
+      // Immediately save repaired store to localStorage
+      try {
+        localStorage.setItem("hitecmedia_mock_db", JSON.stringify(store));
+      } catch (e) {}
+
       return store;
     }
 
