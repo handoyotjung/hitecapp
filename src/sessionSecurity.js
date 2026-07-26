@@ -74,11 +74,19 @@ const loadStore = () => {
   delete store.whitelist_users["dummy@hitec.id"];
   delete store.whitelist_users["budi.santoso@safety-id.co.id"];
   if (!store.whitelist_users["admin@hitec.id"]) {
-    store.whitelist_users["admin@hitec.id"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" };
+    store.whitelist_users["admin@hitec.id"] = { role: "admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" };
   }
   if (!store.whitelist_users["demo@hitec.id"]) {
     store.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
   }
+
+  // Enforce handoyo.tjung@gmail.com is the ONLY super_admin
+  Object.keys(store.whitelist_users).forEach(email => {
+    if (email !== handoyoEmail && store.whitelist_users[email].role === "super_admin") {
+      store.whitelist_users[email].role = "admin";
+    }
+  });
+
   return store;
 };
 
@@ -150,10 +158,10 @@ export const apiLogin = async ({ email, password, device_id, device_name, ip_add
   let userDoc = store.whitelist_users && store.whitelist_users[cleanEmail];
 
   // Auto-initialize demo/test accounts if missing
-  if (!userDoc && (cleanEmail.endsWith('@hitec.id') || cleanEmail.includes('demo') || cleanEmail.includes('dummy') || cleanEmail.includes('admin'))) {
-    const isAdmin = cleanEmail.includes('admin') || cleanEmail.includes('dummy');
+  if (!userDoc && (cleanEmail.endsWith('@hitec.id') || cleanEmail.includes('demo') || cleanEmail.includes('admin'))) {
+    const isAdmin = cleanEmail.includes('admin');
     userDoc = {
-      role: isAdmin ? 'super_admin' : 'user',
+      role: isAdmin ? 'admin' : 'user',
       company_id: 'co_hitec',
       plan: isAdmin ? 'pro' : 'starter',
       password: password || 'demopassword',

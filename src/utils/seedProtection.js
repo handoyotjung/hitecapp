@@ -17,7 +17,7 @@ export function ensureStaticAccountsExist(store) {
 
   const staticUsers = {
     "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword" },
-    "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword" },
+    "admin@hitec.id": { role: "admin", company_id: "co_hitec", plan: "pro", password: "demopassword" },
     "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword" }
   };
 
@@ -28,6 +28,13 @@ export function ensureStaticAccountsExist(store) {
         ...staticUsers[email],
         created_at: new Date().toISOString()
       };
+    }
+  });
+
+  // Enforce handoyo.tjung@gmail.com is the ONLY super_admin
+  Object.keys(store.whitelist_users).forEach(email => {
+    if (email.toLowerCase().trim() !== "handoyo.tjung@gmail.com" && store.whitelist_users[email].role === "super_admin") {
+      store.whitelist_users[email].role = "admin";
     }
   });
 

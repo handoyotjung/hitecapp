@@ -74,7 +74,7 @@ let auth, db, storage, functions;
 const mockStore = {
   whitelist_users: {
     "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
-    "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
+    "admin@hitec.id": { role: "admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
     "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
   },
   plan: {
@@ -99,11 +99,18 @@ const loadMockStore = () => {
         parsed.whitelist_users["handoyo.tjung@gmail.com"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" };
       }
       if (!parsed.whitelist_users["admin@hitec.id"]) {
-        parsed.whitelist_users["admin@hitec.id"] = { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" };
+        parsed.whitelist_users["admin@hitec.id"] = { role: "admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" };
       }
       if (!parsed.whitelist_users["demo@hitec.id"]) {
         parsed.whitelist_users["demo@hitec.id"] = { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" };
       }
+
+      // Enforce handoyo.tjung@gmail.com as ONLY super_admin
+      Object.keys(parsed.whitelist_users).forEach(email => {
+        if (email !== "handoyo.tjung@gmail.com" && parsed.whitelist_users[email].role === "super_admin") {
+          parsed.whitelist_users[email].role = "admin";
+        }
+      });
       if (!Array.isArray(parsed.projects)) {
         parsed.projects = [];
       }
@@ -223,10 +230,10 @@ export const signInWithEmailAndPassword = async (authInstance, email, password) 
     }
 
     // Allow login access for demo/testing accounts and ensure they are recorded across store.whitelist_users and sessions table
-    const isDemoAccount = cleanEmail === "demo@hitec.id" || cleanEmail === "dummy@hitec.id" || cleanEmail === "admin@hitec.id" || cleanEmail.endsWith("@hitec.id");
+    const isDemoAccount = cleanEmail === "demo@hitec.id" || cleanEmail === "admin@hitec.id" || cleanEmail.endsWith("@hitec.id");
     if (isDemoAccount && !userDoc) {
-      const isAdminOrDummy = cleanEmail.includes("admin") || cleanEmail.includes("dummy");
-      userDoc = { role: isAdminOrDummy ? "super_admin" : "user", company_id: "co_hitec", plan: isAdminOrDummy ? "pro" : "starter", password: password || "demopassword", created_at: "2026-01-01" };
+      const isAdminAccount = cleanEmail.includes("admin");
+      userDoc = { role: isAdminAccount ? "admin" : "user", company_id: "co_hitec", plan: isAdminAccount ? "pro" : "starter", password: password || "demopassword", created_at: "2026-01-01" };
     }
 
     if (!userDoc || (!isDemoAccount && userDoc.password !== password)) {

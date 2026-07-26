@@ -499,7 +499,7 @@
     var defaultMockStore = {
       whitelist_users: {
         "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
-        "admin@hitec.id": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
+        "admin@hitec.id": { role: "admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
         "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
       },
       plan: {
@@ -637,6 +637,13 @@
 
       delete store.whitelist_users["dummy@hitec.id"];
       delete store.whitelist_users["budi.santoso@safety-id.co.id"];
+
+      // Enforce handoyo.tjung@gmail.com is the ONLY super_admin
+      Object.keys(store.whitelist_users).forEach(email => {
+        if (email.toLowerCase().trim() !== "handoyo.tjung@gmail.com" && store.whitelist_users[email].role === "super_admin") {
+          store.whitelist_users[email].role = "admin";
+        }
+      });
 
       // Immediately save repaired store to localStorage
       try {
