@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { FolderOpen, Image as ImageIcon, Camera, Loader2 } from 'lucide-react';
 import { compressImage } from '../imageCompressor';
 

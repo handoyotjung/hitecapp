@@ -41,9 +41,14 @@ class ErrorBoundary extends React.Component {
         <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-950 px-4 text-center text-slate-100 font-outfit">
           <div className="max-w-md rounded-2xl border border-rose-500/30 bg-slate-900/90 p-6 shadow-2xl backdrop-blur-md">
             <h2 className="text-xl font-bold text-rose-400 mb-2">Portal Session Recovery</h2>
-            <p className="text-xs text-slate-300 mb-4">
+            <p className="text-xs text-slate-300 mb-2">
               A temporary display error occurred. Click below to refresh your session.
             </p>
+            {this.state.error && (
+              <pre className="text-[10px] text-rose-300 bg-black/60 p-2 rounded max-h-32 overflow-auto text-left mb-4 font-mono select-all">
+                {String(this.state.error.stack || this.state.error.message || this.state.error)}
+              </pre>
+            )}
             <button
               onClick={this.handleReset}
               className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg transition-all cursor-pointer"
