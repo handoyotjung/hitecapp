@@ -178,13 +178,13 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
           type="button"
           onClick={handleUploadFolderClick}
           disabled={isLocked || isCompressing}
-          className={`flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed'
-              : 'bg-[#2B2B2B] hover:bg-[#3B3B3B] text-white disabled:opacity-50 disabled:cursor-not-allowed'
+              : 'bg-[#2B2B2B] hover:bg-[#107C41] text-white hover:shadow-md hover:shadow-[#107C41]/25 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
           }`}
         >
-          <FolderOpen className="w-4 h-4 flex-shrink-0 text-slate-300" />
+          <FolderOpen className="w-4 h-4 flex-shrink-0 text-slate-300 group-hover:text-white transition-colors" />
           <span className="truncate">Select Folder</span>
         </button>
 
@@ -192,13 +192,13 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
           type="button"
           onClick={handleSelectPhotosClick}
           disabled={isLocked || isCompressing}
-          className={`flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed'
-              : 'bg-[#2B2B2B] hover:bg-[#3B3B3B] text-white disabled:opacity-50 disabled:cursor-not-allowed'
+              : 'bg-[#2B2B2B] hover:bg-[#107C41] text-white hover:shadow-md hover:shadow-[#107C41]/25 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
           }`}
         >
-          <Camera className="w-4 h-4 flex-shrink-0 text-slate-300" />
+          <Camera className="w-4 h-4 flex-shrink-0 text-slate-300 group-hover:text-white transition-colors" />
           <span className="truncate">Use Camera</span>
         </button>
       </div>
