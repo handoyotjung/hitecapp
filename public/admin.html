@@ -174,143 +174,160 @@
         </div>
       </div>
 
-      <!-- FULL WIDTH ROW: Daily Report Downloads Analytics (Histogram Bar Chart) -->
+      <!-- FULL WIDTH ROW: Consolidated Report Usage Analytics & Monitoring Master Container -->
       <div class="lg:col-span-3 space-y-6">
         <div class="rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
+          
+          <!-- Master Header Title & Top Controls -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-                Daily Report Downloads Analytics (Histogram)
+              <h3 class="text-xl font-extrabold text-white flex items-center gap-2.5">
+                <svg class="h-6 w-6 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                Report Usage Analytics & Monitoring
               </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Real-time daily histogram of generated reports (PDF, PPT, DOC) downloaded across assessor & user accounts.</p>
-            </div>
-            
-            <div class="flex items-center gap-2.5 flex-wrap">
-              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
-                <span class="text-slate-400 font-medium">Time Window:</span>
-                <select id="histogram-days-select" onchange="renderReportHistogram()" class="bg-transparent font-bold text-indigo-300 outline-none cursor-pointer">
-                  <option value="7">Last 7 Days</option>
-                  <option value="14" selected>Last 14 Days</option>
-                  <option value="30">Last 30 Days</option>
-                </select>
-              </div>
-
-              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
-                <span class="text-slate-400 font-medium">Format:</span>
-                <select id="histogram-format-select" onchange="renderReportHistogram()" class="bg-transparent font-bold text-indigo-300 outline-none cursor-pointer">
-                  <option value="all">All Formats (PDF, PPT, DOC)</option>
-                  <option value="pdf">PDF Only</option>
-                  <option value="ppt">PPT Only</option>
-                  <option value="doc">DOC Only</option>
-                </select>
-              </div>
-
-              <button onclick="renderReportHistogram()" title="Refresh Analytics Histogram" class="rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all">
-                ↻ Refresh Histogram
-              </button>
-            </div>
-          </div>
-
-          <!-- Summary Metric Cards -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Reports Downloaded</span>
-              <span id="stat-total-downloads" class="text-2xl font-extrabold text-indigo-400 mt-1">0</span>
-            </div>
-            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">PDF Reports</span>
-              <span id="stat-pdf-downloads" class="text-2xl font-extrabold text-rose-400 mt-1">0</span>
-            </div>
-            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">PPT Reports</span>
-              <span id="stat-ppt-downloads" class="text-2xl font-extrabold text-orange-400 mt-1">0</span>
-            </div>
-            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">DOC Reports</span>
-              <span id="stat-doc-downloads" class="text-2xl font-extrabold text-blue-400 mt-1">0</span>
-            </div>
-          </div>
-
-          <!-- Chart Canvas Container -->
-          <div class="relative w-full h-72 bg-slate-950/40 rounded-xl border border-slate-800/80 p-4 flex items-center justify-center">
-            <canvas id="reportHistogramCanvas" class="w-full h-full"></canvas>
-          </div>
-        </div>
-
-        <!-- Daily Usage Monitoring Dashboard for Each User Role Account -->
-        <div class="rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
-                Daily Report Usage Monitoring Dashboard
-              </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Real-time daily generated report (PDF, PPT, DOC) download tracking, plan threshold monitoring (<span class="text-emerald-400 font-medium">Starter</span> / <span class="text-indigo-400 font-medium">Pro</span> / <span class="text-amber-400 font-medium">Admin</span>), and ceiling quotas across every account role.</p>
+              <p class="text-xs text-slate-400 mt-1">Real-time generated report (PDF, PPT, DOC) analytics, usage trends, and daily quota monitoring across all assessor accounts.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-              <!-- Summary Badges -->
-              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold">
-                <span class="text-slate-400">Total Downloaded Today:</span>
-                <span id="daily-total-photos" class="text-indigo-400 font-bold">0 REPORTS</span>
-              </div>
-              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold">
-                <span class="text-slate-400">Active Accounts:</span>
-                <span id="daily-active-accounts" class="text-emerald-400 font-bold">0</span>
-              </div>
-              <div id="daily-alert-badge" class="flex items-center gap-1.5 rounded-xl bg-slate-800 border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300">
-                <span>0 At Limit</span>
-              </div>
-              <!-- Action Controls -->
-              <button onclick="renderDailyUsageDashboard(); renderReportHistogram();" title="Refresh Usage Stats" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all">
-                ↻ Refresh Stats
+              <button onclick="renderDailyUsageDashboard(); renderReportHistogram();" title="Refresh All Stats" class="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 text-xs font-bold text-indigo-300 hover:text-white transition-all active:scale-95 shadow-md">
+                ↻ Refresh All Stats
               </button>
-              <button onclick="adminResetAllDailyUsage()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md">
+              <button onclick="adminResetAllDailyUsage()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md active:scale-95">
                 Reset All Quotas Today
               </button>
             </div>
           </div>
 
-          <!-- Filter & Search Bar -->
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter Role:</span>
-              <button type="button" onclick="filterDailyUsageRole('all')" id="btn-du-role-all" class="px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white transition-all">All Accounts</button>
-              <button type="button" onclick="filterDailyUsageRole('user')" id="btn-du-role-user" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all">Users Only</button>
-              <button type="button" onclick="filterDailyUsageRole('admin')" id="btn-du-role-admin" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all">Admins Only</button>
+          <!-- UNIFIED KPI HEADER GRID -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Reports</span>
+              <span id="stat-total-downloads" class="text-xl font-extrabold text-indigo-400 mt-1">0</span>
             </div>
-            <div class="flex items-center gap-3">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status:</span>
-              <select id="du-status-filter" onchange="renderDailyUsageDashboard()" class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-                <option value="all">All Quota Status</option>
-                <option value="normal">Normal (&lt;70%)</option>
-                <option value="warning">Warning (70% - 89%)</option>
-                <option value="limit">Limit Reached (≥90%)</option>
-              </select>
-              <input type="text" id="du-search-input" oninput="renderDailyUsageDashboard()" placeholder="Search user account..." class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors w-48" />
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PDF Reports</span>
+              <span id="stat-pdf-downloads" class="text-xl font-extrabold text-rose-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PPT Reports</span>
+              <span id="stat-ppt-downloads" class="text-xl font-extrabold text-orange-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DOC Reports</span>
+              <span id="stat-doc-downloads" class="text-xl font-extrabold text-blue-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Downloaded Today</span>
+              <span id="daily-total-photos" class="text-xl font-extrabold text-emerald-400 mt-1">0 REPORTS</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Accounts</span>
+              <span id="daily-active-accounts" class="text-xl font-extrabold text-amber-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quota Limits</span>
+              <div id="daily-alert-badge" class="mt-1">
+                <span class="text-xs font-bold text-emerald-400">0 At Limit</span>
+              </div>
             </div>
           </div>
 
-          <!-- Daily Usage Accounts Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
-                  <th class="pb-3 pr-2">User / Role Account</th>
-                  <th class="pb-3 px-2">Plan & Report Quota</th>
-                  <th class="pb-3 px-2 min-w-[200px]">Daily Reports Progress Bar</th>
-                  <th class="pb-3 px-2">Downloaded Reports</th>
-                  <th class="pb-3 px-2">Quota Status</th>
-                  <th class="pb-3 px-2">Last Report Download</th>
-                  <th class="pb-3 pl-2 text-right">Admin Actions</th>
-                </tr>
-              </thead>
-              <tbody id="daily-usage-body" class="divide-y divide-slate-800/60 font-medium">
-                <!-- Loaded dynamically -->
-              </tbody>
-            </table>
+          <!-- STYLED DIVIDER 1 -->
+          <div class="border-t border-slate-800 my-4"></div>
+
+          <!-- HISTOGRAM CHART SECTION WITH CONSOLIDATED CONTROLS -->
+          <div class="space-y-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h4 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full bg-indigo-400"></span>
+                Report Downloads Histogram Trend
+              </h4>
+              
+              <!-- Consolidated Controls: Summary View, Time Window, Format, Refresh -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+                  <span class="text-slate-400 font-medium">Summary View:</span>
+                  <select id="histogram-summary-view" onchange="renderReportHistogram()" class="bg-transparent font-bold text-indigo-300 outline-none cursor-pointer">
+                    <option value="daily" selected>Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+
+                <div class="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+                  <span class="text-slate-400 font-medium">Time Window:</span>
+                  <select id="histogram-days-select" onchange="renderReportHistogram()" class="bg-transparent font-bold text-indigo-300 outline-none cursor-pointer">
+                    <option value="7">Last 7 Days</option>
+                    <option value="14" selected>Last 14 Days</option>
+                    <option value="30">Last 30 Days</option>
+                  </select>
+                </div>
+
+                <div class="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+                  <span class="text-slate-400 font-medium">Format:</span>
+                  <select id="histogram-format-select" onchange="renderReportHistogram()" class="bg-transparent font-bold text-indigo-300 outline-none cursor-pointer">
+                    <option value="all">All Formats (PDF, PPT, DOC)</option>
+                    <option value="pdf">PDF Only</option>
+                    <option value="ppt">PPT Only</option>
+                    <option value="doc">DOC Only</option>
+                  </select>
+                </div>
+
+                <button onclick="renderReportHistogram()" title="Refresh Histogram" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all">
+                  ↻ Refresh Histogram
+                </button>
+              </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative w-full h-72 bg-slate-950/40 rounded-xl border border-slate-800/80 p-4 flex items-center justify-center">
+              <canvas id="reportHistogramCanvas" class="w-full h-full"></canvas>
+            </div>
           </div>
-        </div>
+
+          <!-- STYLED DIVIDER 2 -->
+          <div class="border-t border-slate-800 my-4"></div>
+
+          <!-- USER MONITORING TABLE SECTION WITH SPECIFIC CONTROLS -->
+          <div class="space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter Role:</span>
+                <button type="button" onclick="filterDailyUsageRole('all')" id="btn-du-role-all" class="px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white transition-all">All Accounts</button>
+                <button type="button" onclick="filterDailyUsageRole('user')" id="btn-du-role-user" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all">Users Only</button>
+                <button type="button" onclick="filterDailyUsageRole('admin')" id="btn-du-role-admin" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all">Admins Only</button>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status:</span>
+                <select id="du-status-filter" onchange="renderDailyUsageDashboard()" class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                  <option value="all">All Quota Status</option>
+                  <option value="normal">Normal (&lt;70%)</option>
+                  <option value="warning">Warning (70% - 89%)</option>
+                  <option value="limit">Limit Reached (≥90%)</option>
+                </select>
+                <input type="text" id="du-search-input" oninput="renderDailyUsageDashboard()" placeholder="Search user account..." class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors w-48" />
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                    <th class="pb-3 pr-2">User / Role Account</th>
+                    <th class="pb-3 px-2">Plan & Report Quota</th>
+                    <th class="pb-3 px-2 min-w-[200px]">Daily Reports Progress Bar</th>
+                    <th class="pb-3 px-2">Downloaded Reports</th>
+                    <th class="pb-3 px-2">Quota Status</th>
+                    <th class="pb-3 px-2">Last Report Download</th>
+                    <th class="pb-3 pl-2 text-right">Admin Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="daily-usage-body" class="divide-y divide-slate-800/60 font-medium">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
       </div>
 
       <!-- FULL WIDTH ROW: Security Events & Email Alerts (admin@hitec.id) -->
@@ -1253,6 +1270,7 @@
       const canvas = document.getElementById('reportHistogramCanvas');
       if (!canvas) return;
 
+      const summaryView = document.getElementById('histogram-summary-view')?.value || 'daily';
       const daysCount = parseInt(document.getElementById('histogram-days-select')?.value || '14', 10);
       const formatFilter = document.getElementById('histogram-format-select')?.value || 'all';
 
@@ -1275,7 +1293,7 @@
         }
       } catch (e) {}
 
-      // Seed historical mock data if fewer than 10 records exist
+      // Helper for past dates
       const getPastDateStr = (daysAgo) => {
         const d = new Date();
         d.setDate(d.getDate() - daysAgo);
@@ -1285,6 +1303,7 @@
         return `${year}-${month}-${day}`;
       };
 
+      // Seed historical mock data if fewer than 10 records exist
       if (downloads.length < 10) {
         const mockAccounts = [
           'demo@hitec.id',
@@ -1294,7 +1313,7 @@
         ];
         const mockTypes = ['pdf', 'ppt', 'doc'];
         
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 90; i++) {
           const dateStr = getPastDateStr(i);
           const countForDay = Math.floor(Math.sin(i * 0.7 + 1) * 3) + 4;
           for (let c = 0; c < countForDay; c++) {
@@ -1314,40 +1333,21 @@
         downloads = downloads.filter(d => (d.report_type || '').toLowerCase() === formatFilter);
       }
 
-      // Generate date labels for past X days (chronological order)
-      const labels = [];
-      const countsMap = {};
-      const pdfMap = {};
-      const pptMap = {};
-      const docMap = {};
-
-      for (let i = daysCount - 1; i >= 0; i--) {
-        const dateStr = getPastDateStr(i);
-        labels.push(dateStr);
-        countsMap[dateStr] = 0;
-        pdfMap[dateStr] = 0;
-        pptMap[dateStr] = 0;
-        docMap[dateStr] = 0;
-      }
-
+      // Calculate global breakdown metrics across all gathered downloads for KPI header
       let totalCount = 0;
       let totalPdf = 0;
       let totalPpt = 0;
       let totalDoc = 0;
 
       downloads.forEach(d => {
-        const date = d.download_date || (d.download_timestamp ? new Date(d.download_timestamp).toISOString().split('T')[0] : '');
-        if (countsMap[date] !== undefined) {
-          countsMap[date]++;
-          totalCount++;
-          const type = (d.report_type || 'pdf').toLowerCase();
-          if (type === 'pdf') { pdfMap[date]++; totalPdf++; }
-          else if (type === 'ppt' || type === 'pptx') { pptMap[date]++; totalPpt++; }
-          else if (type === 'doc' || type === 'docx' || type === 'word') { docMap[date]++; totalDoc++; }
-        }
+        const type = (d.report_type || 'pdf').toLowerCase();
+        totalCount++;
+        if (type === 'pdf') totalPdf++;
+        else if (type === 'ppt' || type === 'pptx') totalPpt++;
+        else if (type === 'doc' || type === 'docx' || type === 'word') totalDoc++;
       });
 
-      // Update Summary Cards
+      // Update Summary KPI Cards
       const totalEl = document.getElementById('stat-total-downloads');
       if (totalEl) totalEl.innerText = totalCount;
       const pdfEl = document.getElementById('stat-pdf-downloads');
@@ -1357,17 +1357,79 @@
       const docEl = document.getElementById('stat-doc-downloads');
       if (docEl) docEl.innerText = totalDoc;
 
-      // Format X-axis labels for readability (e.g., 'Jul 20')
-      const formattedLabels = labels.map(d => {
-        const parts = d.split('-');
-        if (parts.length === 3) {
-          const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-          return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      // Labels & data aggregation based on Summary View (Daily, Weekly, Monthly)
+      let labels = [];
+      let countsMap = {};
+
+      if (summaryView === 'daily') {
+        // Daily Bucket View
+        for (let i = daysCount - 1; i >= 0; i--) {
+          const dateStr = getPastDateStr(i);
+          labels.push(dateStr);
+          countsMap[dateStr] = 0;
         }
-        return d;
+
+        downloads.forEach(d => {
+          const date = d.download_date || (d.download_timestamp ? new Date(d.download_timestamp).toISOString().split('T')[0] : '');
+          if (countsMap[date] !== undefined) {
+            countsMap[date]++;
+          }
+        });
+      } else if (summaryView === 'weekly') {
+        // Weekly Bucket View
+        const weeksCount = daysCount <= 14 ? 4 : 6;
+        for (let w = weeksCount - 1; w >= 0; w--) {
+          const startDays = w * 7 + 6;
+          const endDays = w * 7;
+          const startDate = getPastDateStr(startDays);
+          const endDate = getPastDateStr(endDays);
+          
+          const startObj = new Date(startDate);
+          const endObj = new Date(endDate);
+          const label = `${startObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+          
+          labels.push(label);
+          countsMap[label] = 0;
+
+          downloads.forEach(d => {
+            const dateStr = d.download_date || (d.download_timestamp ? new Date(d.download_timestamp).toISOString().split('T')[0] : '');
+            if (dateStr >= startDate && dateStr <= endDate) {
+              countsMap[label]++;
+            }
+          });
+        }
+      } else if (summaryView === 'monthly') {
+        // Monthly Bucket View (Past 6 Months)
+        const now = new Date();
+        for (let m = 5; m >= 0; m--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+          const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          const monthLabel = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          labels.push(monthLabel);
+          countsMap[monthLabel] = 0;
+
+          downloads.forEach(dl => {
+            const dateStr = dl.download_date || (dl.download_timestamp ? new Date(dl.download_timestamp).toISOString().split('T')[0] : '');
+            if (dateStr.startsWith(monthKey)) {
+              countsMap[monthLabel]++;
+            }
+          });
+        }
+      }
+
+      // Format X-axis labels for daily view
+      const formattedLabels = labels.map(l => {
+        if (summaryView === 'daily' && l.includes('-')) {
+          const parts = l.split('-');
+          if (parts.length === 3) {
+            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }
+        }
+        return l;
       });
 
-      const dataValues = labels.map(d => countsMap[d]);
+      const dataValues = labels.map(l => countsMap[l]);
 
       // Custom Plugin to draw exact numerical values on top of each bar
       const barTopLabelsPlugin = {
