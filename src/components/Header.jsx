@@ -32,12 +32,12 @@ function UserMenu() {
 }
 
 export default function Header({ isSaving, isError }) {
-  const { user, usage, onOpenFeedback } = useAuth();
+  const { user, usage } = useAuth();
 
-  const photosUsed = usage?.photosUsedToday ?? 0;
+  const reportsUsed = usage?.reportsUsedToday ?? usage?.photosUsedToday ?? 0;
   // Dynamic limit: Read from account. Fallback 100 for user, unlimited for admin
-  const photosLimit = user?.plan?.dailyPhotoLimit ?? (user?.role === 'user' ? 100 : 9999);
-  const percent = photosLimit > 0 ? Math.min(100, (photosUsed / photosLimit) * 100) : 0;
+  const reportsLimit = user?.plan?.dailyReportLimit ?? user?.plan?.dailyPhotoLimit ?? (user?.role === 'user' ? 100 : 9999);
+  const percent = reportsLimit > 0 ? Math.min(100, (reportsUsed / reportsLimit) * 100) : 0;
 
   // Determine bar color based on usage percentage
   let barColor = 'bg-emerald-500';
@@ -65,7 +65,7 @@ export default function Header({ isSaving, isError }) {
         /> 
       </div>
 
-      {/* CENTER: DYNAMIC DAILY USAGE - NOW HAS MORE SPACE */}
+      {/* CENTER: DYNAMIC DAILY USAGE - TRACKS GENERATED REPORTS */}
       <div className="flex-1 flex items-center justify-center px-4 min-w-0">
         <div className="flex items-center gap-3 w-full max-w-xl">
           <span className="text-xs text-gray-400 uppercase tracking-wider flex-shrink-0">DAILY USAGE</span>
@@ -78,7 +78,7 @@ export default function Header({ isSaving, isError }) {
           </div>
 
           <span className={`text-xs font-semibold flex-shrink-0 ${textColor}`}>
-            {photosUsed} / {photosLimit} PHOTOS
+            {reportsUsed} / {reportsLimit} REPORTS
           </span>
         </div>
       </div>

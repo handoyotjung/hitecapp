@@ -6,6 +6,8 @@
   <title>HitecApp Admin Panel</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN for Admin Analytics Histogram -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Outfit Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -172,22 +174,85 @@
         </div>
       </div>
 
-      <!-- FULL WIDTH ROW: Daily Usage Monitoring Dashboard for Each User Role Account -->
+      <!-- FULL WIDTH ROW: Daily Report Downloads Analytics (Histogram Bar Chart) -->
       <div class="lg:col-span-3 space-y-6">
         <div class="rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
               <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
-                Daily Usage Monitoring Dashboard
+                <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                Daily Report Downloads Analytics (Histogram)
               </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Real-time daily photo upload consumption, plan threshold tracking (<span class="text-emerald-400 font-medium">Starter</span> / <span class="text-indigo-400 font-medium">Pro</span> / <span class="text-amber-400 font-medium">Admin</span>), and quota monitoring across every account role.</p>
+              <p class="text-xs text-slate-400 mt-0.5">Real-time daily histogram of generated reports (PDF, PPT, DOC) downloaded across assessor & user accounts.</p>
+            </div>
+            
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+                <span class="text-slate-400 font-medium">Time Window:</span>
+                <select id="histogram-days-select" onchange="renderReportHistogram()" class="bg-transparent font-bold text-indigo-300 outline-none cursor-pointer">
+                  <option value="7">Last 7 Days</option>
+                  <option value="14" selected>Last 14 Days</option>
+                  <option value="30">Last 30 Days</option>
+                </select>
+              </div>
+
+              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+                <span class="text-slate-400 font-medium">Format:</span>
+                <select id="histogram-format-select" onchange="renderReportHistogram()" class="bg-transparent font-bold text-indigo-300 outline-none cursor-pointer">
+                  <option value="all">All Formats (PDF, PPT, DOC)</option>
+                  <option value="pdf">PDF Only</option>
+                  <option value="ppt">PPT Only</option>
+                  <option value="doc">DOC Only</option>
+                </select>
+              </div>
+
+              <button onclick="renderReportHistogram()" title="Refresh Analytics Histogram" class="rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all">
+                ↻ Refresh Histogram
+              </button>
+            </div>
+          </div>
+
+          <!-- Summary Metric Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Reports Downloaded</span>
+              <span id="stat-total-downloads" class="text-2xl font-extrabold text-indigo-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">PDF Reports</span>
+              <span id="stat-pdf-downloads" class="text-2xl font-extrabold text-rose-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">PPT Reports</span>
+              <span id="stat-ppt-downloads" class="text-2xl font-extrabold text-orange-400 mt-1">0</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-col">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">DOC Reports</span>
+              <span id="stat-doc-downloads" class="text-2xl font-extrabold text-blue-400 mt-1">0</span>
+            </div>
+          </div>
+
+          <!-- Chart Canvas Container -->
+          <div class="relative w-full h-72 bg-slate-950/40 rounded-xl border border-slate-800/80 p-4 flex items-center justify-center">
+            <canvas id="reportHistogramCanvas" class="w-full h-full"></canvas>
+          </div>
+        </div>
+
+        <!-- Daily Usage Monitoring Dashboard for Each User Role Account -->
+        <div class="rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                Daily Report Usage Monitoring Dashboard
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Real-time daily generated report (PDF, PPT, DOC) download tracking, plan threshold monitoring (<span class="text-emerald-400 font-medium">Starter</span> / <span class="text-indigo-400 font-medium">Pro</span> / <span class="text-amber-400 font-medium">Admin</span>), and ceiling quotas across every account role.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
               <!-- Summary Badges -->
               <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold">
-                <span class="text-slate-400">Total Uploaded Today:</span>
-                <span id="daily-total-photos" class="text-indigo-400 font-bold">0</span>
+                <span class="text-slate-400">Total Downloaded Today:</span>
+                <span id="daily-total-photos" class="text-indigo-400 font-bold">0 REPORTS</span>
               </div>
               <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold">
                 <span class="text-slate-400">Active Accounts:</span>
@@ -197,7 +262,7 @@
                 <span>0 At Limit</span>
               </div>
               <!-- Action Controls -->
-              <button onclick="renderDailyUsageDashboard()" title="Refresh Usage Stats" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all">
+              <button onclick="renderDailyUsageDashboard(); renderReportHistogram();" title="Refresh Usage Stats" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all">
                 ↻ Refresh Stats
               </button>
               <button onclick="adminResetAllDailyUsage()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md">
@@ -232,11 +297,11 @@
               <thead>
                 <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
                   <th class="pb-3 pr-2">User / Role Account</th>
-                  <th class="pb-3 px-2">Plan & Quota Ceiling</th>
-                  <th class="pb-3 px-2 min-w-[200px]">Daily Usage Progress Bar</th>
-                  <th class="pb-3 px-2">Usage Count</th>
+                  <th class="pb-3 px-2">Plan & Report Quota</th>
+                  <th class="pb-3 px-2 min-w-[200px]">Daily Reports Progress Bar</th>
+                  <th class="pb-3 px-2">Downloaded Reports</th>
                   <th class="pb-3 px-2">Quota Status</th>
-                  <th class="pb-3 px-2">Last Upload Activity</th>
+                  <th class="pb-3 px-2">Last Report Download</th>
                   <th class="pb-3 pl-2 text-right">Admin Actions</th>
                 </tr>
               </thead>
@@ -731,6 +796,7 @@
       renderUsers();
       renderOnlineSessions();
       renderDailyUsageDashboard();
+      renderReportHistogram();
       loadEmailAlerts();
       renderFeedbackSection();
       renderCommentLogs();
@@ -978,11 +1044,11 @@
       // Ensure default usage overrides exist if not previously reset or calculated
       if (!store.daily_usage_overrides) {
         store.daily_usage_overrides = {
-          "demo@hitec.id": 45,
-          "dummy@hitec.id": 95,
-          "budi.santoso@safety-id.co.id": 180,
-          "admin@hitec.id": 12,
-          "handoyo.tjung@gmail.com": 28
+          "demo@hitec.id": 5,
+          "dummy@hitec.id": 12,
+          "budi.santoso@safety-id.co.id": 18,
+          "admin@hitec.id": 3,
+          "handoyo.tjung@gmail.com": 8
         };
       }
 
@@ -990,9 +1056,25 @@
       const statusFilter = document.getElementById('du-status-filter')?.value || 'all';
       const searchVal = (document.getElementById('du-search-input')?.value || '').toLowerCase().trim();
 
-      let totalPhotosToday = 0;
+      let totalReportsToday = 0;
       let activeAccountsToday = 0;
       let accountsAtLimitToday = 0;
+
+      // Collect all report downloads from store and local storage
+      let allDownloads = Array.isArray(store.report_downloads) ? [...store.report_downloads] : [];
+      try {
+        const rawLocal = localStorage.getItem('hitec_report_downloads');
+        if (rawLocal) {
+          const list = JSON.parse(rawLocal);
+          if (Array.isArray(list)) {
+            list.forEach(item => {
+              if (!allDownloads.some(d => d.id === item.id)) {
+                allDownloads.push(item);
+              }
+            });
+          }
+        }
+      } catch (e) {}
 
       const userEntries = Object.keys(users).map(email => {
         const u = users[email];
@@ -1002,43 +1084,41 @@
         const companyId = u.company_id || 'co_hitec';
 
         const isAdmin = role === 'admin' || role === 'super_admin' || cleanEmail === 'handoyo.tjung@gmail.com';
-        const photosLimit = isAdmin ? 9999 : (store.plan && store.plan[plan] ? store.plan[plan].max_daily_photos : (plan === 'pro' ? 300 : 100));
+        const reportsLimit = isAdmin ? 9999 : (store.plan && store.plan[plan] ? (store.plan[plan].max_daily_reports || store.plan[plan].max_daily_photos) : (plan === 'pro' ? 300 : 100));
 
-        // Count photos from store.photos matching today
-        let actualPhotosFromStore = 0;
-        let lastActivity = 'No upload today';
+        // Count downloaded reports matching today
+        let actualReportsFromStore = 0;
+        let lastActivity = 'No reports downloaded today';
         let latestTimestamp = 0;
 
-        if (Array.isArray(store.photos)) {
-          store.photos.forEach(p => {
-            const matchUser = p.uploaded_by?.toLowerCase() === cleanEmail || p.created_by?.toLowerCase() === cleanEmail || p.user_id?.toLowerCase() === cleanEmail || (!p.uploaded_by && !p.created_by && u.company_id && p.company_id === u.company_id);
-            const matchDate = p.upload_date === todayStr || (p.upload_timestamp && (Date.now() - p.upload_timestamp <= 24 * 60 * 60 * 1000)) || p.created_at?.startsWith(todayStr);
-            if (matchUser && matchDate) {
-              actualPhotosFromStore++;
-              const t = p.upload_timestamp || (p.created_at ? new Date(p.created_at).getTime() : 0);
-              if (t > latestTimestamp) {
-                latestTimestamp = t;
-              }
+        allDownloads.forEach(d => {
+          const matchUser = d.user_email?.toLowerCase() === cleanEmail || d.user_id?.toLowerCase() === cleanEmail || d.userId?.toLowerCase() === cleanEmail;
+          const matchDate = d.download_date === todayStr || (d.download_timestamp && (Date.now() - d.download_timestamp <= 24 * 60 * 60 * 1000)) || d.created_at?.startsWith(todayStr);
+          if (matchUser && matchDate) {
+            actualReportsFromStore++;
+            const t = d.download_timestamp || (d.created_at ? new Date(d.created_at).getTime() : 0);
+            if (t > latestTimestamp) {
+              latestTimestamp = t;
             }
-          });
-        }
+          }
+        });
 
-        let photosUsed = actualPhotosFromStore;
+        let reportsUsed = actualReportsFromStore;
         if (store.daily_usage_overrides && store.daily_usage_overrides[cleanEmail] !== undefined) {
-          photosUsed = Math.max(actualPhotosFromStore, store.daily_usage_overrides[cleanEmail]);
+          reportsUsed = Math.max(actualReportsFromStore, store.daily_usage_overrides[cleanEmail]);
         }
 
         if (latestTimestamp > 0) {
           lastActivity = new Date(latestTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' (' + todayStr + ')';
-        } else if (photosUsed > 0 && store.daily_usage_overrides && store.daily_usage_overrides[cleanEmail] > 0) {
+        } else if (reportsUsed > 0 && store.daily_usage_overrides && store.daily_usage_overrides[cleanEmail] > 0) {
           lastActivity = 'Today, active session (' + todayStr + ')';
         }
 
-        const pct = isAdmin ? Math.min(100, Math.round((photosUsed / 500) * 100)) : Math.min(100, Math.round((photosUsed / photosLimit) * 100));
+        const pct = isAdmin ? Math.min(100, Math.round((reportsUsed / 500) * 100)) : Math.min(100, Math.round((reportsUsed / reportsLimit) * 100));
 
         let statusType = 'normal';
         if (!isAdmin) {
-          if (pct >= 90 || photosUsed >= photosLimit) statusType = 'limit';
+          if (pct >= 90 || reportsUsed >= reportsLimit) statusType = 'limit';
           else if (pct >= 70) statusType = 'warning';
         }
 
@@ -1048,8 +1128,8 @@
           plan,
           companyId,
           isAdmin,
-          photosLimit,
-          photosUsed,
+          reportsLimit,
+          reportsUsed,
           pct,
           statusType,
           lastActivity
@@ -1058,20 +1138,20 @@
 
       // Calculate aggregate stats across all accounts
       userEntries.forEach(item => {
-        totalPhotosToday += item.photosUsed;
-        if (item.photosUsed > 0) activeAccountsToday++;
+        totalReportsToday += item.reportsUsed;
+        if (item.reportsUsed > 0) activeAccountsToday++;
         if (item.statusType === 'limit') accountsAtLimitToday++;
       });
 
       const totalEl = document.getElementById('daily-total-photos');
-      if (totalEl) totalEl.innerText = totalPhotosToday;
+      if (totalEl) totalEl.innerText = `${totalReportsToday} REPORTS`;
       const activeEl = document.getElementById('daily-active-accounts');
       if (activeEl) activeEl.innerText = activeAccountsToday;
       const alertEl = document.getElementById('daily-alert-badge');
       if (alertEl) {
         if (accountsAtLimitToday > 0) {
           alertEl.className = 'flex items-center gap-1.5 rounded-xl bg-rose-500/10 border border-rose-500/40 px-3 py-1.5 text-xs font-bold text-rose-400 animate-pulse';
-          alertEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-rose-400"></span><span>${accountsAtLimitToday} At Limit / Exceeded</span>`;
+          alertEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-rose-400"></span><span>${accountsAtLimitToday} At Report Limit</span>`;
         } else {
           alertEl.className = 'flex items-center gap-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-xs font-bold text-emerald-400';
           alertEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>0 Accounts At Limit</span>`;
@@ -1124,7 +1204,7 @@
           statusBadge = '<span class="inline-flex items-center gap-1 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-2 py-0.5 text-[10px] font-bold">Admin Privileged</span>';
         }
 
-        const limitDisplay = item.isAdmin ? 'Unlimited' : item.photosLimit;
+        const limitDisplay = item.isAdmin ? 'Unlimited' : item.reportsLimit;
         const progressWidth = Math.min(100, item.pct);
 
         tr.innerHTML = `
@@ -1144,11 +1224,11 @@
             </div>
             <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1 max-w-xs">
               <span>${item.pct}% consumed today</span>
-              <span>${item.photosUsed} / ${limitDisplay}</span>
+              <span>${item.reportsUsed} / ${limitDisplay}</span>
             </div>
           </td>
           <td class="py-3.5 px-2 font-mono font-bold ${item.statusType === 'limit' ? 'text-rose-400' : 'text-slate-200'}">
-            ${item.photosUsed} <span class="text-slate-500 font-normal text-[10px]">photos</span>
+            ${item.reportsUsed} <span class="text-slate-500 font-normal text-[10px]">reports</span>
           </td>
           <td class="py-3.5 px-2">
             ${statusBadge}
@@ -1166,8 +1246,214 @@
       });
     }
 
+    let reportHistogramChart = null;
+
+    function renderReportHistogram() {
+      const store = loadStore();
+      const canvas = document.getElementById('reportHistogramCanvas');
+      if (!canvas) return;
+
+      const daysCount = parseInt(document.getElementById('histogram-days-select')?.value || '14', 10);
+      const formatFilter = document.getElementById('histogram-format-select')?.value || 'all';
+
+      // 1. Gather all report downloads from store and local storage
+      let downloads = [];
+      if (Array.isArray(store.report_downloads)) {
+        downloads = [...store.report_downloads];
+      }
+      try {
+        const rawLocal = localStorage.getItem('hitec_report_downloads');
+        if (rawLocal) {
+          const list = JSON.parse(rawLocal);
+          if (Array.isArray(list)) {
+            list.forEach(item => {
+              if (!downloads.some(d => d.id === item.id)) {
+                downloads.push(item);
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      // Seed historical mock data if fewer than 10 records exist
+      const getPastDateStr = (daysAgo) => {
+        const d = new Date();
+        d.setDate(d.getDate() - daysAgo);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      if (downloads.length < 10) {
+        const mockAccounts = [
+          'demo@hitec.id',
+          'budi.santoso@safety-id.co.id',
+          'dummy@hitec.id',
+          'handoyo.tjung@gmail.com'
+        ];
+        const mockTypes = ['pdf', 'ppt', 'doc'];
+        
+        for (let i = 0; i < 30; i++) {
+          const dateStr = getPastDateStr(i);
+          const countForDay = Math.floor(Math.sin(i * 0.7 + 1) * 3) + 4;
+          for (let c = 0; c < countForDay; c++) {
+            downloads.push({
+              id: `seed_${i}_${c}`,
+              user_email: mockAccounts[c % mockAccounts.length],
+              report_type: mockTypes[(i + c) % mockTypes.length],
+              download_date: dateStr,
+              download_timestamp: new Date(dateStr).getTime()
+            });
+          }
+        }
+      }
+
+      // Filter by format if selected
+      if (formatFilter !== 'all') {
+        downloads = downloads.filter(d => (d.report_type || '').toLowerCase() === formatFilter);
+      }
+
+      // Generate date labels for past X days (chronological order)
+      const labels = [];
+      const countsMap = {};
+      const pdfMap = {};
+      const pptMap = {};
+      const docMap = {};
+
+      for (let i = daysCount - 1; i >= 0; i--) {
+        const dateStr = getPastDateStr(i);
+        labels.push(dateStr);
+        countsMap[dateStr] = 0;
+        pdfMap[dateStr] = 0;
+        pptMap[dateStr] = 0;
+        docMap[dateStr] = 0;
+      }
+
+      let totalCount = 0;
+      let totalPdf = 0;
+      let totalPpt = 0;
+      let totalDoc = 0;
+
+      downloads.forEach(d => {
+        const date = d.download_date || (d.download_timestamp ? new Date(d.download_timestamp).toISOString().split('T')[0] : '');
+        if (countsMap[date] !== undefined) {
+          countsMap[date]++;
+          totalCount++;
+          const type = (d.report_type || 'pdf').toLowerCase();
+          if (type === 'pdf') { pdfMap[date]++; totalPdf++; }
+          else if (type === 'ppt' || type === 'pptx') { pptMap[date]++; totalPpt++; }
+          else if (type === 'doc' || type === 'docx' || type === 'word') { docMap[date]++; totalDoc++; }
+        }
+      });
+
+      // Update Summary Cards
+      const totalEl = document.getElementById('stat-total-downloads');
+      if (totalEl) totalEl.innerText = totalCount;
+      const pdfEl = document.getElementById('stat-pdf-downloads');
+      if (pdfEl) pdfEl.innerText = totalPdf;
+      const pptEl = document.getElementById('stat-ppt-downloads');
+      if (pptEl) pptEl.innerText = totalPpt;
+      const docEl = document.getElementById('stat-doc-downloads');
+      if (docEl) docEl.innerText = totalDoc;
+
+      // Format X-axis labels for readability (e.g., 'Jul 20')
+      const formattedLabels = labels.map(d => {
+        const parts = d.split('-');
+        if (parts.length === 3) {
+          const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        return d;
+      });
+
+      const dataValues = labels.map(d => countsMap[d]);
+
+      // Custom Plugin to draw exact numerical values on top of each bar
+      const barTopLabelsPlugin = {
+        id: 'barTopLabelsPlugin',
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          chart.data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+            meta.data.forEach((bar, index) => {
+              const val = dataset.data[index];
+              if (val !== undefined && val !== null) {
+                ctx.save();
+                ctx.fillStyle = '#F8FAFC';
+                ctx.font = 'bold 11px Outfit, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(String(val), bar.x, bar.y - 4);
+                ctx.restore();
+              }
+            });
+          });
+        }
+      };
+
+      if (window.Chart) {
+        if (reportHistogramChart) {
+          reportHistogramChart.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        reportHistogramChart = new window.Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: formattedLabels,
+            datasets: [{
+              label: 'Downloaded Reports',
+              data: dataValues,
+              backgroundColor: 'rgba(99, 102, 241, 0.75)',
+              borderColor: '#818CF8',
+              borderWidth: 1.5,
+              borderRadius: 6,
+              hoverBackgroundColor: 'rgba(129, 140, 248, 0.9)'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: {
+                top: 24,
+                bottom: 8
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#0F172A',
+                titleColor: '#F8FAFC',
+                bodyColor: '#818CF8',
+                borderColor: '#334155',
+                borderWidth: 1,
+                padding: 10,
+                callbacks: {
+                  label: (ctx) => `Downloaded Reports: ${ctx.parsed.y}`
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false, color: '#1E293B' },
+                ticks: { color: '#94A3B8', font: { size: 11, weight: '500' } }
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: '#1E293B' },
+                ticks: { color: '#94A3B8', precision: 0, font: { size: 11 } }
+              }
+            }
+          },
+          plugins: [barTopLabelsPlugin]
+        });
+      }
+    }
+
     function adminResetUserQuota(email) {
-      if (!confirm(`Are you sure you want to reset today's daily photo usage quota for account ${email} to 0?`)) return;
+      if (!confirm(`Are you sure you want to reset today's daily report usage quota for account ${email} to 0?`)) return;
       const store = loadStore();
       if (!store.daily_usage_overrides) store.daily_usage_overrides = {};
       store.daily_usage_overrides[email.toLowerCase()] = 0;
@@ -1178,16 +1464,17 @@
       };
       const todayStr = getLocalTodayStr();
 
-      if (Array.isArray(store.photos)) {
-        store.photos = store.photos.filter(p => {
-          const matchUser = p.uploaded_by?.toLowerCase() === email.toLowerCase() || p.created_by?.toLowerCase() === email.toLowerCase() || p.user_id?.toLowerCase() === email.toLowerCase();
-          const matchDate = p.upload_date === todayStr;
+      if (Array.isArray(store.report_downloads)) {
+        store.report_downloads = store.report_downloads.filter(p => {
+          const matchUser = p.user_email?.toLowerCase() === email.toLowerCase();
+          const matchDate = p.download_date === todayStr;
           return !(matchUser && matchDate);
         });
       }
       saveStore(store);
       renderDailyUsageDashboard();
-      alert(`Daily usage quota for ${email} has been reset to 0.`);
+      renderReportHistogram();
+      alert(`Daily report usage quota for ${email} has been reset to 0.`);
     }
 
     function adminResetAllDailyUsage() {

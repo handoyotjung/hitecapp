@@ -660,52 +660,108 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     return () => unsubscribe();
   }, [user]);
 
-  // Dynamic Daily Usage Metric Counter: real-time aggregation across Desktop & Mobile viewports
-  // Strictly filtered by target fields: Company (company_id) and City/Location (city_name / location)
-  const activeCityScope = selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '';
+  // Dynamic Daily Report Downloads Counter: tracks generated reports (PDF, PPT, DOC) downloaded today
+  const [dailyReportCount, setDailyReportCount] = useState(0);
 
   useEffect(() => {
-    if (!user?.companyId) return;
+    if (!user || !user.email) return;
 
-    const constraints = [
-      where('company_id', '==', user.companyId)
-    ];
-    if (activeCityScope) {
-      constraints.push(where('city_name', '==', activeCityScope));
-    }
-    constraints.push(where('upload_date', '==', todayStr));
-
+    const userEmailClean = (user.email || '').trim().toLowerCase();
     const q = query(
-      collection(db, 'photos'),
-      ...constraints
+      collection(db, 'report_downloads'),
+      where('download_date', '==', todayStr)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const uniquePhotos = new Set();
+      const uniqueReportIds = new Set();
       const rollingWindowMs = 24 * 60 * 60 * 1000;
       const nowMs = Date.now();
 
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        if (data && (data.status === 'done' || data.status === 'pending' || !data.status)) {
-          // Strictly verify company_id and city_name / location to avoid cross-project pollution
-          const matchesCompany = (data.company_id === user.companyId);
-          const matchesCity = !activeCityScope || (data.city_name === activeCityScope) || (data.location === activeCityScope);
-
-          if (matchesCompany && matchesCity) {
-            // Verify within rolling 24-hour day period or localized today window
-            const uploadTime = data.upload_timestamp || (data.created_at ? new Date(data.created_at).getTime() : nowMs);
-            if (data.upload_date === todayStr || (nowMs - uploadTime) <= rollingWindowMs) {
-              // Deduplicate across devices/viewports by unique photo ID or filename
-              uniquePhotos.add(data.id || docSnap.id || data.filename);
+        if (data) {
+          const matchUser = (data.user_email?.toLowerCase() === userEmailClean || data.userId === user.uid || data.user_id === user.uid);
+          if (matchUser) {
+            const dlTime = data.download_timestamp || (data.created_at ? new Date(data.created_at).getTime() : nowMs);
+            if (data.download_date === todayStr || (nowMs - dlTime) <= rollingWindowMs) {
+              uniqueReportIds.add(data.id || docSnap.id);
             }
           }
         }
       });
-      setDailyUploadCount(uniquePhotos.size);
+
+      // Also check local mock store
+      try {
+        const cached = localStorage.getItem('hitecmedia_mock_db');
+        if (cached) {
+          const store = JSON.parse(cached);
+          if (Array.isArray(store.report_downloads)) {
+            store.report_downloads.forEach(d => {
+              if (d.user_email?.toLowerCase() === userEmailClean && d.download_date === todayStr) {
+                uniqueReportIds.add(d.id || `mock_${d.download_timestamp}`);
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      setDailyReportCount(uniqueReportIds.size);
+    }, (err) => {
+      console.warn("Report downloads listener warning:", err);
     });
+
     return () => unsubscribe();
-  }, [user?.companyId, activeCityScope, todayStr]);
+  }, [user, todayStr]);
+
+  const trackReportDownload = async (reportType) => {
+    if (!user || !user.email) return;
+    const userEmailClean = (user.email || '').trim().toLowerCase();
+    const reportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const record = {
+      id: reportId,
+      user_email: userEmailClean,
+      user_id: user.uid || userEmailClean,
+      userId: user.uid || userEmailClean,
+      company_id: user.companyId || 'hitec',
+      city_name: selectedProject?.city_name || cityName.trim() || '',
+      report_type: reportType, // 'pdf', 'ppt', 'doc'
+      download_date: todayStr,
+      download_timestamp: Date.now(),
+      created_at: new Date().toISOString()
+    };
+
+    // 1. Save to LocalStorage mock DB
+    try {
+      const cached = localStorage.getItem('hitecmedia_mock_db');
+      const store = cached ? JSON.parse(cached) : {};
+      if (!Array.isArray(store.report_downloads)) store.report_downloads = [];
+      store.report_downloads.unshift(record);
+      localStorage.setItem('hitecmedia_mock_db', JSON.stringify(store));
+
+      const rawList = localStorage.getItem('hitec_report_downloads');
+      const list = rawList ? JSON.parse(rawList) : [];
+      list.unshift(record);
+      localStorage.setItem('hitec_report_downloads', JSON.stringify(list));
+    } catch (e) {}
+
+    // 2. Save to Firestore
+    try {
+      await setDoc(doc(db, 'report_downloads', reportId), record, { merge: true });
+    } catch (err) {
+      console.warn("Firestore setDoc report_downloads error:", err);
+    }
+
+    // 3. Increment local counter immediately for optimistic feedback
+    setDailyReportCount(prev => prev + 1);
+
+    // 4. Dispatch event for open tabs & admin dashboard sync
+    window.dispatchEvent(new CustomEvent('hitec_report_downloaded', { detail: record }));
+    try {
+      const bc = new BroadcastChannel('hitec_report_channel');
+      bc.postMessage(record);
+      bc.close();
+    } catch (e) {}
+  };
 
   // Sync photos in current project (auto-saved & persist permanently across logout/relogin)
   useEffect(() => {
@@ -1690,6 +1746,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       });
       const { downloadUrl, valid } = response.data || {};
       
+      // Track successful report download for daily usage and admin analytics
+      trackReportDownload(format === 'pptx' ? 'ppt' : 'pdf');
+
       if (downloadUrl) {
         try {
           const res = await fetch(downloadUrl);
@@ -1731,6 +1790,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         city_name: cityName
       };
       const result = await handleExportWord(projectPayload, queue, selectedPhotos, filename, isMobileMode ? 'Mobile' : 'Desktop', true);
+      
+      // Track successful Word/DOC report download for daily usage and admin analytics
+      trackReportDownload('doc');
+
       if (result && result.blob) {
         const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         await shareFile(result.blob, result.filename || filename, mime);

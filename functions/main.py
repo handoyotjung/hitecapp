@@ -1,8 +1,9 @@
 import io
 import os
+import json
 import datetime
 from datetime import timedelta
-from firebase_functions import https_fn, storage_fn, scheduler_fn
+from firebase_functions import options, https_fn, storage_fn, scheduler_fn
 from firebase_admin import initialize_app, firestore, storage
 import google.cloud.bigquery as bigquery
 from pptx import Presentation
@@ -10,6 +11,9 @@ from pptx.util import Inches, Pt
 from PIL import Image
 import pandas as pd
 import requests
+
+# Set global GCP region to asia-southeast2 (Jakarta) for all 2nd Gen Cloud Functions
+options.set_global_options(region="asia-southeast2")
 
 # Initialize Firebase Admin SDK
 firebase_app = initialize_app()
@@ -665,3 +669,44 @@ def cleanup_exports(event: scheduler_fn.ScheduledEvent) -> None:
                 print(f"Deleted expired export blob: {blob.name}")
             except Exception as e:
                 print(f"Failed to delete expired export blob {blob.name}: {e}")
+
+@https_fn.on_request()
+def api_feedback(req: https_fn.Request) -> https_fn.Response:
+    """HTTP Cloud Function handling GET and POST for /api/feedback directly backed by Firestore."""
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Content-Type': 'application/json'
+    }
+    if req.method == 'OPTIONS':
+        return https_fn.Response('', status=204, headers=headers)
+
+    if req.method == 'GET':
+        try:
+            docs = db.collection('feedback').stream()
+            items = [d.to_dict() for d in docs]
+            # In-memory robust sort by timestamp or created_at
+            items.sort(key=lambda x: str(x.get('timestamp') or x.get('created_at') or ''), reverse=True)
+            return https_fn.Response(json.dumps(items), status=200, headers=headers)
+        except Exception as e:
+            return https_fn.Response(json.dumps([]), status=200, headers=headers)
+
+    if req.method == 'POST':
+        try:
+            data = req.get_json(silent=True) or {}
+            if data and (data.get('userEmail') or data.get('userId')):
+                doc_id = data.get('id') or f"fb_{int(datetime.datetime.now().timestamp() * 1000)}"
+                data['id'] = doc_id
+                if not data.get('timestamp'):
+                    data['timestamp'] = datetime.datetime.utcnow().isoformat()
+                if not data.get('created_at'):
+                    data['created_at'] = datetime.datetime.utcnow().isoformat()
+                db.collection('feedback').document(doc_id).set(data, merge=True)
+                return https_fn.Response(json.dumps({'success': True, 'id': doc_id, 'item': data}), status=200, headers=headers)
+            return https_fn.Response(json.dumps({'error': 'Invalid feedback payload'}), status=400, headers=headers)
+        except Exception as err:
+            return https_fn.Response(json.dumps({'error': str(err)}), status=500, headers=headers)
+
+    return https_fn.Response(json.dumps({'error': 'Method not allowed'}), status=405, headers=headers)
+
