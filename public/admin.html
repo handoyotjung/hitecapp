@@ -38,75 +38,26 @@
 
     <main class="max-w-7xl mx-auto p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
       
-      <!-- LEFT COLUMN: User Form (Add / Edit) -->
-      <div class="lg:col-span-1 space-y-6">
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md">
-          <h3 id="form-title" class="text-lg font-bold text-white mb-4">Add Whitelisted User</h3>
-          
-          <form id="user-form" onsubmit="saveUser(event)" class="space-y-4">
-            <input type="hidden" id="edit-original-email" value="">
+      <!-- FULL WIDTH ROW: Manage Whitelisted Users Table with Inline Expander Drawer -->
+      <div class="lg:col-span-3 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                Manage Whitelisted Users
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Whitelist authorized assessor accounts, configure plans, set expiration dates, and manage inline account credentials.</p>
+            </div>
             
-            <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
-              <input type="email" id="user-email" required placeholder="user@example.com" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-            </div>
-
-            <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
-              <input type="text" id="user-password" required placeholder="User password" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Role</label>
-                <select id="user-role" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-                  <option value="user">User</option>
-                  <option value="super_admin">Super Admin</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Plan</label>
-                <select id="user-plan" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-                  <option value="starter">Starter</option>
-                  <option value="pro">Pro</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Login Expired Date</label>
-                <div class="flex items-center gap-1">
-                  <button type="button" onclick="setExpiryTemplate(1)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">1 Month</button>
-                  <button type="button" onclick="setExpiryTemplate(6)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">6 Months</button>
-                  <button type="button" onclick="setExpiryTemplate(12)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">1 Year</button>
-                </div>
-              </div>
-              <input type="date" id="user-expires" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-              <p class="mt-1 text-[11px] text-slate-500">Preset buttons set expiry date for Role User. Leave empty for permanent.</p>
-            </div>
-
-            <div class="flex gap-2 pt-2">
-              <button type="submit" class="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 text-xs font-bold text-white transition-all active:scale-[0.98]">
-                Save Account
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="toggleAddNewUserDrawer()" id="btn-add-user-top" class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-bold text-white transition-all shadow-md active:scale-95 flex items-center gap-1.5">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                + Add New Whitelisted User
               </button>
-              <button type="button" onclick="cancelEdit()" id="cancel-btn" class="hidden rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-2.5 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition-all active:scale-[0.98]">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- RIGHT COLUMN: Users Table List -->
-      <div class="lg:col-span-2 space-y-6">
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-white">Manage Whitelisted Users</h3>
-            <div class="flex gap-2 flex-wrap">
-              <button onclick="purgeDemoAccounts()" class="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500 hover:text-white transition-colors" title="Remove default hardcoded demo accounts">Purge Demo Accounts</button>
-              <button onclick="exportWhitelist()" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">Export JSON</button>
-              <label class="cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">
+              <button onclick="purgeDemoAccounts()" class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500 hover:text-white transition-colors" title="Remove default hardcoded demo accounts">Purge Demo Accounts</button>
+              <button onclick="exportWhitelist()" class="rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">Export JSON</button>
+              <label class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">
                 Import JSON
                 <input type="file" accept=".json" onchange="importWhitelist(event)" class="hidden" />
               </label>
@@ -1665,15 +1616,119 @@
       alert("All daily usage quotas have been reset to 0 for today.");
     }
 
+    let activeExpandedUserEmail = null; // null, 'NEW', or user email string e.g. 'demo@hitec.id'
+
+    function toggleAddNewUserDrawer() {
+      if (activeExpandedUserEmail === 'NEW') {
+        activeExpandedUserEmail = null;
+      } else {
+        activeExpandedUserEmail = 'NEW';
+      }
+      renderUsers();
+    }
+
+    function closeUserDrawer() {
+      activeExpandedUserEmail = null;
+      renderUsers();
+    }
+
+    function setInlineExpiryPreset(months) {
+      const d = new Date();
+      d.setMonth(d.getMonth() + months);
+      const el = document.getElementById('user-expires-inline');
+      if (el) el.value = d.toISOString().split('T')[0];
+    }
+
+    function clearInlineExpiryPreset() {
+      const el = document.getElementById('user-expires-inline');
+      if (el) el.value = '';
+    }
+
     function renderUsers() {
       const store = loadStore();
       const tbody = document.getElementById('users-table-body');
+      if (!tbody) return;
       tbody.innerHTML = '';
 
       const users = store.whitelist_users || {};
+
+      // 1. If activeExpandedUserEmail === 'NEW', render creation drawer at top of table
+      if (activeExpandedUserEmail === 'NEW') {
+        const createTr = document.createElement('tr');
+        createTr.className = 'bg-slate-950/90 border-b-2 border-indigo-500/50 transition-all duration-300';
+        createTr.innerHTML = `
+          <td colspan="5" class="p-4 sm:p-5">
+            <div class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
+                  <span class="h-2 w-2 rounded-full bg-indigo-400 animate-ping"></span>
+                  + Create New Whitelisted User Account
+                </h4>
+                <button type="button" onclick="closeUserDrawer()" class="text-slate-400 hover:text-white text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all">✕ Cancel</button>
+              </div>
+
+              <form onsubmit="saveUserInline(event, 'NEW')" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+                    <input type="email" id="user-email-inline" required placeholder="user@example.com" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                  </div>
+
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
+                    <input type="text" id="user-password-inline" required placeholder="User password" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                  </div>
+
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Role</label>
+                    <select id="user-role-inline" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                      <option value="user" selected>User</option>
+                      ${sessionUser && sessionUser.role === 'super_admin' ? `<option value="admin">Admin</option><option value="super_admin">Super Admin</option>` : ''}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Plan</label>
+                    <select id="user-plan-inline" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                      <option value="starter" selected>Starter (100/day)</option>
+                      <option value="pro">Pro (300/day)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Login Expired Date</label>
+                    <div class="flex items-center gap-1.5">
+                      <button type="button" onclick="setInlineExpiryPreset(1)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">1 Month</button>
+                      <button type="button" onclick="setInlineExpiryPreset(6)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">6 Months</button>
+                      <button type="button" onclick="setInlineExpiryPreset(12)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">1 Year</button>
+                      <button type="button" onclick="clearInlineExpiryPreset()" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-rose-300 transition-colors">Clear (Permanent)</button>
+                    </div>
+                  </div>
+                  <input type="date" id="user-expires-inline" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/80">
+                  <button type="button" onclick="closeUserDrawer()" class="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
+                    Cancel
+                  </button>
+                  <button type="submit" class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-2 text-xs font-bold text-white transition-all shadow-md active:scale-95">
+                    Save Account
+                  </button>
+                </div>
+              </form>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(createTr);
+      }
+
+      // 2. Render each existing user row + edit drawer if activeExpandedUserEmail === email
       Object.keys(users).forEach(email => {
         const u = users[email];
-        const roleBadge = u.role === 'super_admin' 
+        const cleanEmail = email.toLowerCase();
+        const roleBadge = u.role === 'super_admin' || u.role === 'admin'
           ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Admin</span>'
           : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
         
@@ -1690,92 +1745,176 @@
           expiryDisplay = `<div class="flex items-center gap-2"><span class="text-slate-200 font-medium">${u.expires_at}</span> ${statusBadge}</div>`;
         }
 
-          const isProtectedFromAdmin = (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin'));
+        const isProtectedFromAdmin = (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin'));
+        const isEditingThisRow = activeExpandedUserEmail === cleanEmail;
 
-          const tr = document.createElement('tr');
-          tr.className = 'border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors';
-          tr.innerHTML = `
-            <td class="py-3.5 pr-2">
-              <p class="font-bold text-slate-200">${email}</p>
-            </td>
-            <td class="py-3.5 px-2 font-mono text-slate-400">${u.password || '••••••••'}</td>
-            <td class="py-3.5 px-2 space-y-1">
-              <div class="flex gap-1.5 flex-wrap">${planBadge} ${roleBadge}</div>
-            </td>
-            <td class="py-3.5 px-2">
-              ${expiryDisplay}
-            </td>
-            <td class="py-3.5 pl-2 text-right">
-              <div class="flex justify-end gap-1.5">
-                <button onclick="editUser('${email}')" class="px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors" ${isProtectedFromAdmin ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Admins cannot edit Super Admin or Admin accounts"' : ''}>Edit</button>
-                <button onclick="deleteUser('${email}')" class="px-2.5 py-1.5 rounded-lg border border-rose-900/30 bg-slate-900 text-rose-500 hover:bg-rose-950/20 transition-colors" ${(email === 'handoyo.tjung@gmail.com' || isProtectedFromAdmin) ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Cannot delete this account"' : ''}>Delete</button>
+        const tr = document.createElement('tr');
+        tr.className = `border-b border-slate-800/40 ${isEditingThisRow ? 'bg-indigo-950/20' : 'hover:bg-slate-900/20'} transition-colors`;
+        tr.innerHTML = `
+          <td class="py-3.5 pr-2">
+            <p class="font-bold text-slate-200 flex items-center gap-2">
+              <span>${cleanEmail}</span>
+              ${isEditingThisRow ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Editing</span>' : ''}
+            </p>
+          </td>
+          <td class="py-3.5 px-2 font-mono text-slate-400">${u.password || '••••••••'}</td>
+          <td class="py-3.5 px-2 space-y-1">
+            <div class="flex gap-1.5 flex-wrap">${planBadge} ${roleBadge}</div>
+          </td>
+          <td class="py-3.5 px-2">
+            ${expiryDisplay}
+          </td>
+          <td class="py-3.5 pl-2 text-right">
+            <div class="flex justify-end gap-1.5">
+              <button onclick="editUser('${cleanEmail}')" class="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold transition-all" ${isProtectedFromAdmin ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Admins cannot edit Super Admin or Admin accounts"' : ''}>
+                ${isEditingThisRow ? 'Close Edit' : 'Edit'}
+              </button>
+              <button onclick="deleteUser('${cleanEmail}')" class="px-3 py-1.5 rounded-lg border border-rose-900/30 bg-slate-900 text-rose-400 hover:bg-rose-950/40 font-bold transition-all" ${(cleanEmail === 'handoyo.tjung@gmail.com' || isProtectedFromAdmin) ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Cannot delete this account"' : ''}>Delete</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        // If editing this row, render inline edit drawer directly beneath the row
+        if (isEditingThisRow) {
+          const drawerTr = document.createElement('tr');
+          drawerTr.className = 'bg-slate-950/90 border-b-2 border-indigo-500/50 transition-all duration-300';
+          drawerTr.innerHTML = `
+            <td colspan="5" class="p-4 sm:p-5">
+              <div class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full bg-indigo-400"></span>
+                    Edit Account Credentials: ${cleanEmail}
+                  </h4>
+                  <button type="button" onclick="closeUserDrawer()" class="text-slate-400 hover:text-white text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all">✕ Cancel</button>
+                </div>
+
+                <form onsubmit="saveUserInline(event, '${cleanEmail}')" class="space-y-4">
+                  <input type="hidden" id="edit-original-email" value="${cleanEmail}">
+                  
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+                      <input type="email" id="user-email-inline" required value="${cleanEmail}" placeholder="user@example.com" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div>
+                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
+                      <input type="text" id="user-password-inline" required value="${u.password || ''}" placeholder="User password" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div>
+                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Role</label>
+                      <select id="user-role-inline" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+                        ${sessionUser && sessionUser.role === 'super_admin' ? `<option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option><option value="super_admin" ${u.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>` : ''}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Plan</label>
+                      <select id="user-plan-inline" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                        <option value="starter" ${u.plan === 'starter' ? 'selected' : ''}>Starter (100/day)</option>
+                        <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro (300/day)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Login Expired Date</label>
+                      <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="setInlineExpiryPreset(1)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">1 Month</button>
+                        <button type="button" onclick="setInlineExpiryPreset(6)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">6 Months</button>
+                        <button type="button" onclick="setInlineExpiryPreset(12)" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-indigo-300 transition-colors">1 Year</button>
+                        <button type="button" onclick="clearInlineExpiryPreset()" class="rounded bg-slate-800 hover:bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-rose-300 transition-colors">Clear (Permanent)</button>
+                      </div>
+                    </div>
+                    <input type="date" id="user-expires-inline" value="${u.expires_at || ''}" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                  </div>
+
+                  <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/80">
+                    <button type="button" onclick="closeUserDrawer()" class="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
+                      Cancel
+                    </button>
+                    <button type="submit" class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-2 text-xs font-bold text-white transition-all shadow-md active:scale-95">
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
               </div>
             </td>
           `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      function saveUser(e) {
-        e.preventDefault();
-        const email = document.getElementById('user-email').value.trim().toLowerCase();
-        const password = document.getElementById('user-password').value;
-        let role = document.getElementById('user-role').value;
-        const plan = document.getElementById('user-plan').value;
-        const expires_at = document.getElementById('user-expires').value;
-
-        // Security check: Admin can ONLY add or set role = user
-        if (sessionUser && sessionUser.role === 'admin') {
-          role = 'user';
+          tbody.appendChild(drawerTr);
         }
+      });
+    }
 
-        const store = loadStore();
-        const originalEmail = document.getElementById('edit-original-email').value;
+    function saveUserInline(e, originalTargetEmail) {
+      e.preventDefault();
+      const emailEl = document.getElementById('user-email-inline');
+      const passEl = document.getElementById('user-password-inline');
+      const roleEl = document.getElementById('user-role-inline');
+      const planEl = document.getElementById('user-plan-inline');
+      const expiresEl = document.getElementById('user-expires-inline');
 
-        if (originalEmail && originalEmail !== email) {
-          delete store.whitelist_users[originalEmail];
-        }
+      if (!emailEl || !passEl) return;
 
-        store.whitelist_users[email] = {
-          role,
-          plan,
-          password,
-          expires_at
-        };
+      const email = emailEl.value.trim().toLowerCase();
+      const password = passEl.value;
+      let role = roleEl ? roleEl.value : 'user';
+      const plan = planEl ? planEl.value : 'starter';
+      const expires_at = expiresEl ? expiresEl.value : '';
 
-        saveStore(store);
-        cancelEdit();
-        renderUsers();
+      if (sessionUser && sessionUser.role === 'admin') {
+        role = 'user';
       }
 
-      function editUser(email) {
-        const store = loadStore();
-        const u = store.whitelist_users[email];
-        if (!u) return;
+      const store = loadStore();
 
-        if (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin')) {
-          alert("As an Admin, you can only manage accounts with role: User.");
-          return;
-        }
-
-        document.getElementById('edit-original-email').value = email;
-        document.getElementById('user-email').value = email;
-        document.getElementById('user-password').value = u.password || '';
-        document.getElementById('user-role').value = u.role || 'user';
-        document.getElementById('user-plan').value = u.plan || 'starter';
-        document.getElementById('user-expires').value = u.expires_at || '';
-
-        document.getElementById('form-title').innerText = "Edit Whitelisted User";
-        document.getElementById('cancel-btn').classList.remove('hidden');
+      if (originalTargetEmail && originalTargetEmail !== 'NEW' && originalTargetEmail !== email) {
+        delete store.whitelist_users[originalTargetEmail];
       }
 
-      function cancelEdit() {
-        document.getElementById('edit-original-email').value = '';
-        document.getElementById('user-form').reset();
-        document.getElementById('user-expires').value = '';
-        document.getElementById('form-title').innerText = "Add Whitelisted User";
-        document.getElementById('cancel-btn').classList.add('hidden');
+      store.whitelist_users[email] = {
+        role,
+        plan,
+        password,
+        expires_at,
+        created_at: store.whitelist_users[email]?.created_at || new Date().toISOString()
+      };
+
+      saveStore(store);
+      activeExpandedUserEmail = null;
+      renderUsers();
+      renderOnlineSessions();
+      renderDailyUsageDashboard();
+    }
+
+    function editUser(email) {
+      const store = loadStore();
+      const u = store.whitelist_users[email];
+      if (!u) return;
+
+      if (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin')) {
+        alert("As an Admin, you can only manage accounts with role: User.");
+        return;
       }
+
+      const cleanEmail = email.toLowerCase();
+      if (activeExpandedUserEmail === cleanEmail) {
+        activeExpandedUserEmail = null;
+      } else {
+        activeExpandedUserEmail = cleanEmail;
+      }
+      renderUsers();
+    }
+
+    function cancelEdit() {
+      activeExpandedUserEmail = null;
+      renderUsers();
+    }
 
       function deleteUser(email) {
         if (email === 'handoyo.tjung@gmail.com') return; // protect default admin
