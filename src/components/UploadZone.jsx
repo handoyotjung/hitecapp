@@ -121,15 +121,19 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
     }
   };
 
+  useEffect(() => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.setAttribute('capture', 'environment');
+    }
+  }, []);
+
   const isAtLimit = false;
   const handleUploadFolderClick = () => onUploadFolder ? onUploadFolder() : folderInputRef.current?.click();
   const handleSelectPhotosClick = () => {
-    if (onSelectPhotos) {
-      onSelectPhotos();
-    } else if (isMobileMode && cameraInputRef.current) {
+    if (cameraInputRef.current) {
       cameraInputRef.current.click();
-    } else {
-      fileInputRef.current?.click();
+    } else if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
