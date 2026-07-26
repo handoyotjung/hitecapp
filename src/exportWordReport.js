@@ -117,28 +117,63 @@ function base64ToBytes(base64Str) {
 }
 
 // HELPER 5: SAFE URL TO BASE64 CONVERTER IF BASE64 NOT CACHED
+export async function getBestPhotoBase64(photo) {
+  if (!photo) return '';
+
+  const directCandidates = [
+    photo.base64,
+    photo.annotatedBase64,
+    photo.url,
+    photo.thumbnailUrl,
+    photo.previewUrl,
+    photo.localUrl,
+    photo.src,
+    photo.dataUrl
+  ];
+
+  for (const cand of directCandidates) {
+    if (typeof cand === 'string' && cand.startsWith('data:image/')) {
+      return cand;
+    }
+  }
+
+  const urlCandidates = [
+    photo.localUrl,
+    photo.url,
+    photo.thumbnailUrl,
+    photo.previewUrl,
+    photo.src,
+    photo.dataUrl,
+    photo.base64,
+    photo.annotatedBase64
+  ];
+
+  for (const candUrl of urlCandidates) {
+    if (typeof candUrl === 'string' && candUrl.trim() !== '') {
+      if (candUrl.startsWith('data:image/')) return candUrl;
+      try {
+        const res = await fetch(candUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result || '');
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(blob);
+          });
+          if (base64 && base64.startsWith('data:image/')) {
+            return base64;
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  return '';
+}
+
 async function ensurePhotoBase64(photo, viewMode = 'Desktop') {
-  if (viewMode === 'Mobile') {
-    if (photo.base64) return photo.base64;
-  } else {
-    if (photo.annotatedBase64) return photo.annotatedBase64;
-    if (photo.base64) return photo.base64;
-  }
-  const url = photo.localUrl || photo.url || photo.thumbnailUrl;
-  if (!url) return '';
-  if (url.startsWith('data:image/')) return url;
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve('');
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return '';
-  }
+  return await getBestPhotoBase64(photo);
 }
 
 export async function handleExportWord(project, queue = [], selectedPhotos = [], customFilename = null, viewMode = 'Desktop', returnBlob = false) {
@@ -160,12 +195,12 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
     photosToExport = [
       ...orderedQueue.map(item => {
         const matchedPhoto = (project.photos || []).find(p => p.filename === item.finalFilename) || {};
-        const rawBase = item.base64 || matchedPhoto.base64 || item.annotatedBase64 || '';
+        const rawBase = item.base64 || matchedPhoto.base64 || item.annotatedBase64 || matchedPhoto.annotatedBase64 || item.thumbnailUrl || matchedPhoto.url || '';
         return {
           ...matchedPhoto,
           ...item,
           filename: item.finalFilename,
-          annotatedBase64: viewMode === 'Mobile' ? rawBase : (item.annotatedBase64 || matchedPhoto.annotatedBase64 || rawBase),
+          annotatedBase64: rawBase,
           base64: rawBase,
           localUrl: item.thumbnailUrl || matchedPhoto.url || ''
         };
@@ -181,7 +216,7 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
   for (let idx = 0; idx < photosToExport.length; idx++) {
     const photo = photosToExport[idx];
     // 1. GET IMAGE DIMENSIONS FOR ASPECT RATIO
-    const rawBase64 = viewMode === 'Mobile' ? (photo.base64 || await ensurePhotoBase64(photo, viewMode)) : (photo.annotatedBase64 || photo.base64 || await ensurePhotoBase64(photo, viewMode));
+    const rawBase64 = await getBestPhotoBase64(photo);
     const imgData = base64ToBytes(rawBase64);
     const { width, height } = await getImageSize(imgData);
 

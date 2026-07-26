@@ -917,9 +917,12 @@ export const httpsCallable = (functionsInstance, name) => {
           });
 
           // 4. Image with original ratio (no stretching)
-          const rawImgSrc = isMobileMode
-            ? (photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null))
-            : (photo.annotatedBase64 || photo.base64 || (photo.localUrl ? await toBase64(photo.localUrl) : null));
+          let rawImgSrc = photo.base64 || photo.annotatedBase64;
+          if (!rawImgSrc || !rawImgSrc.startsWith('data:image/')) {
+            if (photo.localUrl) rawImgSrc = await toBase64(photo.localUrl);
+            if ((!rawImgSrc || !rawImgSrc.startsWith('data:image/')) && photo.url) rawImgSrc = await toBase64(photo.url);
+            if ((!rawImgSrc || !rawImgSrc.startsWith('data:image/')) && photo.thumbnailUrl) rawImgSrc = await toBase64(photo.thumbnailUrl);
+          }
           if (rawImgSrc) {
             const dims = await getImageSizePx(rawImgSrc);
             const boxW = isMobileMode ? 9.0 : 4.3;
@@ -1124,7 +1127,7 @@ export const handleExportPDF = async (project, customFilename = null) => {
     didParseCell: (data) => {
       if (data.section === 'body' && data.column.index === 1 && photos[data.row.index]) {
         const photo = photos[data.row.index];
-        const base64Str = isMobileMode ? (photo.base64 || photo.annotatedBase64 || '') : (photo.annotatedBase64 || photo.base64 || '');
+        const base64Str = photo.base64 || photo.annotatedBase64 || photo.url || photo.thumbnailUrl || photo.localUrl || '';
         if (base64Str && base64Str.startsWith('data:image/')) {
           data.cell.styles.minCellHeight = isMobileMode ? 115 : 28;
           data.cell.styles.valign = 'bottom';
@@ -1137,7 +1140,7 @@ export const handleExportPDF = async (project, customFilename = null) => {
     didDrawCell: (data) => {
       if (data.section === 'body' && data.column.index === 1 && photos[data.row.index]) {
         const photo = photos[data.row.index];
-        const base64Str = isMobileMode ? (photo.base64 || photo.annotatedBase64 || '') : (photo.annotatedBase64 || photo.base64 || '');
+        const base64Str = photo.base64 || photo.annotatedBase64 || photo.url || photo.thumbnailUrl || photo.localUrl || '';
         if (base64Str && base64Str.startsWith('data:image/')) {
           try {
             let imgRatio = 1.333;

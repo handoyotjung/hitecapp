@@ -20,7 +20,7 @@ import { UpgradeModal } from './UpgradeModal';
 import { FeedbackModal } from './FeedbackModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, generateRecommendation, getAISuggestions, learnComment } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
-import { handleExportWord } from '../exportWordReport';
+import { handleExportWord, getBestPhotoBase64 } from '../exportWordReport';
 import PublishBar from './PublishBar';
 import { compressImage } from '../imageCompressor';
 import { shareFile } from '../utils/shareFile';
@@ -1689,42 +1689,24 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           const matchedPhoto = projectPhotos.find(p => p.filename === item.finalFilename) || {};
           return {
             ...matchedPhoto,
+            ...item,
             filename: item.finalFilename,
-            localUrl: item.thumbnailUrl || matchedPhoto.url || '',
-            caption: matchedPhoto.caption || ''
+            localUrl: item.thumbnailUrl || matchedPhoto.url || matchedPhoto.thumbnailUrl || '',
+            caption: matchedPhoto.caption || item.caption || ''
           };
         }),
         ...fallbackPhotos.map(p => ({
           ...p,
-          localUrl: queue.find(q => q.finalFilename === p.filename)?.thumbnailUrl || p.url
+          localUrl: queue.find(q => q.finalFilename === p.filename)?.thumbnailUrl || p.url || p.thumbnailUrl || ''
         }))
       ];
       
-      // MANDATORY PRE-CONDITION: Frontend converts all image files to base64 before export call
-      const urlToBase64 = async (url) => {
-        if (!url) return '';
-        if (url.startsWith('data:image/')) return url;
-        try {
-          const res = await fetch(url);
-          const blob = await res.blob();
-          return await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = () => resolve('');
-            reader.readAsDataURL(blob);
-          });
-        } catch {
-          return '';
-        }
-      };
-
       const photosWithBase64 = await Promise.all(photosWithUrls.map(async (p) => {
-        const rawBase64Str = p.base64 || await urlToBase64(p.localUrl || p.url || p.thumbnailUrl);
-        const base64Str = isMobileMode ? rawBase64Str : (p.annotatedBase64 || rawBase64Str);
+        const bestImageBase64 = await getBestPhotoBase64(p);
         return {
           ...p,
-          base64: rawBase64Str,
-          annotatedBase64: isMobileMode ? rawBase64Str : (p.annotatedBase64 || rawBase64Str),
+          base64: bestImageBase64,
+          annotatedBase64: bestImageBase64,
           caption: p.caption || p.title || p.asset_title || "",
           comments: p.comments || p.comments_text || "",
           comments_text: p.comments_text || p.comments || "",
