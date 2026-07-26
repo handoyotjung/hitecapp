@@ -32,7 +32,7 @@ function UserMenu() {
 }
 
 export default function Header({ isSaving, isError }) {
-  const { user, usage } = useAuth();
+  const { user, usage, onOpenFeedback } = useAuth();
 
   const reportsUsed = usage?.reportsUsedToday ?? usage?.photosUsedToday ?? 0;
   // Dynamic limit: Read from account. Fallback 100 for user, unlimited for admin
