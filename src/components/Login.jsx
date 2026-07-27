@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Lock, User as UserIcon, Eye, EyeOff, ShieldCheck, LogOut } from 'lucide-react';
 import { apiLogin, apiLogoutOtherDevices, getClientDeviceId, getClientDeviceName } from '../sessionSecurity';
+import { SESSION_SCHEMA_VERSION, SESSION_EXPIRY_MS } from '../App';
 
 export default function Login({ onLoginSuccess, errorOverride }) {
   const [error, setError] = useState(null);
@@ -22,7 +23,12 @@ export default function Login({ onLoginSuccess, errorOverride }) {
   }, [errorOverride]);
 
   const saveSession = (userData) => {
-    localStorage.setItem('hitecmedia_session', JSON.stringify(userData));
+    const sessionPayload = {
+      ...userData,
+      schemaVersion: SESSION_SCHEMA_VERSION,
+      expiresAt: Date.now() + SESSION_EXPIRY_MS
+    };
+    localStorage.setItem('hitecmedia_session', JSON.stringify(sessionPayload));
     if (userData.viewMode) {
       localStorage.setItem('hitec_view_mode', userData.viewMode);
     }

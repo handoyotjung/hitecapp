@@ -6,6 +6,9 @@ import SecurityPage from './components/SecurityPage';
 import { runSessionCleanupJob, apiLogout } from './sessionSecurity';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
+export const SESSION_SCHEMA_VERSION = 2;
+export const SESSION_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days validity
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,12 +25,21 @@ export default function App() {
     // Run cleanup job on app launch
     runSessionCleanupJob();
 
-    // Check localStorage session first
+    // Check localStorage session first with strict schema version & expiration validation
     const localSession = localStorage.getItem('hitecmedia_session');
     if (localSession) {
       try {
         const parsed = JSON.parse(localSession);
-        if (parsed && parsed.email) {
+        const isValid =
+          parsed &&
+          typeof parsed === 'object' &&
+          typeof parsed.email === 'string' &&
+          parsed.email.trim().length > 0 &&
+          parsed.schemaVersion === SESSION_SCHEMA_VERSION &&
+          typeof parsed.expiresAt === 'number' &&
+          Date.now() < parsed.expiresAt;
+
+        if (isValid) {
           const role = parsed.role || 'user';
           const monthlyLimit = role === 'user' ? 300 : 9999;
           setUser({
@@ -41,9 +53,12 @@ export default function App() {
           });
           setLoading(false);
           return;
+        } else {
+          // Remove stale, unvalidated, or expired session payload
+          localStorage.removeItem('hitecmedia_session');
         }
       } catch (e) {
-        // ignore
+        localStorage.removeItem('hitecmedia_session');
       }
     }
 
@@ -143,10 +158,14 @@ export default function App() {
   // are allowed per account (e.g. demo@hitec.id shared by multiple assessors).
 
   const handleLoginSuccess = (sessionData) => {
-    setUser({
+    const enrichedSession = {
       ...sessionData,
+      schemaVersion: SESSION_SCHEMA_VERSION,
+      expiresAt: sessionData.expiresAt || (Date.now() + SESSION_EXPIRY_MS),
       viewMode: sessionData.viewMode || localStorage.getItem('hitec_view_mode') || 'Mobile'
-    });
+    };
+    setUser(enrichedSession);
+    localStorage.setItem('hitecmedia_session', JSON.stringify(enrichedSession));
     setViewMode('dashboard');
     setForceLogoutNotice(null);
   };
