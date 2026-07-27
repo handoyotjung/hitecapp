@@ -174,10 +174,17 @@ let mockCurrentUser = null;
 try {
   const savedSession = localStorage.getItem('hitecmedia_session') || sessionStorage.getItem('hitecmedia_session');
   if (savedSession) {
-    mockCurrentUser = JSON.parse(savedSession);
+    const parsed = JSON.parse(savedSession);
+    if (parsed && parsed.email && parsed.schemaVersion === 2 && typeof parsed.expiresAt === 'number' && Date.now() < parsed.expiresAt) {
+      mockCurrentUser = parsed;
+    } else {
+      localStorage.removeItem('hitecmedia_session');
+      sessionStorage.removeItem('hitecmedia_session');
+    }
   }
 } catch (e) {
-  console.error("Error reading saved session:", e);
+  localStorage.removeItem('hitecmedia_session');
+  sessionStorage.removeItem('hitecmedia_session');
 }
 
 export const onAuthStateChanged = (authInstance, callback) => {
