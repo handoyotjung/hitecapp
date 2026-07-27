@@ -36,10 +36,46 @@
       </div>
     </header>
 
-    <main class="max-w-7xl mx-auto p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- 3-TAB NAVIGATION BAR -->
+    <div class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-16 z-20 px-4 md:px-8 py-3.5 shadow-lg">
+      <div class="max-w-7xl mx-auto flex items-center gap-3 overflow-x-auto">
+        <button
+          id="tab-btn-account"
+          type="button"
+          onclick="switchAdminTab('account')"
+          class="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border active:scale-95 shadow-sm bg-indigo-600 border-indigo-500 text-white shadow-indigo-500/20 cursor-pointer"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-2-2"/></svg>
+          <span>Account & Security</span>
+        </button>
+
+        <button
+          id="tab-btn-billing"
+          type="button"
+          onclick="switchAdminTab('billing')"
+          class="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white hover:border-slate-700 active:scale-95 shadow-sm cursor-pointer"
+        >
+          <svg class="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+          <span>Billing & Usage</span>
+        </button>
+
+        <button
+          id="tab-btn-ai-agent"
+          type="button"
+          onclick="switchAdminTab('ai-agent')"
+          class="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white hover:border-slate-700 active:scale-95 shadow-sm cursor-pointer"
+        >
+          <svg class="h-4 w-4 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>AI Agent & Audit</span>
+        </button>
+      </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto p-6 md:p-8">
       
-      <!-- FULL WIDTH ROW: Manage Accounts Table with Inline Expander Drawer -->
-      <div class="lg:col-span-3 space-y-6">
+      <!-- TAB 1: ACCOUNT & SECURITY -->
+      <div id="tab-content-account" class="space-y-8">
+        <!-- Manage Accounts Table with Inline Expander Drawer -->
         <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
             <div>
@@ -51,12 +87,12 @@
             </div>
             
             <div class="flex items-center gap-2 flex-wrap">
-              <button onclick="toggleAddNewUserDrawer()" id="btn-add-user-top" class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-bold text-white transition-all shadow-md active:scale-95 flex items-center gap-1.5">
+              <button onclick="toggleAddNewUserDrawer()" id="btn-add-user-top" class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-bold text-white transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 + Add New Account
               </button>
-              <button onclick="purgeDemoAccounts()" class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500 hover:text-white transition-colors" title="Remove default hardcoded demo accounts">Purge Demo Accounts</button>
-              <button onclick="exportWhitelist()" class="rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">Export JSON</button>
+              <button onclick="purgeDemoAccounts()" class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer" title="Remove default hardcoded demo accounts">Purge Demo Accounts</button>
+              <button onclick="exportWhitelist()" class="rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer">Export JSON</button>
               <label class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">
                 Import JSON
                 <input type="file" accept=".json" onchange="importWhitelist(event)" class="hidden" />
@@ -81,10 +117,8 @@
             </table>
           </div>
         </div>
-      </div>
 
-      <!-- FULL WIDTH ROW: Online Accounts -->
-      <div class="lg:col-span-3 space-y-6">
+        <!-- Online Accounts -->
         <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
@@ -99,7 +133,7 @@
                 <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 0 Online
               </span>
-              <button onclick="adminForceLogoutAllSessions()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md">
+              <button onclick="adminForceLogoutAllSessions()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md cursor-pointer">
                 Terminate All Sessions
               </button>
             </div>
@@ -123,10 +157,47 @@
             </table>
           </div>
         </div>
+
+        <!-- Security Events & Email Alerts (admin@hitec.id) -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="h-5 w-5 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Security Events & Automated Email Alerts
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Automated security notifications sent to <code class="text-emerald-400 font-bold">admin@hitec.id</code> (Single Session & Force Logout monitoring)</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="sendTestSecurityEmail()" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white transition-all active:scale-[0.98] flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 cursor-pointer">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Send Test Email to admin@hitec.id
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                  <th class="pb-3 pr-2">Event Type</th>
+                  <th class="pb-3 px-2">Recipient</th>
+                  <th class="pb-3 px-2">Subject</th>
+                  <th class="pb-3 px-2">Timestamp</th>
+                  <th class="pb-3 pl-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="email-alerts-tbody" class="divide-y divide-slate-800/60">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <!-- FULL WIDTH ROW: Consolidated Report Usage Analytics & Monitoring Master Container -->
-      <div class="lg:col-span-3 space-y-6">
+      <!-- TAB 2: BILLING & USAGE -->
+      <div id="tab-content-billing" class="hidden space-y-8">
+        <!-- Consolidated Report Usage Analytics & Monitoring Master Container -->
         <div class="rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
           
           <!-- Master Header Title & Top Controls -->
@@ -139,10 +210,10 @@
               <p class="text-xs text-slate-400 mt-1">Real-time generated report (PDF, PPT, DOC) analytics, usage trends, and daily quota monitoring across all assessor accounts.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-              <button onclick="renderDailyUsageDashboard(); renderReportHistogram();" title="Refresh All Stats" class="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 text-xs font-bold text-indigo-300 hover:text-white transition-all active:scale-95 shadow-md">
+              <button onclick="renderDailyUsageDashboard(); renderReportHistogram();" title="Refresh All Stats" class="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 text-xs font-bold text-indigo-300 hover:text-white transition-all active:scale-95 shadow-md cursor-pointer">
                 ↻ Refresh All Stats
               </button>
-              <button onclick="adminResetAllDailyUsage()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md active:scale-95">
+              <button onclick="adminResetAllDailyUsage()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md active:scale-95 cursor-pointer">
                 Reset All Quotas Today
               </button>
             </div>
@@ -223,7 +294,7 @@
                   </select>
                 </div>
 
-                <button onclick="renderReportHistogram()" title="Refresh Histogram" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all">
+                <button onclick="renderReportHistogram()" title="Refresh Histogram" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-indigo-300 hover:bg-slate-700 hover:text-white transition-all cursor-pointer">
                   ↻ Refresh Histogram
                 </button>
               </div>
@@ -243,13 +314,13 @@
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter Role:</span>
-                <button type="button" onclick="filterDailyUsageRole('all')" id="btn-du-role-all" class="px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white transition-all">All Accounts</button>
-                <button type="button" onclick="filterDailyUsageRole('user')" id="btn-du-role-user" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all">Users Only</button>
-                <button type="button" onclick="filterDailyUsageRole('admin')" id="btn-du-role-admin" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all">Admins Only</button>
+                <button type="button" onclick="filterDailyUsageRole('all')" id="btn-du-role-all" class="px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white transition-all cursor-pointer">All Accounts</button>
+                <button type="button" onclick="filterDailyUsageRole('user')" id="btn-du-role-user" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer">Users Only</button>
+                <button type="button" onclick="filterDailyUsageRole('admin')" id="btn-du-role-admin" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer">Admins Only</button>
               </div>
               <div class="flex items-center gap-3">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status:</span>
-                <select id="du-status-filter" onchange="renderDailyUsageDashboard()" class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                <select id="du-status-filter" onchange="renderDailyUsageDashboard()" class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors cursor-pointer">
                   <option value="all">All Quota Status</option>
                   <option value="normal">Normal (&lt;70%)</option>
                   <option value="warning">Warning (70% - 89%)</option>
@@ -279,49 +350,13 @@
               </table>
             </div>
           </div>
-      </div>
-
-      <!-- FULL WIDTH ROW: Security Events & Email Alerts (admin@hitec.id) -->
-      <div class="lg:col-span-3 space-y-6">
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <div>
-              <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="h-5 w-5 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                Security Events & Automated Email Alerts
-              </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Automated security notifications sent to <code class="text-emerald-400 font-bold">admin@hitec.id</code> (Single Session & Force Logout monitoring)</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <button onclick="sendTestSecurityEmail()" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white transition-all active:scale-[0.98] flex items-center gap-1.5 shadow-lg shadow-emerald-500/20">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Send Test Email to admin@hitec.id
-              </button>
-            </div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
-                  <th class="pb-3 pr-2">Event Type</th>
-                  <th class="pb-3 px-2">Recipient</th>
-                  <th class="pb-3 px-2">Subject</th>
-                  <th class="pb-3 px-2">Timestamp</th>
-                  <th class="pb-3 pl-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="email-alerts-tbody" class="divide-y divide-slate-800/60">
-                <!-- Loaded dynamically -->
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
 
-      <!-- FULL WIDTH ROW: In-App User Feedback & AI Synthesis Backlog -->
-      <div class="lg:col-span-3 space-y-6">
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col">
+      <!-- TAB 3: AI AGENT & AUDIT -->
+      <div id="tab-content-ai-agent" class="hidden space-y-8">
+        <!-- In-App User Feedback & AI Synthesis Backlog -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
               <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -344,7 +379,7 @@
                     id="btn-fb-mode-list"
                     type="button"
                     onclick="switchFeedbackMode('list')"
-                    class="px-3 py-1 text-xs font-bold rounded transition-all bg-emerald-600 text-white"
+                    class="px-3 py-1 text-xs font-bold rounded transition-all bg-emerald-600 text-white cursor-pointer"
                   >
                     Submissions List
                   </button>
@@ -352,7 +387,7 @@
                     id="btn-fb-mode-aggregated"
                     type="button"
                     onclick="switchFeedbackMode('aggregated')"
-                    class="px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white"
+                    class="px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white cursor-pointer"
                   >
                     Aggregated Backlog
                   </button>
@@ -362,7 +397,7 @@
                   id="btn-fb-refresh"
                   onclick="syncFirestoreFeedback()"
                   title="Sync and Refresh Live Feedback List"
-                  class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs font-bold text-emerald-400 hover:bg-slate-800 hover:text-white transition-all flex items-center gap-1.5"
+                  class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs font-bold text-emerald-400 hover:bg-slate-800 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <span id="btn-fb-refresh-icon" class="inline-block transition-transform">↻</span> Refresh
                 </button>
@@ -395,84 +430,84 @@
             <!-- Rendered dynamically -->
           </div>
         </div>
-      </div>
 
-      <!-- FULL WIDTH ROW: AI Comment & Recommendation Audit Logs (/admin/comment-logs) -->
-      <div id="comment-logs" class="lg:col-span-3 space-y-6 pt-2">
-        <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                AI Comment & Recommendation Audit Logs (<code class="text-emerald-400 font-bold">/admin/comment-logs</code>)
-              </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Track assessor comment entries, AI suggested recommendations, and manual overrides across all ATEX & Fire Safety assessments.</p>
-            </div>
-            <div class="flex items-center gap-3 flex-wrap">
-              <div class="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
-                <button
-                  id="btn-filter-all"
-                  type="button"
-                  onclick="filterCommentLogs('all')"
-                  class="px-3.5 py-1.5 text-xs font-bold rounded transition-all bg-emerald-600 text-white"
-                >
-                  Show All Logs
-                </button>
-                <button
-                  id="btn-filter-manual"
-                  type="button"
-                  onclick="filterCommentLogs('manual')"
-                  class="px-3.5 py-1.5 text-xs font-bold rounded transition-all text-slate-400 hover:text-white"
-                >
-                  Show Only Manual Edits
-                </button>
+        <!-- AI Comment & Recommendation Audit Logs (/admin/comment-logs) -->
+        <div id="comment-logs" class="space-y-6 pt-2">
+          <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-6 backdrop-blur-md overflow-hidden flex flex-col shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  AI Comment & Recommendation Audit Logs (<code class="text-emerald-400 font-bold">/admin/comment-logs</code>)
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Track assessor comment entries, AI suggested recommendations, and manual overrides across all ATEX & Fire Safety assessments.</p>
+              </div>
+              <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+                  <button
+                    id="btn-filter-all"
+                    type="button"
+                    onclick="filterCommentLogs('all')"
+                    class="px-3.5 py-1.5 text-xs font-bold rounded transition-all bg-emerald-600 text-white cursor-pointer"
+                  >
+                    Show All Logs
+                  </button>
+                  <button
+                    id="btn-filter-manual"
+                    type="button"
+                    onclick="filterCommentLogs('manual')"
+                    class="px-3.5 py-1.5 text-xs font-bold rounded transition-all text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    Show Only Manual Edits
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- ANALYTICS CARD: Top 10 Recommendation Templates Used -->
-          <div class="mb-6 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 mb-3">
-              <svg class="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-              <span>Top 10 Recommendation Templates Used (Analytics & Frequency)</span>
-            </h4>
+            <!-- ANALYTICS CARD: Top 10 Recommendation Templates Used -->
+            <div class="mb-6 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+              <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 mb-3">
+                <svg class="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                <span>Top 10 Recommendation Templates Used (Analytics & Frequency)</span>
+              </h4>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                      <th class="pb-2 pr-2">Rank</th>
+                      <th class="pb-2 px-2">Grade</th>
+                      <th class="pb-2 px-2">Template / Keyword Rule</th>
+                      <th class="pb-2 px-2 text-right">Usage Count</th>
+                      <th class="pb-2 pl-2 text-right">Priority / Source</th>
+                    </tr>
+                  </thead>
+                  <tbody id="top-templates-tbody" class="divide-y divide-slate-800/60 text-slate-300 font-medium">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- AUDIT LOGS TABLE -->
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr class="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                    <th class="pb-2 pr-2">Rank</th>
-                    <th class="pb-2 px-2">Grade</th>
-                    <th class="pb-2 px-2">Template / Keyword Rule</th>
-                    <th class="pb-2 px-2 text-right">Usage Count</th>
-                    <th class="pb-2 pl-2 text-right">Priority / Source</th>
+                  <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                    <th class="pb-3 pr-2">Project & Photo</th>
+                    <th class="pb-3 px-2">User Email</th>
+                    <th class="pb-3 px-2">Comment / Observation</th>
+                    <th class="pb-3 px-2">Grade</th>
+                    <th class="pb-3 px-2">Recommendation</th>
+                    <th class="pb-3 px-2">AI Suggested Rec</th>
+                    <th class="pb-3 px-2 text-center">Manual Override</th>
+                    <th class="pb-3 pl-2 text-right">Timestamp</th>
                   </tr>
                 </thead>
-                <tbody id="top-templates-tbody" class="divide-y divide-slate-800/60 text-slate-300 font-medium">
+                <tbody id="comment-logs-tbody" class="divide-y divide-slate-800/60">
                   <!-- Loaded dynamically -->
                 </tbody>
               </table>
             </div>
-          </div>
-
-          <!-- AUDIT LOGS TABLE -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
-                  <th class="pb-3 pr-2">Project & Photo</th>
-                  <th class="pb-3 px-2">User Email</th>
-                  <th class="pb-3 px-2">Comment / Observation</th>
-                  <th class="pb-3 px-2">Grade</th>
-                  <th class="pb-3 px-2">Recommendation</th>
-                  <th class="pb-3 px-2">AI Suggested Rec</th>
-                  <th class="pb-3 px-2 text-center">Manual Override</th>
-                  <th class="pb-3 pl-2 text-right">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody id="comment-logs-tbody" class="divide-y divide-slate-800/60">
-                <!-- Loaded dynamically -->
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
@@ -788,6 +823,86 @@
       if (el) el.value = d.toISOString().split('T')[0];
     }
 
+    // TAB SWITCHING ENGINE & URL PERSISTENCE
+    function switchAdminTab(tabName) {
+      console.log("[switchAdminTab] Switching to:", tabName);
+      var tabs = ['account', 'billing', 'ai-agent'];
+      if (!tabs.includes(tabName)) tabName = 'account';
+
+      tabs.forEach(function(t) {
+        var el = document.getElementById('tab-content-' + t);
+        var btn = document.getElementById('tab-btn-' + t);
+        if (el) {
+          if (t === tabName) {
+            el.classList.remove('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        }
+        if (btn) {
+          if (t === tabName) {
+            btn.className = "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border active:scale-95 shadow-sm bg-indigo-600 border-indigo-500 text-white shadow-indigo-500/20 cursor-pointer";
+          } else {
+            btn.className = "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white hover:border-slate-700 active:scale-95 shadow-sm cursor-pointer";
+          }
+        }
+      });
+
+      try {
+        var currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('tab', tabName);
+        window.history.replaceState({}, '', currentUrl.toString());
+      } catch (e) {}
+
+      if (tabName === 'billing') {
+        setTimeout(function() {
+          if (typeof renderDailyUsageDashboard === 'function') renderDailyUsageDashboard();
+          if (typeof renderReportHistogram === 'function') renderReportHistogram();
+        }, 50);
+      }
+    }
+
+    function initAdminTabFromUrl() {
+      var tabParam = null;
+      var hash = window.location.hash || '';
+
+      if (hash) {
+        if (hash.includes('comment-logs')) {
+          tabParam = 'ai-agent';
+        } else if (hash.includes('billing')) {
+          tabParam = 'billing';
+        } else if (hash.includes('account')) {
+          tabParam = 'account';
+        } else if (hash.includes('ai-agent')) {
+          tabParam = 'ai-agent';
+        }
+      }
+
+      if (!tabParam) {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          tabParam = params.get('tab');
+        } catch(e) {}
+      }
+
+      console.log("[initAdminTabFromUrl] Detected tabParam:", tabParam, "search:", window.location.search, "hash:", window.location.hash);
+
+      if (tabParam && ['account', 'billing', 'ai-agent'].includes(tabParam)) {
+        switchAdminTab(tabParam);
+      } else {
+        switchAdminTab('account');
+      }
+
+      if (hash && hash.includes('comment-logs')) {
+        setTimeout(function() {
+          var target = document.getElementById('comment-logs');
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+        }, 300);
+      }
+    }
+
+    window.addEventListener('hashchange', initAdminTabFromUrl);
+
     function initAdminPanel() {
       renderUsers();
       renderOnlineSessions();
@@ -798,6 +913,7 @@
       renderFeedbackSection();
       renderCommentLogs();
       syncFirestoreFeedback();
+      initAdminTabFromUrl();
 
       // 5-second real-time auto polling for feedback and report downloads submitted from any device or incognito mode
       setInterval(() => {
