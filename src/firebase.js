@@ -903,23 +903,23 @@ export const httpsCallable = (functionsInstance, name) => {
 
           const isMobileMode = data.view_mode === 'Mobile';
 
-          // 1. Green header bar with label (Desktop mode only — removed in Mobile view)
+          // 1. Header bar with label (Desktop mode only — removed in Mobile view)
           if (!isMobileMode) {
             slide.addShape(pptx.ShapeType.rect, {
-              x: 0, y: 0, w: SLIDE_W, h: 0.55,
-              fill: { color: "059669" }
+              x: 0, y: 0, w: SLIDE_W, h: 0.60,
+              fill: { color: "1F2937" }
             });
             slide.addText("PT. Safety Indonesia Utama", {
-              x: 0.5, y: 0.08, w: 5.5, h: 0.4,
+              x: 0.5, y: 0.10, w: 5.5, h: 0.4,
               fontName: "Arial", fontSize: 16, bold: true, color: "FFFFFF"
             });
             slide.addText(`Project: ${rawProjectName}`, {
-              x: 6.0, y: 0.1, w: 3.5, h: 0.35,
-              fontName: "Arial", fontSize: 12, bold: true, color: "E0EEFF", align: "right"
+              x: 6.0, y: 0.12, w: 3.5, h: 0.35,
+              fontName: "Arial", fontSize: 12, bold: true, color: "E2E8F0", align: "right"
             });
           }
 
-          // 4. Image with original ratio (no stretching)
+          // 2. Image with original ratio (no stretching)
           let rawImgSrc = photo.base64 || photo.annotatedBase64;
           if (!rawImgSrc || !rawImgSrc.startsWith('data:image/')) {
             if (photo.localUrl) rawImgSrc = await toBase64(photo.localUrl);
@@ -928,8 +928,8 @@ export const httpsCallable = (functionsInstance, name) => {
           }
           if (rawImgSrc) {
             const dims = await getImageSizePx(rawImgSrc);
-            const boxW = isMobileMode ? 9.0 : 4.3;
-            const boxH = isMobileMode ? 4.35 : 4.25;
+            const boxW = isMobileMode ? 9.0 : 6.5;
+            const boxH = isMobileMode ? 4.35 : 2.85;
             const imgRatio = dims.width / dims.height;
             const boxRatio = boxW / boxH;
             let drawW = boxW;
@@ -942,8 +942,8 @@ export const httpsCallable = (functionsInstance, name) => {
               drawH = boxH;
               drawW = drawH * imgRatio;
             }
-            const drawX = (isMobileMode ? 0.5 : 0.4) + (boxW - drawW) / 2;
-            const drawY = (isMobileMode ? 0.25 : 0.75) + (boxH - drawH) / 2;
+            const drawX = (SLIDE_W - drawW) / 2;
+            const drawY = (isMobileMode ? 0.25 : 0.70) + (boxH - drawH) / 2;
 
             slide.addImage({
               data: rawImgSrc,
@@ -960,73 +960,50 @@ export const httpsCallable = (functionsInstance, name) => {
                 fontName: "Arial", fontSize: 13, color: "222222", align: "center", valign: "top"
               });
             }
-          }
+          } else {
+            // Desktop Mode: Single-Item 4-Column Table Card directly below Photo (Image 2 design)
+            const obsText = photo.comments_text || photo.comments || photo.caption || "No visual defects observed.";
+            const recText = Array.isArray(recs) ? recs.join('\n') : String(recs || "No specific recommendation noted.");
+            let riskText = photo.risk || "COMPLIANT";
+            let riskColor = "107C41";
+            if (recText.includes("[CRITICAL]") || riskText === "CRITICAL") {
+              riskText = "CRITICAL";
+              riskColor = "C00000";
+            } else if (recText.includes("[MAJOR]") || riskText === "MAJOR") {
+              riskText = "MAJOR";
+              riskColor = "ED7D31";
+            } else if (recText.includes("[MINOR]") || riskText === "MINOR") {
+              riskText = "MINOR";
+              riskColor = "D97706";
+            }
 
-          if (!isMobileMode) {
-            // Right 55%: Metadata & Findings
-            const obsText = photo.comments_text || photo.caption || "No visual defects observed.";
-            const obsLines = obsText
-              .split('\n')
-              .map(l => l.trim())
-              .filter(l => l !== '')
-              .slice(0, 5);
-
-            // 3. Remove all text after date DD-MM-YYYY
-            const dateStr = photo.exif_date || `${dd}-${mm}-20${yy}`;
-            slide.addText(`Date : ${dateStr}`, {
-              x: 4.9, y: 0.75, w: 4.7, h: 0.3,
-              fontName: "Arial", fontSize: 10, bold: true, color: "555555"
-            });
-
-            slide.addText("COMMENTS / KOMENTAR", {
-              x: 4.9, y: 1.15, w: 4.7, h: 0.3,
-              fontName: "Arial", fontSize: 13, bold: true, color: "C00000"
-            });
-
-            // 2. Do not add unnecessary bullet numbering (clean runs without trailing \n)
-            const obsRuns = obsLines.map(l => ({
-              text: l.replace(/^[\d+•\.\)\-\s]+/, '').trim(),
-              options: { bullet: true, breakLine: true, fontSize: 11, color: "333333" }
-            }));
-            slide.addText(obsRuns, {
-              x: 4.9, y: 1.45, w: 4.7, h: 1.4,
-              fontName: "Arial", valign: "top"
-            });
-
-            slide.addText("ASSESSOR RECOMMENDATION / REKOMENDASI", {
-              x: 4.9, y: 2.9, w: 4.7, h: 0.3,
-              fontName: "Arial", fontSize: 13, bold: true, color: "1F4E79"
-            });
-
-            const recRuns = recs
-              .map(r => (typeof r === 'string' ? r.trim() : ''))
-              .filter(r => r !== '')
-              .slice(0, 5)
-              .map(r => {
-                const isCrit = r.includes("[CRITICAL]");
-                const isMaj = r.includes("[MAJOR]");
-                return {
-                  text: r.replace(/^[\d+•\.\)\-\s]+/, '').trim(),
-                  options: {
-                    bullet: true,
-                    breakLine: true,
-                    fontSize: 11,
-                    bold: isCrit,
-                    color: isCrit ? "C00000" : isMaj ? "ED7D31" : "1F4E79"
-                  }
-                };
-              });
-            slide.addText(recRuns, {
-              x: 4.9, y: 3.2, w: 4.7, h: 1.8,
-              fontName: "Arial", valign: "top"
+            slide.addTable([
+              [
+                { text: "No.", options: { fill: "1F2937", color: "FFFFFF", bold: true, fontSize: 10, align: "center" } },
+                { text: "Observation / Comments", options: { fill: "1F2937", color: "FFFFFF", bold: true, fontSize: 10 } },
+                { text: "Recommendation", options: { fill: "1F2937", color: "FFFFFF", bold: true, fontSize: 10 } },
+                { text: "Risk Level", options: { fill: "1F2937", color: "FFFFFF", bold: true, fontSize: 10, align: "center" } }
+              ],
+              [
+                { text: `${idx + 1}`, options: { fontSize: 9, color: "333333", align: "center" } },
+                { text: obsText, options: { fontSize: 9, color: "333333" } },
+                { text: recText, options: { fontSize: 9, color: "333333" } },
+                { text: riskText, options: { fontSize: 9, bold: true, color: riskColor, align: "center" } }
+              ]
+            ], {
+              x: 0.5,
+              y: 3.65,
+              w: 9.0,
+              colW: [0.6, 3.2, 4.2, 1.0],
+              border: { pt: 1, color: "CBD5E1" }
             });
           }
 
           // Footer (Desktop mode only — removed in Mobile view)
           if (!isMobileMode) {
             slide.addText(`Page ${idx + 1} of ${photosToExport.length}  |  Generated: ${formattedGenTime}`, {
-              x: 0.5, y: 5.25, w: 9.0, h: 0.25,
-              fontName: "Arial", fontSize: 9, color: "777777", align: "center"
+              x: 0.5, y: 5.30, w: 9.0, h: 0.25,
+              fontName: "Arial", fontSize: 8, color: "777777", align: "center"
             });
           }
         }
@@ -1043,15 +1020,15 @@ export const httpsCallable = (functionsInstance, name) => {
           export_filename: data.export_filename,
           view_mode: data.view_mode || 'Desktop',
           photos: photosToExport.map(photo => {
-            let risk = "COMPLIANT";
+            let risk = photo.risk || "COMPLIANT";
             const recs = photo.recommendations_json || photo.recommendations || [];
-            const recText = Array.isArray(recs) ? recs.join('\n') : String(recs);
+            const recText = Array.isArray(recs) ? recs.join('\n') : String(recs || '');
             if (recText.includes("[CRITICAL]")) risk = "CRITICAL";
             else if (recText.includes("[MAJOR]")) risk = "MAJOR";
             else if (recText.includes("[MINOR]")) risk = "MINOR";
 
             return {
-              base64: photo.annotatedBase64 || photo.base64 || '',
+              base64: photo.annotatedBase64 || photo.base64 || photo.url || photo.thumbnailUrl || photo.localUrl || '',
               date: photo.date || photo.exif_date || "N/A",
               location: photo.location || photo.exif_gps || "Location Recorded",
               filename: photo.filename || "IMG.jpg",
@@ -1080,72 +1057,51 @@ export const handleExportPDF = async (project, customFilename = null) => {
   const filename = customFilename || project.export_filename || `FSA_Report_A4_${pName}_${yyyymmdd}.pdf`;
   const headerTitle = filename.replace(/\.pdf$/i, "").replace(/_/g, " ");
 
-  // Header Banner
-  doc.setFillColor(31, 41, 55); // slate-800
-  doc.rect(0, 0, 210, 26, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text(headerTitle, 14, 12);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Project: ${project.name || "Project"}${isMobileMode ? " (Mobile Mode - Raw Photos)" : ""}`, 14, 20);
-
   const photos = project.photos || [];
-  const tableData = photos.map((photo, idx) => {
-    if (isMobileMode) {
-      const captionText = photo.caption || photo.comments || photo.comments_text || photo.filename || "";
-      return [idx + 1, captionText];
-    }
-    return [
-      idx + 1,
-      photo.filename || "IMG.jpg",
-      photo.comments || "No visual defects observed.",
-      photo.recommendation || "No specific recommendation noted.",
-      photo.risk || "COMPLIANT"
-    ];
-  });
 
-  const headRow = isMobileMode
-    ? []
-    : [["No.", "Photo Filename", "Observation / Comments", "Recommendation", "Risk Level"]];
+  if (photos.length === 0) {
+    // Header Banner
+    doc.setFillColor(31, 41, 55);
+    doc.rect(0, 0, 210, 26, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text(headerTitle, 14, 12);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Project: ${project.name || "Project"}`, 14, 20);
 
-  const colStyles = isMobileMode
-    ? { 0: { cellWidth: 15 }, 1: { cellWidth: 165 } }
-    : {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 38 },
-        2: { cellWidth: 58 },
-        3: { cellWidth: 55 },
-        4: { cellWidth: 21 }
-      };
+    autoTable(doc, {
+      startY: 32,
+      head: [["No.", "Observation / Comments", "Recommendation", "Risk Level"]],
+      body: [["-", "No completed photos recorded in project.", "-", "-"]],
+      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 8.5, cellPadding: 4, overflow: 'linebreak' },
+      margin: { left: 15, right: 15 }
+    });
+  } else {
+    for (let idx = 0; idx < photos.length; idx++) {
+      const photo = photos[idx];
 
-  autoTable(doc, {
-    startY: isMobileMode ? 28 : 32,
-    showHead: isMobileMode ? false : 'everyPage',
-    head: headRow,
-    body: tableData.length > 0 ? tableData : [isMobileMode ? ["-", "No data found"] : ["-", "No data found", "No completed photos recorded.", "-", "-"]],
-    headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: 'bold' },
-    styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak', valign: 'top' },
-    columnStyles: colStyles,
-    alternateRowStyles: { fillColor: [249, 250, 251] },
-    didParseCell: (data) => {
-      if (data.section === 'body' && data.column.index === 1 && photos[data.row.index]) {
-        const photo = photos[data.row.index];
-        const base64Str = photo.base64 || photo.annotatedBase64 || photo.url || photo.thumbnailUrl || photo.localUrl || '';
-        if (base64Str && base64Str.startsWith('data:image/')) {
-          data.cell.styles.minCellHeight = isMobileMode ? 115 : 28;
-          data.cell.styles.valign = 'bottom';
-          if (isMobileMode) {
-            data.cell.styles.halign = 'center';
-          }
-        }
+      if (idx > 0) {
+        doc.addPage();
       }
-    },
-    didDrawCell: (data) => {
-      if (data.section === 'body' && data.column.index === 1 && photos[data.row.index]) {
-        const photo = photos[data.row.index];
-        const base64Str = photo.base64 || photo.annotatedBase64 || photo.url || photo.thumbnailUrl || photo.localUrl || '';
+
+      // Header Banner
+      doc.setFillColor(31, 41, 55); // slate-800
+      doc.rect(0, 0, 210, 26, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(headerTitle, 14, 12);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Project: ${project.name || "Project"}${isMobileMode ? " (Mobile Mode - Raw Photos)" : ""}`, 14, 20);
+
+      const base64Str = photo.base64 || photo.annotatedBase64 || photo.url || photo.thumbnailUrl || photo.localUrl || '';
+
+      if (isMobileMode) {
+        // Mobile Mode: Centered Photo + Caption
         if (base64Str && base64Str.startsWith('data:image/')) {
           try {
             let imgRatio = 1.333;
@@ -1154,31 +1110,85 @@ export const handleExportPDF = async (project, customFilename = null) => {
               if (props && props.width && props.height && props.height > 0) {
                 imgRatio = props.width / props.height;
               }
-            } catch (err) {
-              // fallback
+            } catch (err) {}
+
+            const boxW = 170;
+            const boxH = 180;
+            let imgW = boxW;
+            let imgH = boxW / imgRatio;
+            if (imgH > boxH) {
+              imgH = boxH;
+              imgW = boxH * imgRatio;
             }
-
-            const availW = data.cell.width - 4;
-            const bottomSpace = isMobileMode ? 14.24 : 6;
-            const availH = Math.max(16, data.cell.height - bottomSpace);
-
-            let imgW = availW;
-            let imgH = availW / imgRatio;
-            if (imgH > availH) {
-              imgH = availH;
-              imgW = availH * imgRatio;
-            }
-
-            const x = data.cell.x + (data.cell.width - imgW) / 2;
-            const y = data.cell.y + 2;
-            doc.addImage(base64Str, 'JPEG', x, y, imgW, imgH);
+            const drawX = (210 - imgW) / 2;
+            const drawY = 32 + (boxH - imgH) / 2;
+            doc.addImage(base64Str, 'JPEG', drawX, drawY, imgW, imgH);
           } catch (e) {
-            console.error('Error drawing inline table image inside PDF:', e);
+            console.error('Error adding mobile PDF photo:', e);
           }
         }
+
+        const captionText = photo.caption || photo.comments || photo.comments_text || photo.filename || "";
+        autoTable(doc, {
+          startY: 218,
+          head: [],
+          body: [[idx + 1, captionText]],
+          styles: { fontSize: 9, cellPadding: 3, halign: 'center' },
+          columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 165 } },
+          margin: { left: 15, right: 15 }
+        });
+      } else {
+        // Desktop Mode (Image 2 Design): 1 Large Centered Photo + 4-Column Table Card Below
+        let tableStartY = 145; // Default start Y if no photo
+
+        if (base64Str && base64Str.startsWith('data:image/')) {
+          try {
+            let imgRatio = 1.333;
+            try {
+              const props = doc.getImageProperties(base64Str);
+              if (props && props.width && props.height && props.height > 0) {
+                imgRatio = props.width / props.height;
+              }
+            } catch (err) {}
+
+            const boxW = 145;
+            const boxH = 105;
+            let imgW = boxW;
+            let imgH = boxW / imgRatio;
+            if (imgH > boxH) {
+              imgH = boxH;
+              imgW = boxH * imgRatio;
+            }
+            const drawX = (210 - imgW) / 2;
+            const drawY = 30 + (boxH - imgH) / 2;
+            doc.addImage(base64Str, 'JPEG', drawX, drawY, imgW, imgH);
+            tableStartY = 30 + boxH + 6; // Directly underneath photo
+          } catch (e) {
+            console.error('Error adding desktop PDF photo:', e);
+          }
+        }
+
+        const commentsText = photo.comments || photo.comments_text || photo.caption || "No visual defects observed.";
+        const recText = photo.recommendation || "No specific recommendation noted.";
+        const riskText = photo.risk || "COMPLIANT";
+
+        autoTable(doc, {
+          startY: tableStartY,
+          head: [["No.", "Observation / Comments", "Recommendation", "Risk Level"]],
+          body: [[idx + 1, commentsText, recText, riskText]],
+          headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+          styles: { fontSize: 8.5, cellPadding: 3.5, overflow: 'linebreak', valign: 'top' },
+          columnStyles: {
+            0: { cellWidth: 12, halign: 'center' },
+            1: { cellWidth: 58 },
+            2: { cellWidth: 85 },
+            3: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }
+          },
+          margin: { left: 15, right: 15 }
+        });
       }
     }
-  });
+  }
 
   doc.save(filename);
   return { valid: true };
