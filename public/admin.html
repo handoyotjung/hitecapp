@@ -132,7 +132,12 @@
               </h3>
               <p class="text-xs text-slate-400 mt-0.5">Monitor real-time active logins across all assessor accounts. Allows up to 10 concurrent active sessions per account.</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-300">
+                <input type="checkbox" id="hideLocalIpToggle" class="sr-only peer" checked>
+                <div class="relative w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span class="ms-2">Hide Local/Testing IPs</span>
+              </label>
               <span id="active-sessions-count" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400 border border-emerald-500/30">
                 <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 0 Online
@@ -924,6 +929,7 @@
     window.addEventListener('hashchange', initAdminTabFromUrl);
 
     function initAdminPanel() {
+      document.getElementById('hideLocalIpToggle')?.addEventListener('change', renderOnlineSessions);
       renderUsers();
       renderOnlineSessions();
       syncReportDownloads();
@@ -1023,10 +1029,13 @@
         }
       } catch (e) {}
 
-      const displaySessionsList = currentSessionsList.filter(s => 
-        s.role === 'user' &&
-        !['127.0.0.1', '::1', 'localhost'].includes(s.ip_address)
-      );
+      const hideLocalIps = document.getElementById('hideLocalIpToggle') ? document.getElementById('hideLocalIpToggle').checked : true;
+
+      const displaySessionsList = currentSessionsList.filter(s => {
+        if (s.role !== 'user') return false;
+        if (hideLocalIps && ['127.0.0.1', '::1', 'localhost'].includes(s.ip_address)) return false;
+        return true;
+      });
 
       if (countEl) {
         countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${displaySessionsList.length} Online Sessions`;
