@@ -80,13 +80,13 @@ export async function compressImage(file, maxKb = 290) {
               });
               resolve(compressedFile);
             } else {
-              // Adjust parameters for next iteration: lower quality by 0.08, or downscale resolution by 15%
+              // Adjust parameters for next iteration: lower quality faster, or downscale resolution faster
               if (currentQuality > minQuality) {
-                currentQuality = Math.max(minQuality, Number((currentQuality - 0.08).toFixed(2)));
+                currentQuality = Math.max(minQuality, Number((currentQuality - 0.15).toFixed(2)));
               } else if (currentWidth > minDimension && currentHeight > minDimension) {
-                currentWidth = Math.round(currentWidth * 0.85);
-                currentHeight = Math.round(currentHeight * 0.85);
-                currentQuality = 0.75; // reset quality slightly when downscaling resolution
+                currentWidth = Math.round(currentWidth * 0.75);
+                currentHeight = Math.round(currentHeight * 0.75);
+                currentQuality = 0.70; // reset quality slightly when downscaling resolution
               } else {
                 // If stuck below both thresholds, return current blob as File
                 const finalFilename = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
@@ -95,6 +95,7 @@ export async function compressImage(file, maxKb = 290) {
                   lastModified: Date.now()
                 });
                 resolve(compressedFile);
+                return;
               }
               attemptCompression();
             }
