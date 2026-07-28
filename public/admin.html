@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>HitecApp Admin Panel</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -981,11 +984,7 @@
       } catch (e) {
         console.error("Failed to fetch sessions from Firestore", e);
       }
-      currentSessionsList = currentSessionsList.filter(s => 
-        s.status === 'ACTIVE' && 
-        s.role === 'user' &&
-        !['127.0.0.1', '::1', 'localhost'].includes(s.ip_address)
-      );
+      currentSessionsList = currentSessionsList.filter(s => s.status === 'ACTIVE');
 
       // Auto-migrate legacy local storage sessions to Firestore
       try {
@@ -1024,23 +1023,31 @@
         }
       } catch (e) {}
 
+      const displaySessionsList = currentSessionsList.filter(s => 
+        s.role === 'user' &&
+        !['127.0.0.1', '::1', 'localhost'].includes(s.ip_address)
+      );
+
       if (countEl) {
-        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${currentSessionsList.length} Online Sessions`;
+        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${displaySessionsList.length} Online Sessions`;
       }
 
-      if (currentSessionsList.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="py-8 text-center text-slate-400 font-medium">
-              No active sessions found.
-            </td>
-          </tr>
-        `;
+      if (displaySessionsList.length === 0) {
+        tbody.innerHTML = `<tr>
+          <td colspan="7" class="py-12 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800/50 mb-3">
+              <i data-lucide="users" class="w-6 h-6 text-slate-500"></i>
+            </div>
+            <div class="text-slate-400 font-medium">No external active sessions</div>
+            <div class="text-xs text-slate-500 mt-1">Local and admin sessions are hidden</div>
+          </td>
+        </tr>`;
+        if (window.lucide) window.lucide.createIcons();
         return;
       }
 
       tbody.innerHTML = '';
-      currentSessionsList.forEach(s => {
+      displaySessionsList.forEach(s => {
         const cleanE = (s.user_id || '').toLowerCase().trim();
 
         const statusBadge = '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online</span>';
