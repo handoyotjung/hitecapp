@@ -749,3 +749,51 @@ def api_admin_accounts(req: https_fn.Request) -> https_fn.Response:
             return https_fn.Response(json.dumps({'error': str(err)}), status=500, headers=headers)
 
     return https_fn.Response(json.dumps({'error': 'Method not allowed'}), status=405, headers=headers)
+
+@https_fn.onRequest()
+def api_admin_sessions(req: https_fn.Request) -> https_fn.Response:
+    "\""HTTP Cloud Function handling GET, POST, DELETE for /api/admin/sessions backed by Firestore."\""
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Content-Type': 'application/json'
+    }
+    if req.method == 'OPTIONS':
+        return https_fn.Response('', status=204, headers=headers)
+
+    if req.method == 'GET':
+        try:
+            docs = db.collection('hitec_user_sessions_v1').where('status', '==', 'ACTIVE').stream()
+            sessions_list = []
+            for d in docs:
+                sessions_list.append(d.to_dict())
+            return https_fn.Response(json.dumps(sessions_list), status=200, headers=headers)
+        except Exception as e:
+            return https_fn.Response(json.dumps([]), status=200, headers=headers)
+
+    if req.method == 'POST':
+        try:
+            data = req.get_json(silent=True) or {}
+            token = data.get('token')
+            if not token:
+                return https_fn.Response(json.dumps({'error': 'Missing token'}), status=400, headers=headers)
+            
+            db.collection('hitec_user_sessions_v1').document(token).set(data, merge=True)
+            return https_fn.Response(json.dumps({'success': True, 'token': token}), status=200, headers=headers)
+        except Exception as err:
+            return https_fn.Response(json.dumps({'error': str(err)}), status=500, headers=headers)
+
+    if req.method == 'DELETE':
+        try:
+            data = req.get_json(silent=True) or {}
+            token = data.get('token')
+            if not token:
+                return https_fn.Response(json.dumps({'error': 'Missing token'}), status=400, headers=headers)
+            
+            db.collection('hitec_user_sessions_v1').document(token).update({'status': 'FORCED_LOGOUT'})
+            return https_fn.Response(json.dumps({'success': True, 'token': token}), status=200, headers=headers)
+        except Exception as err:
+            return https_fn.Response(json.dumps({'error': str(err)}), status=500, headers=headers)
+
+    return https_fn.Response(json.dumps({'error': 'Method not allowed'}), status=405, headers=headers)

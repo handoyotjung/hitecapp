@@ -12,6 +12,10 @@
         "function": "api_admin_accounts"
       },
       {
+        "source": "/api/admin/sessions",
+        "function": "api_admin_sessions"
+      },
+      {
         "source": "/api/feedback",
         "function": "api_feedback"
       },

@@ -216,9 +216,10 @@ export const apiLogin = async ({ email, password, device_id, device_name, ip_add
   // Record session in user_sessions table
   const updatedSessions = loadSessionsTable();
   const nextId = updatedSessions.length > 0 ? Math.max(...updatedSessions.map(s => s.id || 0)) + 1 : 1;
-  updatedSessions.push({
+  const newSessionRecord = {
     id: nextId,
     user_id: cleanEmail,
+    role: userDoc.role || 'user',
     token: newToken,
     device_id: device_id,
     device_name: device_name || getClientDeviceName(),
@@ -227,8 +228,18 @@ export const apiLogin = async ({ email, password, device_id, device_name, ip_add
     last_activity: now.toISOString(),
     logout_at: null,
     status: 'ACTIVE'
-  });
+  };
+  updatedSessions.push(newSessionRecord);
   saveSessionsTable(updatedSessions);
+
+  // Sync to backend
+  try {
+    fetch('/api/admin/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newSessionRecord)
+    }).catch(e => console.error(e));
+  } catch (e) {}
 
   // SANITIZE: Never expose password in any response
   const sanitizedUser = {
@@ -340,6 +351,15 @@ export const apiLogout = async ({ token, email }) => {
     if ((token && s.token === token) || (email && s.user_id === email.toLowerCase() && s.status === 'ACTIVE')) {
       s.status = 'EXPIRED';
       s.logout_at = nowStr;
+      
+      // Sync to backend
+      try {
+        fetch('/api/admin/sessions', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: s.token })
+        }).catch(e => console.error(e));
+      } catch (e) {}
     }
   });
   saveSessionsTable(sessions);
@@ -462,4 +482,28 @@ export const apiAdminForceLogout = async ({ admin_email = 'admin@hitec.id', targ
   });
 
   return { status: 200, body: { success: true, message: 'User session terminated by admin' } };
+};
+
+// 7. NEW API: Update Active Session Project Context
+export const updateSessionActiveProject = (token, projectId, projectName, companyName, cityName) => {
+  if (!token) return;
+  const sessions = loadSessionsTable();
+  const session = sessions.find(s => s.token === token && s.status === 'ACTIVE');
+  if (session) {
+    session.active_project_id = projectId || '';
+    session.active_project_name = projectName || '';
+    session.company_name = companyName || '';
+    session.city_name = cityName || '';
+    session.last_activity = new Date().toISOString();
+    saveSessionsTable(sessions);
+
+    // Sync to backend
+    try {
+      fetch('/api/admin/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(session)
+      }).catch(e => console.error(e));
+    } catch (e) {}
+  }
 };

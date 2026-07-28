@@ -27,7 +27,7 @@ import { shareFile } from '../utils/shareFile';
 import { useProjectAutoSave } from '@/hooks/useProjectAutoSave';
 import PhotoItem from './PhotoItem';
 import { useSpeechToText } from '../hooks/useSpeechToText';
-
+import { updateSessionActiveProject } from '../sessionSecurity';
 
 // Local Cache Helpers (24-hour expiry)
 const getProjectsCacheKey = (user) => `hitecmedia_projects_cache_${(user?.email || '').trim().toLowerCase()}`;
@@ -170,6 +170,23 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Photo Editor state
   const [projectPhotos, setProjectPhotos] = useState([]);
   const [editorIndex, setEditorIndex] = useState(0);
+
+  // Sync active project state to session monitoring
+  useEffect(() => {
+    if (user && user.token) {
+      if (selectedProject) {
+        updateSessionActiveProject(
+          user.token, 
+          selectedProject.id, 
+          selectedProject.name, 
+          selectedProject.company_name, 
+          selectedProject.city_name
+        );
+      } else {
+        updateSessionActiveProject(user.token, '', 'Dashboard Menu', '', '');
+      }
+    }
+  }, [selectedProject?.id, selectedProject?.name, selectedProject?.company_name, selectedProject?.city_name, user]);
 
   // Global Watchdog: automatically remove any photo stuck at 100% loading indicator or stuck processing indefinitely
   useEffect(() => {

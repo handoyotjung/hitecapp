@@ -108,8 +108,6 @@
                   <th class="pb-3 pr-2">User / Email</th>
                   <th class="pb-3 px-2">Password</th>
                   <th class="pb-3 px-2">Plan / Role</th>
-                  <th class="pb-3 px-2">Company & City</th>
-                  <th class="pb-3 px-2">Active Project</th>
                   <th class="pb-3 px-2">Login Expired Date</th>
                   <th class="pb-3 pl-2 text-right">Actions</th>
                 </tr>
@@ -149,6 +147,8 @@
                   <th class="pb-3 pr-2">Assessor Account</th>
                   <th class="pb-3 px-2">Role</th>
                   <th class="pb-3 px-2">Device & Browser</th>
+                  <th class="pb-3 px-2">Company & City</th>
+                  <th class="pb-3 px-2">Active Project</th>
                   <th class="pb-3 px-2">IP Address</th>
                   <th class="pb-3 px-2">Login Time / Last Activity</th>
                   <th class="pb-3 pl-2 text-right">Action</th>
@@ -943,142 +943,50 @@
       }, 5000);
     }
 
-    function renderOnlineSessions() {
-      const store = loadStore();
+    async function renderOnlineSessions() {
       const tbody = document.getElementById('online-sessions-body');
       const countEl = document.getElementById('active-sessions-count');
       if (!tbody) return;
-      tbody.innerHTML = '';
 
-      const users = store.whitelist_users || {};
-      const activeEmailsSet = new Set();
-      const sessionsMap = {};
-
-      // 1. Check hitec_user_sessions_v1 table across ALL roles (ADMIN and USER)
+      let currentSessionsList = [];
       try {
-        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
-        if (rawSessions) {
-          const sessions = JSON.parse(rawSessions);
-          sessions.forEach(s => {
-            if (s && s.status === 'ACTIVE' && s.user_id) {
-              const cleanE = s.user_id.toLowerCase();
-              activeEmailsSet.add(cleanE);
-              sessionsMap[cleanE] = s;
-              // Sync missing or unauthenticated whitelist_users entry across all roles
-              if (!users[cleanE] || !users[cleanE].session_token) {
-                const isAdminOrDummy = cleanE.includes('admin') || cleanE.includes('dummy') || cleanE === 'handoyo.tjung@gmail.com';
-                const existing = users[cleanE] || {};
-                users[cleanE] = {
-                  role: existing.role || (isAdminOrDummy ? 'super_admin' : 'user'),
-                  company_id: existing.company_id || 'co_hitec',
-                  plan: existing.plan || (isAdminOrDummy ? 'pro' : 'starter'),
-                  password: existing.password || 'demopassword',
-                  session_token: s.token || 'tok_active',
-                  session_device_name: s.device_name || existing.session_device_name || (cleanE.includes('demo') || cleanE.includes('dummy') ? 'Assessor Mobile Device' : 'Windows PC - Chrome'),
-                  session_ip_address: s.ip_address || existing.session_ip_address || '127.0.0.1',
-                  session_login_at: s.login_at || existing.session_login_at || new Date().toISOString(),
-                  created_at: existing.created_at || new Date().toISOString()
-                };
-                saveStore(store);
-              }
-            }
-          });
+        const res = await fetch('/api/admin/sessions');
+        if (res.ok) {
+          currentSessionsList = await res.json();
         }
-      } catch (e) {}
-
-      // 2. Check whitelist_users with active session_token across all roles (ADMIN and USER)
-      let sessionsUpdated = false;
-      const currentSessionsList = Object.values(sessionsMap);
-      Object.keys(users).forEach(e => {
-        const cleanE = e.toLowerCase();
-        if (users[e] && users[e].session_token) {
-          activeEmailsSet.add(cleanE);
-          if (!sessionsMap[cleanE]) {
-            const newS = {
-              id: currentSessionsList.length > 0 ? Math.max(...currentSessionsList.map(s => s.id || 0)) + 1 : 1,
-              user_id: cleanE,
-              token: users[e].session_token,
-              device_id: 'dev_' + Math.random().toString(36).substring(2, 10),
-              device_name: users[e].session_device_name || (cleanE.includes('demo') || cleanE.includes('dummy') ? 'Assessor Mobile Device' : 'Windows PC - Chrome'),
-              ip_address: users[e].session_ip_address || '127.0.0.1',
-              login_at: users[e].session_login_at || new Date().toISOString(),
-              last_activity: new Date().toISOString(),
-              role: users[e].role || 'user',
-              status: 'ACTIVE'
-            };
-            sessionsMap[cleanE] = newS;
-            currentSessionsList.push(newS);
-            sessionsUpdated = true;
-          }
-        }
-      });
-      if (sessionsUpdated) {
-        try { localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(currentSessionsList)); } catch(e) {}
+      } catch (e) {
+        console.error("Failed to fetch online sessions", e);
+        return;
       }
-
-      // 3. Check current browser active hitecmedia_session across all roles
-      try {
-        const currentSessionRaw = localStorage.getItem('hitecmedia_session');
-        if (currentSessionRaw) {
-          const currentSession = JSON.parse(currentSessionRaw);
-          if (currentSession && currentSession.email) {
-            const cleanE = currentSession.email.toLowerCase();
-            activeEmailsSet.add(cleanE);
-            if (users[cleanE] && !users[cleanE].session_token) {
-              users[cleanE].session_token = currentSession.token || 'active_local_session';
-              users[cleanE].session_login_at = users[cleanE].session_login_at || new Date().toISOString();
-              saveStore(store);
-            }
-          }
-        }
-      } catch (e) {}
-
-      const allAccountEmails = Array.from(new Set([...Object.keys(users), ...activeEmailsSet])).sort((a, b) => {
-        const isAOnline = activeEmailsSet.has(a.toLowerCase());
-        const isBOnline = activeEmailsSet.has(b.toLowerCase());
-        if (isAOnline !== isBOnline) return isAOnline ? -1 : 1;
-        return a.localeCompare(b);
-      });
 
       if (countEl) {
-        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${activeEmailsSet.size} Online / ${allAccountEmails.length} Registered Accounts`;
+        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${currentSessionsList.length} Online Sessions`;
       }
 
-      if (allAccountEmails.length === 0) {
+      if (currentSessionsList.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" class="py-8 text-center text-slate-400 font-medium">
-              No assessor accounts found. Click <strong>+ Add New Account</strong> above to register an account.
+            <td colspan="7" class="py-8 text-center text-slate-400 font-medium">
+              No active sessions found.
             </td>
           </tr>
         `;
         return;
       }
 
-      allAccountEmails.forEach(email => {
-        const cleanE = email.toLowerCase().trim();
-        const isOnline = activeEmailsSet.has(cleanE);
-        const u = users[cleanE] || users[email] || { role: (sessionsMap[cleanE] && sessionsMap[cleanE].role) || 'user' };
-        const s = sessionsMap[cleanE] || {};
-
-        const roleBadge = u.role === 'super_admin' 
+      tbody.innerHTML = '';
+      currentSessionsList.forEach(s => {
+        const cleanE = (s.user_id || '').toLowerCase().trim();
+        const roleBadge = s.role === 'super_admin' 
           ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Super Admin</span>'
-          : u.role === 'admin'
+          : s.role === 'admin'
           ? '<span class="rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Admin</span>'
           : '<span class="rounded bg-slate-800 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">User</span>';
 
-        const statusBadge = isOnline
-          ? '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online</span>'
-          : '<span class="rounded bg-slate-800/80 text-slate-400 border border-slate-700/50 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider">Offline</span>';
-
-        const deviceName = isOnline ? (u.session_device_name || s.device_name || 'Assessor Mobile / Web') : 'Offline / Inactive';
-        const ipAddress = isOnline ? (u.session_ip_address || s.ip_address || '127.0.0.1') : '—';
-        const loginAt = isOnline 
-          ? (u.session_login_at ? new Date(u.session_login_at).toLocaleString() : (s.login_at ? new Date(s.login_at).toLocaleString() : 'Active Now'))
-          : 'Offline';
-
+        const statusBadge = '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online</span>';
+        
         const tr = document.createElement('tr');
-        tr.className = `border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors ${isOnline ? 'bg-emerald-950/10' : ''}`;
+        tr.className = `border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors bg-emerald-950/10`;
         tr.innerHTML = `
           <td class="py-3.5 pr-2">
             <div class="flex items-center gap-2">
@@ -1090,49 +998,43 @@
             ${roleBadge}
           </td>
           <td class="py-3.5 px-2 font-medium text-slate-300">
-            ${deviceName}
+            ${s.device_name || 'Unknown Device'}
           </td>
-          <td class="py-3.5 px-2 font-mono ${isOnline ? 'text-emerald-400' : 'text-slate-500'}">
-            ${ipAddress}
+          <td class="py-3.5 px-2 text-slate-300">
+            <div class="font-bold text-[11px] uppercase tracking-wider text-indigo-300">${s.company_name || 'N/A'}</div>
+            <div class="text-[10px] text-slate-500">${s.city_name || '-'}</div>
+          </td>
+          <td class="py-3.5 px-2 text-slate-300 font-medium text-xs">
+            ${s.active_project_name || '-'}
+          </td>
+          <td class="py-3.5 px-2 font-mono text-emerald-400">
+            ${s.ip_address || '127.0.0.1'}
           </td>
           <td class="py-3.5 px-2 text-slate-400">
-            ${loginAt}
+            ${new Date(s.login_at).toLocaleString()}
           </td>
           <td class="py-3.5 pl-2 text-right">
-            ${isOnline ? `
-              <button onclick="adminForceLogoutSession('${cleanE}')" class="rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-600 px-3 py-1 text-xs font-bold text-rose-400 hover:text-white transition-all">
-                Force Logout
-              </button>
-            ` : `
-              <span class="text-slate-500 text-[10px] italic">No active session</span>
-            `}
+            <button onclick="adminForceLogoutSession('${s.token}')" class="rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-600 px-3 py-1 text-xs font-bold text-rose-400 hover:text-white transition-all">
+              Force Logout
+            </button>
           </td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    function adminForceLogoutSession(email) {
-      if (!confirm(`Are you sure you want to terminate the active online session for ${email}?`)) return;
-      const store = loadStore();
-      if (store.whitelist_users && store.whitelist_users[email]) {
-        store.whitelist_users[email].session_token = null;
-      }
-      saveStore(store);
+    async function adminForceLogoutSession(token) {
+      if (!confirm(`Are you sure you want to terminate this active online session?`)) return;
 
       try {
-        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
-        if (rawSessions) {
-          const sessions = JSON.parse(rawSessions);
-          sessions.forEach(s => {
-            if (s.user_id === email && s.status === 'ACTIVE') {
-              s.status = 'FORCED_LOGOUT';
-              s.logout_at = new Date().toISOString();
-            }
-          });
-          localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(sessions));
-        }
-      } catch (e) {}
+        await fetch('/api/admin/sessions', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+      } catch (e) {
+        console.error("Failed to terminate session", e);
+      }
 
       renderOnlineSessions();
     }
@@ -1962,13 +1864,6 @@
           <td class="py-3.5 px-2 space-y-1">
             <div class="flex gap-1.5 flex-wrap">${planBadge} ${roleBadge}</div>
           </td>
-          <td class="py-3.5 px-2 text-slate-300">
-            <div class="font-bold text-[11px] uppercase tracking-wider text-indigo-300">${u.company_name || u.company_id || 'N/A'}</div>
-            <div class="text-[10px] text-slate-500">${u.city_name || '-'}</div>
-          </td>
-          <td class="py-3.5 px-2 text-slate-300 font-medium text-xs">
-            ${u.active_project || '-'}
-          </td>
           <td class="py-3.5 px-2">
             ${expiryDisplay}
           </td>
@@ -2028,22 +1923,6 @@
                       </select>
                     </div>
 
-                    <div>
-                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Company Name</label>
-                      <input type="text" id="user-company-inline" value="${u.company_name || u.company_id || ''}" placeholder="Company Name" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-
-                    <div>
-                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">City</label>
-                      <input type="text" id="user-city-inline" value="${u.city_name || ''}" placeholder="City" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-
-                    <div class="sm:col-span-2 lg:col-span-2">
-                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Active Project</label>
-                      <input type="text" id="user-project-inline" value="${u.active_project || ''}" placeholder="Project Name" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-                  </div>
-
                   <div>
                     <div class="flex items-center justify-between mb-1.5">
                       <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Login Expired Date</label>
@@ -2091,9 +1970,6 @@
       const roleEl = document.getElementById('user-role-inline');
       const planEl = document.getElementById('user-plan-inline');
       const expiresEl = document.getElementById('user-expires-inline');
-      const companyEl = document.getElementById('user-company-inline');
-      const cityEl = document.getElementById('user-city-inline');
-      const projectEl = document.getElementById('user-project-inline');
 
       if (!emailEl || !passEl) return;
 
@@ -2102,10 +1978,6 @@
       let role = roleEl ? roleEl.value : 'user';
       const plan = planEl ? planEl.value : 'starter';
       const expires_at = expiresEl ? expiresEl.value : '';
-      const company_name = companyEl ? companyEl.value : '';
-      const city_name = cityEl ? cityEl.value : '';
-      const active_project = projectEl ? projectEl.value : '';
-
       if (sessionUser && sessionUser.role === 'admin') {
         role = 'user';
       }
@@ -2122,9 +1994,6 @@
         plan,
         password,
         expires_at,
-        company_name,
-        city_name,
-        active_project,
         created_at: store.whitelist_users[email]?.created_at || new Date().toISOString()
       };
       
