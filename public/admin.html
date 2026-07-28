@@ -91,6 +91,7 @@
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 + Add New Account
               </button>
+              <button onclick="syncAdminAccountsAndRender()" class="rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-3.5 py-2 text-xs font-semibold text-indigo-300 hover:bg-indigo-500 hover:text-white transition-colors cursor-pointer">Sync Cloud</button>
               <button onclick="purgeDemoAccounts()" class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer" title="Remove default hardcoded demo accounts">Purge Demo Accounts</button>
               <button onclick="exportWhitelist()" class="rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer">Export JSON</button>
               <label class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">
@@ -107,6 +108,8 @@
                   <th class="pb-3 pr-2">User / Email</th>
                   <th class="pb-3 px-2">Password</th>
                   <th class="pb-3 px-2">Plan / Role</th>
+                  <th class="pb-3 px-2">Company & City</th>
+                  <th class="pb-3 px-2">Active Project</th>
                   <th class="pb-3 px-2">Login Expired Date</th>
                   <th class="pb-3 pl-2 text-right">Actions</th>
                 </tr>
@@ -688,6 +691,21 @@
       return store;
     }
 
+    async function syncAdminAccountsAndRender() {
+      try {
+        const res = await fetch('/api/admin/accounts');
+        if (res.ok) {
+          const cloudUsers = await res.json();
+          const store = loadStore();
+          store.whitelist_users = { ...store.whitelist_users, ...cloudUsers };
+          saveStore(store);
+          renderUsers();
+        }
+      } catch (err) {
+        console.error("Failed to sync accounts", err);
+      }
+    }
+
     async function syncFirestoreFeedback() {
       const btn = document.getElementById('btn-fb-refresh');
       const icon = document.getElementById('btn-fb-refresh-icon');
@@ -913,6 +931,7 @@
       renderFeedbackSection();
       renderCommentLogs();
       syncFirestoreFeedback();
+      syncAdminAccountsAndRender();
       initAdminTabFromUrl();
 
       // 5-second real-time auto polling for feedback and report downloads submitted from any device or incognito mode
@@ -1824,7 +1843,7 @@
         const createTr = document.createElement('tr');
         createTr.className = 'bg-slate-950/90 border-b-2 border-indigo-500/50 transition-all duration-300';
         createTr.innerHTML = `
-          <td colspan="5" class="p-4 sm:p-5">
+          <td colspan="7" class="p-4 sm:p-5">
             <div class="bg-slate-900/90 border border-indigo-500/50 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xl ring-2 ring-indigo-500/30">
               <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
@@ -1860,6 +1879,21 @@
                       <option value="starter" selected>Starter (100/day)</option>
                       <option value="pro">Pro (300/day)</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Company Name</label>
+                    <input type="text" id="user-company-inline" placeholder="Company Name" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                  </div>
+
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">City</label>
+                    <input type="text" id="user-city-inline" placeholder="City" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                  </div>
+
+                  <div class="sm:col-span-2 lg:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Active Project</label>
+                    <input type="text" id="user-project-inline" placeholder="Project Name" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
                   </div>
                 </div>
 
@@ -1928,6 +1962,13 @@
           <td class="py-3.5 px-2 space-y-1">
             <div class="flex gap-1.5 flex-wrap">${planBadge} ${roleBadge}</div>
           </td>
+          <td class="py-3.5 px-2 text-slate-300">
+            <div class="font-bold text-[11px] uppercase tracking-wider text-indigo-300">${u.company_name || u.company_id || 'N/A'}</div>
+            <div class="text-[10px] text-slate-500">${u.city_name || '-'}</div>
+          </td>
+          <td class="py-3.5 px-2 text-slate-300 font-medium text-xs">
+            ${u.active_project || '-'}
+          </td>
           <td class="py-3.5 px-2">
             ${expiryDisplay}
           </td>
@@ -1947,7 +1988,7 @@
           const drawerTr = document.createElement('tr');
           drawerTr.className = 'bg-slate-950/90 border-b-2 border-indigo-500/50 transition-all duration-300';
           drawerTr.innerHTML = `
-            <td colspan="5" class="p-4 sm:p-5">
+            <td colspan="7" class="p-4 sm:p-5">
               <div class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                   <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
@@ -1986,6 +2027,21 @@
                         <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro (300/day)</option>
                       </select>
                     </div>
+
+                    <div>
+                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Company Name</label>
+                      <input type="text" id="user-company-inline" value="${u.company_name || u.company_id || ''}" placeholder="Company Name" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div>
+                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">City</label>
+                      <input type="text" id="user-city-inline" value="${u.city_name || ''}" placeholder="City" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div class="sm:col-span-2 lg:col-span-2">
+                      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Active Project</label>
+                      <input type="text" id="user-project-inline" value="${u.active_project || ''}" placeholder="Project Name" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
                   </div>
 
                   <div>
@@ -2020,7 +2076,7 @@
       if (Object.keys(users).length === 0 && activeExpandedUserEmail !== 'NEW') {
         const emptyTr = document.createElement('tr');
         emptyTr.innerHTML = `
-          <td colspan="5" class="py-8 text-center text-slate-400 font-medium">
+          <td colspan="7" class="py-8 text-center text-slate-400 font-medium">
             No accounts found in whitelist. Click <strong class="text-indigo-400 cursor-pointer" onclick="toggleAddNewUserDrawer()">+ Add New Account</strong> above to add one.
           </td>
         `;
@@ -2035,6 +2091,9 @@
       const roleEl = document.getElementById('user-role-inline');
       const planEl = document.getElementById('user-plan-inline');
       const expiresEl = document.getElementById('user-expires-inline');
+      const companyEl = document.getElementById('user-company-inline');
+      const cityEl = document.getElementById('user-city-inline');
+      const projectEl = document.getElementById('user-project-inline');
 
       if (!emailEl || !passEl) return;
 
@@ -2043,6 +2102,9 @@
       let role = roleEl ? roleEl.value : 'user';
       const plan = planEl ? planEl.value : 'starter';
       const expires_at = expiresEl ? expiresEl.value : '';
+      const company_name = companyEl ? companyEl.value : '';
+      const city_name = cityEl ? cityEl.value : '';
+      const active_project = projectEl ? projectEl.value : '';
 
       if (sessionUser && sessionUser.role === 'admin') {
         role = 'user';
@@ -2054,15 +2116,28 @@
         delete store.whitelist_users[originalTargetEmail];
       }
 
-      store.whitelist_users[email] = {
+      const userData = {
+        ...(store.whitelist_users[email] || {}),
         role,
         plan,
         password,
         expires_at,
+        company_name,
+        city_name,
+        active_project,
         created_at: store.whitelist_users[email]?.created_at || new Date().toISOString()
       };
-
+      
+      store.whitelist_users[email] = userData;
       saveStore(store);
+
+      // Async sync to backend
+      fetch('/api/admin/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, ...userData })
+      }).catch(err => console.error("Failed to sync account to backend", err));
+
       activeExpandedUserEmail = null;
       renderUsers();
       renderOnlineSessions();

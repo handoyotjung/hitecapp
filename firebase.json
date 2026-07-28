@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/admin/accounts",
+        "function": "api_admin_accounts"
+      },
+      {
         "source": "/api/feedback",
         "function": "api_feedback"
       },

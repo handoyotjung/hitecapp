@@ -710,3 +710,42 @@ def api_feedback(req: https_fn.Request) -> https_fn.Response:
 
     return https_fn.Response(json.dumps({'error': 'Method not allowed'}), status=405, headers=headers)
 
+@https_fn.on_request()
+def api_admin_accounts(req: https_fn.Request) -> https_fn.Response:
+    """HTTP Cloud Function handling GET and POST for /api/admin/accounts backed by Firestore."""
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Content-Type': 'application/json'
+    }
+    if req.method == 'OPTIONS':
+        return https_fn.Response('', status=204, headers=headers)
+
+    if req.method == 'GET':
+        try:
+            docs = db.collection('whitelist_users').stream()
+            users_dict = {}
+            for d in docs:
+                users_dict[d.id] = d.to_dict()
+            return https_fn.Response(json.dumps(users_dict), status=200, headers=headers)
+        except Exception as e:
+            return https_fn.Response(json.dumps({}), status=200, headers=headers)
+
+    if req.method == 'POST':
+        try:
+            data = req.get_json(silent=True) or {}
+            email = data.get('email')
+            if not email:
+                return https_fn.Response(json.dumps({'error': 'Missing email'}), status=400, headers=headers)
+            
+            clean_email = email.lower().strip()
+            # Remove the email field itself from the payload to be saved
+            save_data = {k: v for k, v in data.items() if k != 'email'}
+            
+            db.collection('whitelist_users').document(clean_email).set(save_data, merge=True)
+            return https_fn.Response(json.dumps({'success': True, 'email': clean_email, 'data': save_data}), status=200, headers=headers)
+        except Exception as err:
+            return https_fn.Response(json.dumps({'error': str(err)}), status=500, headers=headers)
+
+    return https_fn.Response(json.dumps({'error': 'Method not allowed'}), status=405, headers=headers)
