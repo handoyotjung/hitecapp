@@ -955,8 +955,32 @@
         }
       } catch (e) {
         console.error("Failed to fetch online sessions", e);
-        return;
       }
+
+      // Auto-migrate legacy local storage sessions to Firestore
+      try {
+        const rawLocal = localStorage.getItem('hitec_user_sessions_v1');
+        if (rawLocal) {
+          const localSessions = JSON.parse(rawLocal);
+          let needsMigration = false;
+          
+          localSessions.forEach(ls => {
+            if (ls && ls.status === 'ACTIVE' && ls.token) {
+              const exists = currentSessionsList.find(bs => bs.token === ls.token);
+              if (!exists) {
+                currentSessionsList.push(ls);
+                needsMigration = true;
+                // Sync missing legacy session to backend
+                fetch('/api/admin/sessions', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(ls)
+                }).catch(() => {});
+              }
+            }
+          });
+        }
+      } catch (e) {}
 
       if (countEl) {
         countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${currentSessionsList.length} Online Sessions`;

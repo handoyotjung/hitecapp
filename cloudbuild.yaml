@@ -14,7 +14,7 @@ steps:
 
   # 3. Deploy build artifacts directly to Firebase Hosting & GCP
   - name: 'gcr.io/$_PROJECT_ID/firebase'
-    args: ['deploy', '--only', 'hosting,firestore,storage', '--project', '$_PROJECT_ID']
+    args: ['deploy', '--only', 'hosting,firestore,storage,functions', '--project', '$_PROJECT_ID']
 
 substitutions:
   _PROJECT_ID: 'hitecmedia-app'
