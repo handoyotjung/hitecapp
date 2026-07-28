@@ -232,12 +232,23 @@ export const apiLogin = async ({ email, password, device_id, device_name, ip_add
   updatedSessions.push(newSessionRecord);
   saveSessionsTable(updatedSessions);
 
-  // Sync to backend
+  // Sync to backend via Firestore REST API
   try {
-    fetch('/api/admin/sessions', {
-      method: 'POST',
+    const docFields = {
+      token: { stringValue: newToken },
+      user_id: { stringValue: cleanEmail },
+      device_name: { stringValue: device_name || getClientDeviceName() },
+      company_name: { stringValue: 'co_hitec' },
+      city_name: { stringValue: '' },
+      active_project_name: { stringValue: '' },
+      ip_address: { stringValue: ip_address },
+      login_at: { stringValue: now.toISOString() },
+      status: { stringValue: 'ACTIVE' }
+    };
+    fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${newToken}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSessionRecord)
+      body: JSON.stringify({ fields: docFields })
     }).catch(e => console.error(e));
   } catch (e) {}
 
@@ -352,12 +363,12 @@ export const apiLogout = async ({ token, email }) => {
       s.status = 'EXPIRED';
       s.logout_at = nowStr;
       
-      // Sync to backend
+      // Sync to backend via Firestore REST API
       try {
-        fetch('/api/admin/sessions', {
-          method: 'DELETE',
+        fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${s.token}?updateMask=status`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: s.token })
+          body: JSON.stringify({ fields: { status: { stringValue: 'EXPIRED' } } })
         }).catch(e => console.error(e));
       } catch (e) {}
     }
@@ -497,12 +508,23 @@ export const updateSessionActiveProject = (token, projectId, projectName, compan
     session.last_activity = new Date().toISOString();
     saveSessionsTable(sessions);
 
-    // Sync to backend
+    // Sync to backend via Firestore REST API
     try {
-      fetch('/api/admin/sessions', {
-        method: 'POST',
+      const docFields = {
+        token: { stringValue: session.token },
+        user_id: { stringValue: session.user_id },
+        device_name: { stringValue: session.device_name },
+        company_name: { stringValue: session.company_name || '' },
+        city_name: { stringValue: session.city_name || '' },
+        active_project_name: { stringValue: session.active_project_name || '' },
+        ip_address: { stringValue: session.ip_address || '127.0.0.1' },
+        login_at: { stringValue: session.login_at },
+        status: { stringValue: 'ACTIVE' }
+      };
+      fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${session.token}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(session)
+        body: JSON.stringify({ fields: docFields })
       }).catch(e => console.error(e));
     } catch (e) {}
   }

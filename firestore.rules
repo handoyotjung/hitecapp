@@ -51,6 +51,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Sessions rules
+    match /sessions/{sessionId} {
+      allow read, write: if true;
+    }
+
     // Report Downloads rules
     match /report_downloads/{reportId} {
       allow read, update, delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isWhitelisted());

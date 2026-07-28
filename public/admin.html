@@ -949,32 +949,64 @@
 
       let currentSessionsList = [];
       try {
-        const res = await fetch('/api/admin/sessions');
+        const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions');
         if (res.ok) {
-          currentSessionsList = await res.json();
+          const data = await res.json();
+          if (Array.isArray(data.documents)) {
+            data.documents.forEach(docItem => {
+              const fields = docItem.fields || {};
+              const parseVal = (v) => {
+                if (!v) return '';
+                if (v.stringValue !== undefined) return v.stringValue;
+                if (v.integerValue !== undefined) return parseInt(v.integerValue);
+                return v;
+              };
+              currentSessionsList.push({
+                token: parseVal(fields.token) || docItem.name.split('/').pop(),
+                user_id: parseVal(fields.user_id),
+                device_name: parseVal(fields.device_name),
+                company_name: parseVal(fields.company_name),
+                city_name: parseVal(fields.city_name),
+                active_project_name: parseVal(fields.active_project_name),
+                ip_address: parseVal(fields.ip_address),
+                login_at: parseVal(fields.login_at),
+                status: parseVal(fields.status)
+              });
+            });
+          }
         }
       } catch (e) {
-        console.error("Failed to fetch online sessions", e);
+        console.error("Failed to fetch sessions from Firestore", e);
       }
+      currentSessionsList = currentSessionsList.filter(s => s.status === 'ACTIVE');
 
       // Auto-migrate legacy local storage sessions to Firestore
       try {
         const rawLocal = localStorage.getItem('hitec_user_sessions_v1');
         if (rawLocal) {
           const localSessions = JSON.parse(rawLocal);
-          let needsMigration = false;
           
           localSessions.forEach(ls => {
             if (ls && ls.status === 'ACTIVE' && ls.token) {
               const exists = currentSessionsList.find(bs => bs.token === ls.token);
               if (!exists) {
                 currentSessionsList.push(ls);
-                needsMigration = true;
                 // Sync missing legacy session to backend
-                fetch('/api/admin/sessions', {
-                  method: 'POST',
+                const docFields = {
+                  token: { stringValue: ls.token || '' },
+                  user_id: { stringValue: ls.user_id || '' },
+                  device_name: { stringValue: ls.device_name || '' },
+                  company_name: { stringValue: ls.company_name || '' },
+                  city_name: { stringValue: ls.city_name || '' },
+                  active_project_name: { stringValue: ls.active_project_name || '' },
+                  ip_address: { stringValue: ls.ip_address || '127.0.0.1' },
+                  login_at: { stringValue: ls.login_at || new Date().toISOString() },
+                  status: { stringValue: 'ACTIVE' }
+                };
+                fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${ls.token}`, {
+                  method: 'PATCH',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(ls)
+                  body: JSON.stringify({ fields: docFields })
                 }).catch(() => {});
               }
             }
@@ -1042,10 +1074,10 @@
       if (!confirm(`Are you sure you want to terminate this active online session?`)) return;
 
       try {
-        await fetch('/api/admin/sessions', {
-          method: 'DELETE',
+        await fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${token}?updateMask=status`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
+          body: JSON.stringify({ fields: { status: { stringValue: 'FORCED_LOGOUT' } } })
         });
       } catch (e) {
         console.error("Failed to terminate session", e);
