@@ -965,9 +965,11 @@
                 token: parseVal(fields.token) || docItem.name.split('/').pop(),
                 user_id: parseVal(fields.user_id),
                 role: parseVal(fields.role) || 'user',
+                device_id: parseVal(fields.device_id),
                 device_name: parseVal(fields.device_name),
                 company_name: parseVal(fields.company_name),
                 city_name: parseVal(fields.city_name),
+                active_project_id: parseVal(fields.active_project_id),
                 active_project_name: parseVal(fields.active_project_name),
                 ip_address: parseVal(fields.ip_address),
                 login_at: parseVal(fields.login_at),
@@ -979,7 +981,11 @@
       } catch (e) {
         console.error("Failed to fetch sessions from Firestore", e);
       }
-      currentSessionsList = currentSessionsList.filter(s => s.status === 'ACTIVE' && s.role === 'user');
+      currentSessionsList = currentSessionsList.filter(s => 
+        s.status === 'ACTIVE' && 
+        s.role === 'user' &&
+        !['127.0.0.1', '::1', 'localhost'].includes(s.ip_address)
+      );
 
       // Auto-migrate legacy local storage sessions to Firestore
       try {
@@ -997,9 +1003,11 @@
                   token: { stringValue: ls.token || '' },
                   user_id: { stringValue: ls.user_id || '' },
                   role: { stringValue: ls.role || 'user' },
+                  device_id: { stringValue: ls.device_id || '' },
                   device_name: { stringValue: ls.device_name || '' },
                   company_name: { stringValue: ls.company_name || '' },
                   city_name: { stringValue: ls.city_name || '' },
+                  active_project_id: { stringValue: ls.active_project_id || '' },
                   active_project_name: { stringValue: ls.active_project_name || '' },
                   ip_address: { stringValue: ls.ip_address || '127.0.0.1' },
                   login_at: { stringValue: ls.login_at || new Date().toISOString() },
