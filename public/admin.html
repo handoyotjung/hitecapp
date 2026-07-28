@@ -1921,7 +1921,12 @@
           expiryDisplay = `<div class="flex items-center gap-2"><span class="text-slate-200 font-medium">${u.expires_at}</span> ${statusBadge}</div>`;
         }
 
+        const isProtectedAdmin = cleanEmail === 'admin@hitec.id';
+        const isSuperAdmin = cleanEmail === 'handoyo.tjung@gmail.com';
         const isProtectedFromAdmin = (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin'));
+        const disableEdit = isProtectedAdmin || isSuperAdmin || isProtectedFromAdmin;
+        const disableDelete = isProtectedAdmin || isSuperAdmin || isProtectedFromAdmin;
+        
         const isEditingThisRow = activeExpandedUserEmail === cleanEmail;
 
         const tr = document.createElement('tr');
@@ -1942,10 +1947,10 @@
           </td>
           <td class="py-3.5 pl-2 text-right">
             <div class="flex justify-end gap-1.5">
-              <button onclick="editUser('${cleanEmail}')" class="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold transition-all" ${isProtectedFromAdmin ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Admins cannot edit Super Admin or Admin accounts"' : ''}>
+              <button onclick="editUser('${cleanEmail}')" class="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold transition-all" ${disableEdit ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Account settings locked"' : ''}>
                 ${isEditingThisRow ? 'Close Edit' : 'Edit'}
               </button>
-              <button onclick="deleteUser('${cleanEmail}')" class="px-3 py-1.5 rounded-lg border border-rose-900/30 bg-slate-900 text-rose-400 hover:bg-rose-950/40 font-bold transition-all" ${(cleanEmail === 'handoyo.tjung@gmail.com' || isProtectedFromAdmin) ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Cannot delete this account"' : ''}>Delete</button>
+              <button onclick="deleteUser('${cleanEmail}')" class="px-3 py-1.5 rounded-lg border border-rose-900/30 bg-slate-900 text-rose-400 hover:bg-rose-950/40 font-bold transition-all" ${disableDelete ? 'disabled style="opacity:0.3;cursor:not-allowed" title="Cannot delete this account"' : ''}>Delete</button>
             </div>
           </td>
         `;
@@ -2047,6 +2052,16 @@
       if (!emailEl || !passEl) return;
 
       const email = emailEl.value.trim().toLowerCase();
+
+      // Backend API Guard
+      if ((email === 'handoyo.tjung@gmail.com' || originalTargetEmail === 'handoyo.tjung@gmail.com') && (!sessionUser || sessionUser.email !== 'handoyo.tjung@gmail.com')) {
+        alert("Permission Denied: Root super admin account is locked.");
+        return;
+      }
+      if ((email === 'admin@hitec.id' || originalTargetEmail === 'admin@hitec.id') && (!sessionUser || sessionUser.role !== 'super_admin')) {
+        alert("Permission Denied: Only Super Admins can modify the admin account.");
+        return;
+      }
       const password = passEl.value;
       let role = roleEl ? roleEl.value : 'user';
       const plan = planEl ? planEl.value : 'starter';
@@ -2111,7 +2126,14 @@
     }
 
       function deleteUser(email) {
-        if (email === 'handoyo.tjung@gmail.com') return; // protect default admin
+        if (email === 'handoyo.tjung@gmail.com') {
+          alert("Permission Denied: Root super admin account is locked.");
+          return;
+        }
+        if (email === 'admin@hitec.id' && (!sessionUser || sessionUser.role !== 'super_admin')) {
+          alert("Permission Denied: Only Super Admins can delete the admin account.");
+          return;
+        }
         const store = loadStore();
         const u = store.whitelist_users[email];
         if (sessionUser && sessionUser.role === 'admin' && u && (u.role === 'super_admin' || u.role === 'admin')) {
@@ -2129,7 +2151,7 @@
 
       function purgeDemoAccounts() {
         const store = loadStore();
-        const demoEmails = ["demo@hitec.id", "admin@hitec.id"];
+        const demoEmails = ["demo@hitec.id"];
         let removedCount = 0;
         demoEmails.forEach(email => {
           if (store.whitelist_users[email]) {
