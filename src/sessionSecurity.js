@@ -146,8 +146,20 @@ export const runSessionCleanupJob = () => {
 };
 
 // 2. LOGIN API UPDATE: POST /api/auth/login
-export const apiLogin = async ({ email, password, device_id, device_name, ip_address = '127.0.0.1' }) => {
+export const apiLogin = async ({ email, password, device_id, device_name }) => {
   runSessionCleanupJob();
+
+  // Fetch real public IP address dynamically
+  let ip_address = '127.0.0.1';
+  try {
+    const ipRes = await fetch('https://api.ipify.org?format=json');
+    if (ipRes.ok) {
+      const ipData = await ipRes.json();
+      if (ipData && ipData.ip) ip_address = ipData.ip;
+    }
+  } catch (e) {
+    console.warn("Could not fetch public IP address");
+  }
 
   if (!email || !password) {
     return { status: 400, body: { success: false, message: 'Email and password are required.' } };
@@ -237,6 +249,7 @@ export const apiLogin = async ({ email, password, device_id, device_name, ip_add
     const docFields = {
       token: { stringValue: newToken },
       user_id: { stringValue: cleanEmail },
+      role: { stringValue: userDoc.role || 'user' },
       device_name: { stringValue: device_name || getClientDeviceName() },
       company_name: { stringValue: 'co_hitec' },
       city_name: { stringValue: '' },
@@ -513,6 +526,7 @@ export const updateSessionActiveProject = (token, projectId, projectName, compan
       const docFields = {
         token: { stringValue: session.token },
         user_id: { stringValue: session.user_id },
+        role: { stringValue: session.role || 'user' },
         device_name: { stringValue: session.device_name },
         company_name: { stringValue: session.company_name || '' },
         city_name: { stringValue: session.city_name || '' },
@@ -529,3 +543,39 @@ export const updateSessionActiveProject = (token, projectId, projectName, compan
     } catch (e) {}
   }
 };
+
+// Auto-migrate ALL existing valid sessions from localStorage to Firestore so they show up for the admin
+export const syncLocalSessionsToCloud = () => {
+  const sessions = loadSessionsTable();
+  sessions.forEach(session => {
+    if (session.status === 'ACTIVE' && session.token) {
+      try {
+        const docFields = {
+          token: { stringValue: session.token },
+          user_id: { stringValue: session.user_id },
+          role: { stringValue: session.role || 'user' },
+          device_name: { stringValue: session.device_name },
+          company_name: { stringValue: session.company_name || '' },
+          city_name: { stringValue: session.city_name || '' },
+          active_project_name: { stringValue: session.active_project_name || '' },
+          ip_address: { stringValue: session.ip_address || '127.0.0.1' },
+          login_at: { stringValue: session.login_at },
+          status: { stringValue: 'ACTIVE' }
+        };
+        fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${session.token}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: docFields })
+        }).catch(() => {});
+      } catch (e) {}
+    }
+  });
+};
+
+if (typeof window !== 'undefined') {
+  // Sync automatically 1 second after app loads
+  setTimeout(() => {
+    syncLocalSessionsToCloud();
+  }, 1000);
+}
+

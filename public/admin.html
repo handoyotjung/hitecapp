@@ -964,6 +964,7 @@
               currentSessionsList.push({
                 token: parseVal(fields.token) || docItem.name.split('/').pop(),
                 user_id: parseVal(fields.user_id),
+                role: parseVal(fields.role) || 'user',
                 device_name: parseVal(fields.device_name),
                 company_name: parseVal(fields.company_name),
                 city_name: parseVal(fields.city_name),
@@ -978,7 +979,7 @@
       } catch (e) {
         console.error("Failed to fetch sessions from Firestore", e);
       }
-      currentSessionsList = currentSessionsList.filter(s => s.status === 'ACTIVE');
+      currentSessionsList = currentSessionsList.filter(s => s.status === 'ACTIVE' && s.role === 'user');
 
       // Auto-migrate legacy local storage sessions to Firestore
       try {
@@ -995,6 +996,7 @@
                 const docFields = {
                   token: { stringValue: ls.token || '' },
                   user_id: { stringValue: ls.user_id || '' },
+                  role: { stringValue: ls.role || 'user' },
                   device_name: { stringValue: ls.device_name || '' },
                   company_name: { stringValue: ls.company_name || '' },
                   city_name: { stringValue: ls.city_name || '' },
