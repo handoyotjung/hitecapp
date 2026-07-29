@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2-hitecapp-force-reload';
+const CACHE_VERSION = 'v3-hitecapp-recovery';
 const CACHE_KEYS_TO_KEEP = [CACHE_VERSION];
 
 self.addEventListener('install', (event) => {

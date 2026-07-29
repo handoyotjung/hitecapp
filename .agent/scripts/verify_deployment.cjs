@@ -12,7 +12,7 @@ const MIGRATIONS_PATH = path.join(__dirname, '..', '..', 'src', 'utils', 'dbMigr
 const ENV_SAFETY_PATH = path.join(__dirname, '..', '..', 'src', 'utils', 'envSafety.js');
 
 let passedChecks = 0;
-let totalChecks = 4;
+let totalChecks = 5;
 
 console.log('--------------------------------------------------');
 console.log('🔍 Running Post-Deployment Automated Health Audit');
@@ -76,6 +76,22 @@ try {
   passedChecks++;
 } catch (e) {
   console.error('❌ Check 4/4 FAILED:', e.message);
+}
+
+// Check 5: Service Worker Production Bundle Safety
+try {
+  const SW_PATH = path.join(__dirname, '..', '..', 'public', 'sw.js');
+  if (!fs.existsSync(SW_PATH)) {
+    throw new Error('public/sw.js is missing.');
+  }
+  const swContent = fs.readFileSync(SW_PATH, 'utf8');
+  if (swContent.includes("addEventListener('fetch'") && !swContent.includes('event.respondWith(fetch(event.request)')) {
+    throw new Error('Service Worker contains an unhandled/empty fetch event listener, risking chunk interception.');
+  }
+  console.log('✅ Check 5/5 PASSED: Service Worker cache logic and fetch passthrough verified.');
+  passedChecks++;
+} catch (e) {
+  console.error('❌ Check 5/5 FAILED:', e.message);
 }
 
 console.log('--------------------------------------------------');
