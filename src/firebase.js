@@ -277,6 +277,7 @@ export const signInWithEmailAndPassword = async (authInstance, email, password) 
           token: newToken,
           device_id: 'dev_' + Math.random().toString(36).substring(2, 10),
           device_name: userDoc.session_device_name,
+          view_mode: localStorage.getItem('hitec_view_mode') || 'Mobile',
           ip_address: userDoc.session_ip_address,
           login_at: nowStr,
           last_activity: nowStr,

@@ -142,6 +142,7 @@ export default function App() {
             token: token,
             device_id: 'dev_' + Math.random().toString(36).substring(2, 10),
             device_name: deviceName,
+            view_mode: localStorage.getItem('hitec_view_mode') || 'Mobile',
             ip_address: u.session_ip_address,
             login_at: loginAt,
             last_activity: new Date().toISOString(),

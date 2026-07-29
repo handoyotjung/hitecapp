@@ -146,7 +146,7 @@ export const runSessionCleanupJob = () => {
 };
 
 // 2. LOGIN API UPDATE: POST /api/auth/login
-export const apiLogin = async ({ email, password, device_id, device_name }) => {
+export const apiLogin = async ({ email, password, device_id, device_name, view_mode }) => {
   runSessionCleanupJob();
 
   // Fetch real public IP address dynamically
@@ -235,6 +235,7 @@ export const apiLogin = async ({ email, password, device_id, device_name }) => {
     token: newToken,
     device_id: device_id,
     device_name: device_name || getClientDeviceName(),
+    view_mode: view_mode || localStorage.getItem('hitec_view_mode') || 'Mobile',
     ip_address: ip_address,
     login_at: now.toISOString(),
     last_activity: now.toISOString(),
@@ -252,6 +253,7 @@ export const apiLogin = async ({ email, password, device_id, device_name }) => {
       role: { stringValue: userDoc.role || 'user' },
       device_id: { stringValue: device_id || getClientDeviceId() },
       device_name: { stringValue: device_name || getClientDeviceName() },
+      view_mode: { stringValue: view_mode || localStorage.getItem('hitec_view_mode') || 'Mobile' },
       company_name: { stringValue: 'co_hitec' },
       city_name: { stringValue: '' },
       active_project_id: { stringValue: '' },
@@ -531,6 +533,7 @@ export const updateSessionActiveProject = (token, projectId, projectName, compan
         role: { stringValue: session.role || 'user' },
         device_id: { stringValue: session.device_id || '' },
         device_name: { stringValue: session.device_name },
+        view_mode: { stringValue: session.view_mode || localStorage.getItem('hitec_view_mode') || 'Mobile' },
         company_name: { stringValue: session.company_name || '' },
         city_name: { stringValue: session.city_name || '' },
         active_project_id: { stringValue: session.active_project_id || '' },
@@ -560,6 +563,7 @@ export const syncLocalSessionsToCloud = () => {
           role: { stringValue: session.role || 'user' },
           device_id: { stringValue: session.device_id || '' },
           device_name: { stringValue: session.device_name },
+          view_mode: { stringValue: session.view_mode || localStorage.getItem('hitec_view_mode') || 'Mobile' },
           company_name: { stringValue: session.company_name || '' },
           city_name: { stringValue: session.city_name || '' },
           active_project_id: { stringValue: session.active_project_id || '' },

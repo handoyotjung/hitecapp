@@ -50,7 +50,8 @@ export default function Login({ onLoginSuccess, errorOverride }) {
         email: email.trim(),
         password,
         device_id: deviceId,
-        device_name: deviceName
+        device_name: deviceName,
+        view_mode: viewMode
       });
 
       if (result.status === 403 && result.body && result.body.code === 'ACCOUNT_IN_USE') {
