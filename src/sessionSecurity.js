@@ -54,12 +54,20 @@ const loadStore = () => {
   let store = { whitelist_users: {} };
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) {
-      store = JSON.parse(raw);
-      if (!store.whitelist_users) store.whitelist_users = {};
+    if (!raw || raw === 'undefined' || raw === 'null') {
+      return store;
     }
-  } catch {
-    // ignore
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return store;
+    }
+    store = parsed;
+    if (typeof store.whitelist_users !== 'object' || store.whitelist_users === null) {
+      store.whitelist_users = {};
+    }
+  } catch (e) {
+    console.warn("sessionSecurity: Failed to parse hitecmedia_mock_db. Resetting.", e);
+    store = { whitelist_users: {} };
   }
   // Ensure handoyo.tjung@gmail.com is always super_admin
   const handoyoEmail = "handoyo.tjung@gmail.com";
@@ -92,7 +100,11 @@ const loadStore = () => {
 };
 
 const saveStore = (store) => {
-  localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  } catch (e) {
+    console.warn("sessionSecurity: Failed to save mock DB. Cache might be full.", e);
+  }
 };
 
 // Generate secure session token (UUID v4 format)
