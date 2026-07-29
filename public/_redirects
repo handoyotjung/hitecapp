@@ -1,0 +1,7 @@
+# Do NOT redirect static asset extensions to index.html
+/assets/* /assets/:splat  200
+*.js       /:splat         404
+*.css      /:splat         404
+
+# SPA Fallback for client-side routing
+/* /index.html  200

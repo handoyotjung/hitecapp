@@ -6,11 +6,22 @@
       (function() {
         window.addEventListener('error', function(e) {
           var root = document.getElementById('root') || document.body;
+          var msg = e.message || 'Unknown Script Error';
+          var file = e.filename || 'N/A';
+          var line = e.lineno || '0';
+          
+          // Detect common CDN/CORS masking or SPA fallback syntax errors
+          var diagnosticHint = "";
+          if (msg.indexOf('Script error') > -1 || line === 0) {
+            diagnosticHint = "<p style='font-size:11px;color:#856404;background:#fff3cd;padding:6px;border-radius:4px;'><strong>Hint:</strong> The browser was blocked from reading the script, or Cloudflare returned HTML instead of a .js asset file.</p>";
+          }
+
           root.innerHTML = '<div style="padding:20px;font-family:sans-serif;color:#721c24;background:#f8d7da;border:1px solid #f5c6cb;margin:10px;border-radius:4px;z-index:99999;position:relative;">' +
             '<h3 style="margin-top:0;">Bootstrap Fatal Error</h3>' +
-            '<p style="font-size:12px;">' + (e.message || 'Unknown Script Error') + '</p>' +
-            '<p style="font-size:10px;color:#555;">File: ' + (e.filename || 'N/A') + ':' + (e.lineno || '0') + '</p>' +
-            '<button onclick="localStorage.clear();sessionStorage.clear();window.location.reload(true);" style="padding:8px 12px;background:#721c24;color:#fff;border:none;border-radius:4px;cursor:pointer;">Clear Storage & Reload</button>' +
+            '<p style="font-size:12px;font-weight:bold;">' + msg + '</p>' +
+            '<p style="font-size:10px;color:#555;">File: ' + file + ':' + line + '</p>' +
+            diagnosticHint +
+            '<button onclick="localStorage.clear();sessionStorage.clear();if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});});}window.location.reload(true);" style="padding:8px 12px;background:#721c24;color:#fff;border:none;border-radius:4px;cursor:pointer;">Clear Storage, Kill SW & Reload</button>' +
             '</div>';
         }, true);
       })();
@@ -28,6 +39,6 @@
   </head>
   <body class="h-full bg-slate-950 text-slate-50 antialiased selection:bg-indigo-500 selection:text-white overflow-hidden">
     <div id="root" class="h-full"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" crossorigin src="/src/main.jsx"></script>
   </body>
 </html>

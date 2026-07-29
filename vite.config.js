@@ -16,6 +16,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2015',
+    sourcemap: true,
     cssCodeSplit: false,
     rollupOptions: {
       output: {
@@ -23,6 +24,11 @@ export default defineConfig({
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]'
       }
+    }
+  },
+  experimental: {
+    renderBuiltUrl(filename, { hostType }) {
+      return { relative: true };
     }
   },
   test: {
