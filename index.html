@@ -57,6 +57,11 @@
         };
 
         window.addEventListener('error', function(e) {
+          // Ignore non-fatal element load errors (like missing images)
+          if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'LINK')) {
+            console.warn('Ignored non-fatal resource load error:', e.target.src || e.target.href);
+            return;
+          }
           var msg = e.message || 'Unknown Script Error';
           var file = e.filename || 'N/A';
           var line = e.lineno || '0';
