@@ -63,15 +63,32 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </ErrorBoundary>
-  </React.StrictMode>,
-)
+try {
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </React.StrictMode>,
+  );
+} catch (fatalError) {
+  console.error("FATAL STARTUP ERROR:", fatalError);
+  const root = document.getElementById('root');
+  if (root) {
+    root.innerHTML = `
+      <div style="padding: 20px; font-family: sans-serif; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px;">
+        <h2 style="margin-top: 0;">App Startup Failed</h2>
+        <p>A fatal error occurred before the application could load. This might be due to incompatible device settings or corrupted local data.</p>
+        <pre style="background: #fff; padding: 10px; overflow: auto; border: 1px solid #ccc; font-size: 12px;">${fatalError.stack || fatalError.message || fatalError}</pre>
+        <button onclick="localStorage.clear(); sessionStorage.clear(); window.location.reload(true);" style="margin-top: 10px; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Clear Data & Reload
+        </button>
+      </div>
+    `;
+  }
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

@@ -15,6 +15,7 @@ export default defineConfig({
     allowedHosts: true
   },
   build: {
+    target: 'es2015',
     cssCodeSplit: false,
     rollupOptions: {
       output: {
