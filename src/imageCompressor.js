@@ -6,15 +6,15 @@
  * so images remain clear enough for the raw photo report while respecting the maximum size barrier.
  */
 
-export async function compressImage(file, maxKb = 290) {
+export async function compressImage(file, maxKb = 190) {
   // If not an image or invalid, return immediately
   if (!file || !file.type || !file.type.startsWith('image/')) {
     return file;
   }
 
-  // If already below target limit (e.g., <= 290 KB), no need to compress unless we want to normalize format
+  // If already below target limit (e.g., <= 190 KB), no need to compress unless we want to normalize format
   const initialSizeKb = file.size / 1024;
-  if (initialSizeKb <= maxKb && initialSizeKb <= 290) {
+  if (initialSizeKb <= maxKb && initialSizeKb <= 190) {
     return file;
   }
 
@@ -28,8 +28,8 @@ export async function compressImage(file, maxKb = 290) {
       let width = img.naturalWidth || img.width;
       let height = img.naturalHeight || img.height;
 
-      // Initial downscaling constraint for high-res mobile photos (> 2048px -> balanced 1920px)
-      const initialMaxDim = 1920;
+      // Initial downscaling constraint for high-res mobile photos (> 1600px -> balanced 1600px)
+      const initialMaxDim = 1600;
       if (width > initialMaxDim || height > initialMaxDim) {
         if (width > height) {
           height = Math.round((height * initialMaxDim) / width);

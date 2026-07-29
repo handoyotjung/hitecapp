@@ -97,7 +97,7 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
     });
 
     if (validFiles.length > 0) {
-      const targetKb = 295;
+      const targetKb = 190;
       const needsCompression = validFiles.some(f => f && f.type && f.type.startsWith('image/') && (f.size / 1024) > targetKb);
 
       let processed = validFiles;

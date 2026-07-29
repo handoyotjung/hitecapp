@@ -1170,7 +1170,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
 
     // Intercept and dynamically compress high-resolution photos (2MB-8MB) down below 300KB
-    const targetKb = (planLimits.maxKb || 300) - 5;
+    const targetKb = Math.min((planLimits.maxKb || 300) - 5, 190);
     const needsCompression = files.some(file => file && file.type && file.type.startsWith('image/') && (file.size / 1024) > targetKb);
 
     if (needsCompression) {
