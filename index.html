@@ -7,7 +7,13 @@
         // 1. Fail-safe synchronous emergency reset
         window.__hitecEmergencyReset = function() {
           try { localStorage.clear(); } catch(e) {}
-          try { sessionStorage.clear(); } catch(e) {}
+          try { 
+            var watchdogFired = sessionStorage.getItem('__hitec_watchdog_fired');
+            sessionStorage.clear(); 
+            if (watchdogFired) {
+              sessionStorage.setItem('__hitec_watchdog_fired', watchdogFired);
+            }
+          } catch(e) {}
           
           try {
             if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
@@ -24,15 +30,12 @@
         };
 
         // 2. Error Shield Listener
-        window.addEventListener('error', function(e) {
+        var renderErrorBox = function(msg, file, line) {
           window.__hitecErrorCaught = true;
           var root = document.getElementById('root') || document.body;
-          var msg = e.message || 'Unknown Script Error';
-          var file = e.filename || 'N/A';
-          var line = e.lineno || '0';
           
           var diagnosticHint = "";
-          if (msg.indexOf('Script error') > -1 || line === 0) {
+          if (msg.indexOf('Script error') > -1 || line === 0 || msg.indexOf('Failed to fetch dynamically imported module') > -1) {
             diagnosticHint = "<p style='font-size:11px;color:#856404;background:#fff3cd;padding:6px;border-radius:4px;'><strong>Hint:</strong> The browser was blocked from reading the script, or Cloudflare returned HTML instead of a .js asset file.</p>";
           }
 
@@ -43,7 +46,19 @@
             diagnosticHint +
             '<button onclick="window.__hitecEmergencyReset()" style="padding:10px 14px;background:#721c24;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Clear Storage & Force Reload</button>' +
             '</div>';
+        };
+
+        window.addEventListener('error', function(e) {
+          var msg = e.message || 'Unknown Script Error';
+          var file = e.filename || 'N/A';
+          var line = e.lineno || '0';
+          renderErrorBox(msg, file, line);
         }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          var msg = e.reason ? (e.reason.message || e.reason) : 'Unhandled Promise Rejection';
+          renderErrorBox(String(msg), 'N/A (Promise)', '0');
+        });
 
         // 3. Automated Blank-Screen Watchdog (Fires after 4000ms if #root is empty)
         window.addEventListener('DOMContentLoaded', function() {
