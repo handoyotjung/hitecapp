@@ -2,6 +2,19 @@
 <html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        window.addEventListener('error', function(e) {
+          var root = document.getElementById('root') || document.body;
+          root.innerHTML = '<div style="padding:20px;font-family:sans-serif;color:#721c24;background:#f8d7da;border:1px solid #f5c6cb;margin:10px;border-radius:4px;z-index:99999;position:relative;">' +
+            '<h3 style="margin-top:0;">Bootstrap Fatal Error</h3>' +
+            '<p style="font-size:12px;">' + (e.message || 'Unknown Script Error') + '</p>' +
+            '<p style="font-size:10px;color:#555;">File: ' + (e.filename || 'N/A') + ':' + (e.lineno || '0') + '</p>' +
+            '<button onclick="localStorage.clear();sessionStorage.clear();window.location.reload(true);" style="padding:8px 12px;background:#721c24;color:#fff;border:none;border-radius:4px;cursor:pointer;">Clear Storage & Reload</button>' +
+            '</div>';
+        }, true);
+      })();
+    </script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
