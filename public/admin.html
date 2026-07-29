@@ -952,6 +952,8 @@
       }, 5000);
     }
 
+    const forceLoggedOutTokens = new Set();
+
     async function renderOnlineSessions() {
       const tbody = document.getElementById('online-sessions-body');
       const countEl = document.getElementById('active-sessions-count');
@@ -992,7 +994,7 @@
       } catch (e) {
         console.error("Failed to fetch sessions from Firestore", e);
       }
-      currentSessionsList = currentSessionsList.filter(s => s.status === 'ACTIVE');
+      currentSessionsList = currentSessionsList.filter(s => s.status === 'ACTIVE' && !forceLoggedOutTokens.has(s.token));
 
       // Auto-migrate legacy local storage sessions to Firestore
       try {
@@ -1106,33 +1108,42 @@
       if (!confirm(`Are you sure you want to terminate this active online session?`)) return;
 
       try {
-        await fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${token}?updateMask=status`, {
+        const res = await fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${token}?updateMask=status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fields: { status: { stringValue: 'FORCED_LOGOUT' } } })
         });
+        if (!res.ok) {
+          throw new Error(`Firestore responded with ${res.status}: ${res.statusText}`);
+        }
+
+        // PATCH succeeded — mark token so the row is excluded from the next
+        // render even if Firestore returns a stale read on the collection list
+        forceLoggedOutTokens.add(token);
+
+        // Clear from local storage to prevent the auto-migrate logic from reviving it
+        try {
+          const rawLocal = localStorage.getItem('hitec_user_sessions_v1');
+          if (rawLocal) {
+            const localSessions = JSON.parse(rawLocal);
+            let updated = false;
+            localSessions.forEach(ls => {
+              if (ls && ls.token === token) {
+                ls.status = 'FORCED_LOGOUT';
+                ls.logout_at = new Date().toISOString();
+                updated = true;
+              }
+            });
+            if (updated) {
+              localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(localSessions));
+            }
+          }
+        } catch (e) {}
+
       } catch (e) {
         console.error("Failed to terminate session in Firestore", e);
+        alert(`Force Logout failed: ${e.message}\n\nThe session was NOT terminated. Please try again.`);
       }
-
-      // Clear from local storage to prevent the auto-migrate logic from reviving it
-      try {
-        const rawLocal = localStorage.getItem('hitec_user_sessions_v1');
-        if (rawLocal) {
-          const localSessions = JSON.parse(rawLocal);
-          let updated = false;
-          localSessions.forEach(ls => {
-            if (ls && ls.token === token) {
-              ls.status = 'FORCED_LOGOUT';
-              ls.logout_at = new Date().toISOString();
-              updated = true;
-            }
-          });
-          if (updated) {
-            localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(localSessions));
-          }
-        }
-      } catch (e) {}
 
       renderOnlineSessions();
     }
