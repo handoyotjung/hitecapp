@@ -961,7 +961,7 @@
 
       let currentSessionsList = [];
       try {
-        const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions');
+        const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.documents)) {
