@@ -92,27 +92,14 @@ try {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    let refreshing = false;
-    
-    // Listen for the controlling service worker changing (e.g. self.skipWaiting() was called)
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (let registration of registrations) {
+        registration.unregister().then(boolean => {
+          if (boolean) {
+            console.log('Successfully unregistered stale ServiceWorker.');
+          }
+        });
       }
-    });
-
-    navigator.serviceWorker.register('/sw.js').then((registration) => {
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            // We rely on controllerchange to handle the reload safely,
-            // but we can prompt the user or handle the installed state here if needed.
-            // Note: skipWaiting is handled in the SW directly for immediate activation.
-          });
-        }
-      });
-    }).catch(err => console.log('SW registration failed:', err));
+    }).catch(err => console.log('SW unregistration failed:', err));
   });
 }
