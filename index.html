@@ -4,13 +4,34 @@
     <meta charset="UTF-8" />
     <script>
       (function() {
+        // Define a synchronous, fail-safe emergency reset function
+        window.__hitecEmergencyReset = function() {
+          // 1. Clear Local and Session Storage safely
+          try { localStorage.clear(); } catch(e) {}
+          try { sessionStorage.clear(); } catch(e) {}
+          
+          // 2. Attempt Service Worker unregistration without blocking redirect
+          try {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (var i = 0; i < registrations.length; i++) {
+                  registrations[i].unregister();
+                }
+              }).catch(function() {});
+            }
+          } catch(e) {}
+
+          // 3. Force network fetch via timestamp query-string cache buster
+          var cleanPath = window.location.pathname || '/';
+          window.location.href = cleanPath + '?nocache=' + new Date().getTime();
+        };
+
         window.addEventListener('error', function(e) {
           var root = document.getElementById('root') || document.body;
           var msg = e.message || 'Unknown Script Error';
           var file = e.filename || 'N/A';
           var line = e.lineno || '0';
           
-          // Detect common CDN/CORS masking or SPA fallback syntax errors
           var diagnosticHint = "";
           if (msg.indexOf('Script error') > -1 || line === 0) {
             diagnosticHint = "<p style='font-size:11px;color:#856404;background:#fff3cd;padding:6px;border-radius:4px;'><strong>Hint:</strong> The browser was blocked from reading the script, or Cloudflare returned HTML instead of a .js asset file.</p>";
@@ -21,7 +42,7 @@
             '<p style="font-size:12px;font-weight:bold;">' + msg + '</p>' +
             '<p style="font-size:10px;color:#555;">File: ' + file + ':' + line + '</p>' +
             diagnosticHint +
-            '<button onclick="localStorage.clear();sessionStorage.clear();if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});});}window.location.reload(true);" style="padding:8px 12px;background:#721c24;color:#fff;border:none;border-radius:4px;cursor:pointer;">Clear Storage, Kill SW & Reload</button>' +
+            '<button onclick="window.__hitecEmergencyReset()" style="padding:10px 14px;background:#721c24;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Clear Storage & Force Reload</button>' +
             '</div>';
         }, true);
       })();

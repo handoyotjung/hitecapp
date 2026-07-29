@@ -16,6 +16,6 @@ describe('Inline HTML Shield Sanity Test', () => {
   });
 
   it('should contain the emergency reload and cache clearing logic', () => {
-    expect(indexContent).toContain('localStorage.clear();sessionStorage.clear();');
+    expect(indexContent).toContain('window.__hitecEmergencyReset');
   });
 });
