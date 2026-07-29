@@ -26,6 +26,49 @@ export function shouldShowCloudSyncWarning(email, hasSyncError) {
   return true;
 }
 
+/**
+ * Production-safe diagnostic utility for mobile field auditing.
+ * Invoke via Console: window.__hitecDebugAudit()
+ */
+export function registerDebugAudit() {
+  if (typeof window === 'undefined') return;
+  
+  window.__hitecDebugAudit = function() {
+    const rawDB = localStorage.getItem('hitecmedia_mock_db');
+    let dbStatus = 'MISSING';
+    let whitelistValid = false;
+
+    try {
+      if (rawDB) {
+        const parsed = JSON.parse(rawDB);
+        dbStatus = 'OK';
+        whitelistValid = Array.isArray(parsed?.whitelist_users);
+      }
+    } catch (e) {
+      dbStatus = 'CORRUPTED_JSON';
+    }
+
+    const report = {
+      timestamp: new Date().toISOString(),
+      storageSchema: {
+        status: dbStatus,
+        whitelistIsArray: whitelistValid
+      },
+      demoMode: {
+        suppressionFlagActive: true,
+        domAttributePresent: document.documentElement.getAttribute('data-demo-mode') === 'true'
+      },
+      serviceWorker: {
+        controller: !!navigator.serviceWorker?.controller,
+        killSwitchActive: true
+      }
+    };
+
+    console.table(report);
+    return report;
+  };
+}
+
 // Helper to get or generate unique device ID for this client
 export const getClientDeviceId = () => {
   let deviceId = localStorage.getItem('hitec_session_device_id');

@@ -3,11 +3,14 @@ import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.jsx'
 import './index.css'
-import { suppressCloudSyncWarning } from './sessionSecurity';
+import { suppressCloudSyncWarning, registerDebugAudit } from './sessionSecurity';
 
 if (suppressCloudSyncWarning) {
   document.documentElement.setAttribute('data-demo-mode', 'true');
 }
+
+// Initialize non-intrusive field debugger
+registerDebugAudit();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
