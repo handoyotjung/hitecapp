@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadStore } from './sessionSecurity';
+import { getSanitizedMockDB } from './sessionSecurity';
 
 describe('sessionSecurity - loadStore hydration', () => {
   beforeEach(() => {
@@ -7,30 +7,26 @@ describe('sessionSecurity - loadStore hydration', () => {
   });
 
   it('should default cleanly when localStorage is null', () => {
-    const store = loadStore();
-    expect(Array.isArray(store.whitelist_users)).toBe(true);
-    expect(store.whitelist_users["handoyo.tjung@gmail.com"]).toBeDefined();
+    const store = getSanitizedMockDB();
+    expect(store).toEqual({ whitelist_users: [] });
   });
 
   it('should default cleanly when localStorage is "null" string', () => {
     localStorage.setItem('hitecmedia_mock_db', 'null');
-    const store = loadStore();
-    expect(Array.isArray(store.whitelist_users)).toBe(true);
-    expect(store.whitelist_users["handoyo.tjung@gmail.com"]).toBeDefined();
+    const store = getSanitizedMockDB();
+    expect(store).toEqual({ whitelist_users: [] });
   });
 
   it('should default cleanly when localStorage is "undefined" string', () => {
     localStorage.setItem('hitecmedia_mock_db', 'undefined');
-    const store = loadStore();
-    expect(Array.isArray(store.whitelist_users)).toBe(true);
-    expect(store.whitelist_users["handoyo.tjung@gmail.com"]).toBeDefined();
+    const store = getSanitizedMockDB();
+    expect(store).toEqual({ whitelist_users: [] });
   });
 
   it('should default cleanly when JSON is corrupted', () => {
     localStorage.setItem('hitecmedia_mock_db', '{ corrupted_json: true');
-    const store = loadStore();
-    expect(Array.isArray(store.whitelist_users)).toBe(true);
-    expect(store.whitelist_users["handoyo.tjung@gmail.com"]).toBeDefined();
+    const store = getSanitizedMockDB();
+    expect(store).toEqual({ whitelist_users: [] });
   });
 
   it('should transform plain object whitelist_users to an array', () => {
@@ -41,7 +37,7 @@ describe('sessionSecurity - loadStore hydration', () => {
       }
     };
     localStorage.setItem('hitecmedia_mock_db', JSON.stringify(legacyData));
-    const store = loadStore();
+    const store = getSanitizedMockDB();
     expect(Array.isArray(store.whitelist_users)).toBe(true);
     expect(store.whitelist_users.length).toBe(2);
     expect(store.whitelist_users[0].role).toBe("user");
@@ -55,7 +51,7 @@ describe('sessionSecurity - loadStore hydration', () => {
       ]
     };
     localStorage.setItem('hitecmedia_mock_db', JSON.stringify(validData));
-    const store = loadStore();
+    const store = getSanitizedMockDB();
     expect(Array.isArray(store.whitelist_users)).toBe(true);
     expect(store.whitelist_users.length).toBe(1);
     expect(store.whitelist_users[0].role).toBe("user");

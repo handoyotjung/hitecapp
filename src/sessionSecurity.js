@@ -50,30 +50,33 @@ const saveSessionsTable = (sessions) => {
   localStorage.setItem(SESSIONS_TABLE_KEY, JSON.stringify(sessions));
 };
 
-const loadStore = () => {
-  let store = { whitelist_users: [] };
+export const getSanitizedMockDB = () => {
+  const defaultStore = { whitelist_users: [] };
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw || raw === 'undefined' || raw === 'null') {
-      return store;
+      return defaultStore;
     }
     const parsed = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      return store;
+    if (typeof parsed !== 'object' || parsed === null) {
+      return defaultStore;
     }
-    store = parsed;
-    // Ensure whitelist_users is strictly an Array to prevent .map/.find TypeErrors
-    if (!Array.isArray(store.whitelist_users)) {
-      if (store.whitelist_users && typeof store.whitelist_users === 'object') {
-        store.whitelist_users = Object.values(store.whitelist_users);
-      } else {
-        store.whitelist_users = [];
-      }
+    // Strict Array enforcement
+    const users = parsed.whitelist_users;
+    if (!Array.isArray(users)) {
+      parsed.whitelist_users = (users && typeof users === 'object') 
+        ? Object.values(users) 
+        : [];
     }
+    return parsed;
   } catch (e) {
-    console.warn("sessionSecurity: Corrupted JSON in hitecmedia_mock_db. Resetting.", e);
-    store = { whitelist_users: [] };
+    console.error("sessionSecurity: Fatal parse error, falling back to default.", e);
+    return defaultStore;
   }
+};
+
+export const loadStore = () => {
+  const store = getSanitizedMockDB();
   // Ensure handoyo.tjung@gmail.com is always super_admin
   const handoyoEmail = "handoyo.tjung@gmail.com";
   if (!store.whitelist_users[handoyoEmail] || store.whitelist_users[handoyoEmail].role !== "super_admin") {

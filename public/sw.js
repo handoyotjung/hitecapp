@@ -21,6 +21,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass through all requests - we just want to control caching via invalidation
-  // If we wanted offline support, we'd add it here.
+  // Always fall back to network immediately to prevent interception failures
+  event.respondWith(fetch(event.request).catch(() => {
+    // If network fails, return nothing (or handle offline mode)
+    return new Response();
+  }));
 });
