@@ -32,20 +32,28 @@
         // 2. Error Shield Listener
         var renderErrorBox = function(msg, file, line) {
           window.__hitecErrorCaught = true;
-          var root = document.getElementById('root') || document.body;
           
           var diagnosticHint = "";
           if (msg.indexOf('Script error') > -1 || line === 0 || msg.indexOf('Failed to fetch dynamically imported module') > -1) {
             diagnosticHint = "<p style='font-size:11px;color:#856404;background:#fff3cd;padding:6px;border-radius:4px;'><strong>Hint:</strong> The browser was blocked from reading the script, or Cloudflare returned HTML instead of a .js asset file.</p>";
           }
 
-          root.innerHTML = '<div style="padding:20px;font-family:sans-serif;color:#721c24;background:#f8d7da;border:1px solid #f5c6cb;margin:10px;border-radius:4px;z-index:99999;position:relative;">' +
+          var overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+          
+          overlay.innerHTML = '<div style="padding:20px;width:100%;max-width:400px;font-family:sans-serif;color:#721c24;background:#f8d7da;border:1px solid #f5c6cb;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">' +
             '<h3 style="margin-top:0;">Bootstrap Fatal Error</h3>' +
             '<p style="font-size:12px;font-weight:bold;">' + msg + '</p>' +
             '<p style="font-size:10px;color:#555;">File: ' + file + ':' + line + '</p>' +
             diagnosticHint +
-            '<button onclick="window.__hitecEmergencyReset()" style="padding:10px 14px;background:#721c24;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Clear Storage & Force Reload</button>' +
+            '<button onclick="window.__hitecEmergencyReset()" style="margin-top:10px;padding:12px 16px;width:100%;background:#721c24;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;">Clear Storage & Force Reload</button>' +
             '</div>';
+            
+          if (document.body) {
+            document.body.appendChild(overlay);
+          } else {
+            window.addEventListener('DOMContentLoaded', function() { document.body.appendChild(overlay); });
+          }
         };
 
         window.addEventListener('error', function(e) {
