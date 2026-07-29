@@ -7,6 +7,9 @@ import { auth, signOut } from './firebase';
 const STORE_KEY = 'hitecmedia_mock_db';
 const SESSIONS_TABLE_KEY = 'hitec_user_sessions_v1';
 
+// Configuration flag for demo/mock environments
+export const suppressCloudSyncWarning = true;
+
 // Helper to get or generate unique device ID for this client
 export const getClientDeviceId = () => {
   let deviceId = localStorage.getItem('hitec_session_device_id');
