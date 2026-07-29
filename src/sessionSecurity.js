@@ -10,6 +10,22 @@ const SESSIONS_TABLE_KEY = 'hitec_user_sessions_v1';
 // Configuration flag for demo/mock environments
 export const suppressCloudSyncWarning = true;
 
+/**
+ * Universal guard to prevent offline/sync warnings for local demo & admin accounts.
+ */
+export function shouldShowCloudSyncWarning(email, hasSyncError) {
+  if (!hasSyncError) return false;
+  if (suppressCloudSyncWarning) return false;
+  
+  // Explicitly suppress for standalone local accounts
+  const lowerEmail = (email || '').toLowerCase();
+  if (lowerEmail.includes('demo@hitec.id') || lowerEmail.includes('admin@hitec.id')) {
+    return false;
+  }
+  
+  return true;
+}
+
 // Helper to get or generate unique device ID for this client
 export const getClientDeviceId = () => {
   let deviceId = localStorage.getItem('hitec_session_device_id');

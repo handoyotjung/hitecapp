@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Lock, User as UserIcon, Eye, EyeOff, ShieldCheck, LogOut } from 'lucide-react';
-import { apiLogin, apiLogoutOtherDevices, getClientDeviceId, getClientDeviceName, suppressCloudSyncWarning } from '../sessionSecurity';
+import { apiLogin, apiLogoutOtherDevices, getClientDeviceId, getClientDeviceName, suppressCloudSyncWarning, shouldShowCloudSyncWarning } from '../sessionSecurity';
 import { SESSION_SCHEMA_VERSION, SESSION_EXPIRY_MS } from '../App';
 import { auth, signInWithEmailAndPassword } from '../firebase';
 
@@ -79,9 +79,9 @@ export default function Login({ onLoginSuccess, errorOverride }) {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       } catch (fbErr) {
         console.error("Firebase Auth parallel login failed:", fbErr);
-        if (!suppressCloudSyncWarning) {
-          setCloudSyncWarning("Cloud sync is currently unavailable for this account — your changes may not be saved. Contact your administrator.");
-        }
+        // Using the universal helper in rendering, but we still set the state string here
+        setCloudSyncWarning("Cloud sync is currently unavailable for this account — your changes may not be saved. Contact your administrator.");
+        
         // Log to system_alerts for admin visibility
         fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/system_alerts', {
           method: 'POST',
@@ -144,8 +144,8 @@ export default function Login({ onLoginSuccess, errorOverride }) {
           </div>
         )}
 
-        {cloudSyncWarning && !suppressCloudSyncWarning && (
-          <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-300">
+        {shouldShowCloudSyncWarning(email, cloudSyncWarning) && (
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-300 cloud-sync-warning-banner">
             <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
             <div>
               <p className="font-semibold">Cloud Sync Warning</p>

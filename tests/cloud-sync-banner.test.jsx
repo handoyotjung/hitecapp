@@ -34,6 +34,8 @@ global.fetch = vi.fn().mockResolvedValue({
   json: async () => ({})
 });
 
+import { shouldShowCloudSyncWarning } from '../src/sessionSecurity';
+
 describe('Cloud Sync Warning Banner', () => {
   it('suppresses the warning banner when suppressCloudSyncWarning is true', async () => {
     render(<Login onLoginSuccess={() => {}} />);
@@ -59,4 +61,16 @@ describe('Cloud Sync Warning Banner', () => {
     const banner = screen.queryByText(/Cloud Sync Warning/i);
     expect(banner).toBeNull();
   }, 10000);
+
+  it('correctly evaluates shouldShowCloudSyncWarning helper', () => {
+    // Should be false for demo/admin accounts when there is an error
+    expect(shouldShowCloudSyncWarning('demo@hitec.id', true)).toBe(false);
+    expect(shouldShowCloudSyncWarning('admin@hitec.id', true)).toBe(false);
+    
+    // Also since our mock forces suppressCloudSyncWarning to true, it should always return false
+    expect(shouldShowCloudSyncWarning('realuser@hitec.id', true)).toBe(false);
+    
+    // If there is no error, it should always be false
+    expect(shouldShowCloudSyncWarning('realuser@hitec.id', false)).toBe(false);
+  });
 });

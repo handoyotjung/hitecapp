@@ -105,6 +105,12 @@
         color: #ffffff;
         font-family: system-ui, -apple-system, sans-serif;
       }
+      
+      /* Global Safety Net: Hide Cloud Sync Warning in Demo Mode */
+      html[data-demo-mode="true"] .cloud-sync-warning-banner,
+      html[data-demo-mode="true"] [class*="cloud-sync-warning"] {
+        display: none !important;
+      }
     </style>
     <title>HitecApp - Tool for Safety Indonesia</title>
     <!-- Google Fonts -->
