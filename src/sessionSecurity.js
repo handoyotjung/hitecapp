@@ -180,6 +180,7 @@ export const apiLogin = async ({ email, password, device_id, device_name, view_m
       password: password || 'demopassword',
       created_at: new Date().toISOString()
     };
+    if (!store.whitelist_users) store.whitelist_users = {};
     store.whitelist_users[cleanEmail] = userDoc;
     saveStore(store);
   }
