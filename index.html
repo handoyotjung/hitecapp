@@ -4,13 +4,11 @@
     <meta charset="UTF-8" />
     <script>
       (function() {
-        // Define a synchronous, fail-safe emergency reset function
+        // 1. Fail-safe synchronous emergency reset
         window.__hitecEmergencyReset = function() {
-          // 1. Clear Local and Session Storage safely
           try { localStorage.clear(); } catch(e) {}
           try { sessionStorage.clear(); } catch(e) {}
           
-          // 2. Attempt Service Worker unregistration without blocking redirect
           try {
             if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
               navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -21,12 +19,13 @@
             }
           } catch(e) {}
 
-          // 3. Force network fetch via timestamp query-string cache buster
           var cleanPath = window.location.pathname || '/';
           window.location.href = cleanPath + '?nocache=' + new Date().getTime();
         };
 
+        // 2. Error Shield Listener
         window.addEventListener('error', function(e) {
+          window.__hitecErrorCaught = true;
           var root = document.getElementById('root') || document.body;
           var msg = e.message || 'Unknown Script Error';
           var file = e.filename || 'N/A';
@@ -45,6 +44,22 @@
             '<button onclick="window.__hitecEmergencyReset()" style="padding:10px 14px;background:#721c24;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Clear Storage & Force Reload</button>' +
             '</div>';
         }, true);
+
+        // 3. Automated Blank-Screen Watchdog (Fires after 4000ms if #root is empty)
+        window.addEventListener('DOMContentLoaded', function() {
+          setTimeout(function() {
+            var root = document.getElementById('root');
+            var alreadyTried = false;
+            try { alreadyTried = sessionStorage.getItem('__hitec_watchdog_fired') === 'true'; } catch(e) {}
+
+            // If root is still empty, no error box was caught, and we haven't auto-reset yet:
+            if (root && root.children.length === 0 && !window.__hitecErrorCaught && !alreadyTried) {
+              try { sessionStorage.setItem('__hitec_watchdog_fired', 'true'); } catch(e) {}
+              console.warn('[HitecApp Watchdog] Silent blank screen detected. Executing auto-recovery...');
+              window.__hitecEmergencyReset();
+            }
+          }, 4000);
+        });
       })();
     </script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />

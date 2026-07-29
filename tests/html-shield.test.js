@@ -18,4 +18,10 @@ describe('Inline HTML Shield Sanity Test', () => {
   it('should contain the emergency reload and cache clearing logic', () => {
     expect(indexContent).toContain('window.__hitecEmergencyReset');
   });
+
+  it('should contain the 4000ms automated blank-screen watchdog', () => {
+    expect(indexContent).toContain('__hitec_watchdog_fired');
+    expect(indexContent).toContain('4000');
+    expect(indexContent).toContain('root.children.length === 0');
+  });
 });
