@@ -142,8 +142,9 @@
                 <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 0 Online
               </span>
-              <button onclick="adminForceLogoutAllSessions()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md cursor-pointer">
-                Terminate All Sessions
+              <button onclick="renderOnlineSessions()" class="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all shadow-md cursor-pointer flex items-center gap-1.5">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 2.1-5.8L7 8"/></svg>
+                Refresh
               </button>
             </div>
           </div>
@@ -1111,33 +1112,25 @@
           body: JSON.stringify({ fields: { status: { stringValue: 'FORCED_LOGOUT' } } })
         });
       } catch (e) {
-        console.error("Failed to terminate session", e);
+        console.error("Failed to terminate session in Firestore", e);
       }
 
-      renderOnlineSessions();
-    }
-
-    function adminForceLogoutAllSessions() {
-      if (!confirm("Are you sure you want to terminate all active assessor sessions?")) return;
-      const store = loadStore();
-      Object.keys(store.whitelist_users || {}).forEach(email => {
-        if (store.whitelist_users[email]) {
-          store.whitelist_users[email].session_token = null;
-        }
-      });
-      saveStore(store);
-
+      // Clear from local storage to prevent the auto-migrate logic from reviving it
       try {
-        const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
-        if (rawSessions) {
-          const sessions = JSON.parse(rawSessions);
-          sessions.forEach(s => {
-            if (s.status === 'ACTIVE') {
-              s.status = 'FORCED_LOGOUT';
-              s.logout_at = new Date().toISOString();
+        const rawLocal = localStorage.getItem('hitec_user_sessions_v1');
+        if (rawLocal) {
+          const localSessions = JSON.parse(rawLocal);
+          let updated = false;
+          localSessions.forEach(ls => {
+            if (ls && ls.token === token) {
+              ls.status = 'FORCED_LOGOUT';
+              ls.logout_at = new Date().toISOString();
+              updated = true;
             }
           });
-          localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(sessions));
+          if (updated) {
+            localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(localSessions));
+          }
         }
       } catch (e) {}
 
