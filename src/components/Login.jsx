@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Lock, User as UserIcon, Eye, EyeOff, ShieldCheck, LogOut } from 'lucide-react';
 import { apiLogin, apiLogoutOtherDevices, getClientDeviceId, getClientDeviceName } from '../sessionSecurity';
 import { SESSION_SCHEMA_VERSION, SESSION_EXPIRY_MS } from '../App';
+import { auth, signInWithEmailAndPassword } from '../firebase';
 
 export default function Login({ onLoginSuccess, errorOverride }) {
   const [error, setError] = useState(null);
+  const [cloudSyncWarning, setCloudSyncWarning] = useState(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,6 +74,21 @@ export default function Login({ onLoginSuccess, errorOverride }) {
         viewMode: viewMode
       };
 
+      // Parallel Firebase Auth sign-in for Firestore security rules
+      try {
+        await signInWithEmailAndPassword(auth, email.trim(), password);
+      } catch (fbErr) {
+        console.error("Firebase Auth parallel login failed:", fbErr);
+        setCloudSyncWarning("Cloud sync is currently unavailable for this account — your changes may not be saved. Contact your administrator.");
+        // Log to system_alerts for admin visibility
+        fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/system_alerts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { message: { stringValue: 'Firebase Auth login failed for ' + email.trim() + ': ' + fbErr.message }, timestamp: { stringValue: new Date().toISOString() } } })
+        }).catch(() => {});
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
       saveSession(sessionData);
       onLoginSuccess(sessionData);
     } catch (err) {
@@ -121,6 +138,16 @@ export default function Login({ onLoginSuccess, errorOverride }) {
             <div>
               <p className="font-semibold">Access Notice</p>
               <p className="mt-0.5 text-rose-200/90">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {cloudSyncWarning && (
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-300">
+            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+            <div>
+              <p className="font-semibold">Cloud Sync Warning</p>
+              <p className="mt-0.5 text-amber-200/90">{cloudSyncWarning}</p>
             </div>
           </div>
         )}

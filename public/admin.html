@@ -204,6 +204,23 @@
             </table>
           </div>
         </div>
+
+        <!-- System Alerts Panel -->
+        <div class="rounded-2xl border border-red-500/20 bg-slate-900/60 p-6 backdrop-blur-md shadow-xl mt-8">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/30">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white">System Alerts</h3>
+                <p class="text-[10px] text-slate-500">Firebase Auth failures &amp; login errors logged by client devices</p>
+              </div>
+            </div>
+            <button onclick="renderSystemAlerts()" class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white hover:border-slate-700 transition-colors cursor-pointer">Refresh</button>
+          </div>
+          <div id="system-alerts-container" class="text-xs text-slate-500">Loading alerts...</div>
+        </div>
       </div>
 
       <!-- TAB 2: BILLING & USAGE -->
@@ -2097,21 +2114,33 @@
       store.whitelist_users[email] = userData;
       saveStore(store);
 
-      // Async sync to backend
+      // Sync Firebase Auth user via Cloud Function (Callable protocol)
+      fetch('https://asia-southeast2-hitecmedia-app.cloudfunctions.net/sync_auth_user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { email: email, password: password, role: role, plan: plan, company_id: userData.company_id || 'co_hitec' } })
+      }).then(async res => {
+        if (!res.ok) {
+          const errText = await res.text().catch(() => 'Unknown error');
+          alert(`⚠️ Firebase Auth sync failed (HTTP ${res.status}): ${errText}\n\nThe local whitelist was saved, but this account may not be able to create or save projects in the cloud.`);
+          return;
+        }
+        const json = await res.json();
+        const result = json.result || json;
+        if (!result.success) {
+          alert(`⚠️ Firebase Auth sync error: ${result.error || 'Unknown'}\n\nThe local whitelist was saved, but this account may not be able to create or save projects in the cloud.`);
+        }
+      }).catch(err => {
+        alert(`⚠️ Failed to sync account to Firebase Auth: ${err.message}\n\nThe local whitelist was saved, but this account may not work for cloud project saves.`);
+      });
+
+      // Legacy backend sync (best-effort)
       fetch('/api/admin/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, ...userData })
-      }).catch(err => console.error("Failed to sync account to backend", err));
+      }).catch(() => {});
 
-      activeExpandedUserEmail = null;
-      renderUsers();
-      renderOnlineSessions();
-      renderDailyUsageDashboard();
-    }
-
-    function editUser(email) {
-      const store = loadStore();
       const u = store.whitelist_users[email];
       if (!u) return;
 

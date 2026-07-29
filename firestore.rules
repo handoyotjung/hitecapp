@@ -56,6 +56,13 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // System Alerts rules — intentional open-create for unauthenticated Login.jsx failure path
+    match /system_alerts/{alertId} {
+      allow create: if true;
+      allow read: if isWhitelisted();
+      allow update, delete: if isSuperAdmin();
+    }
+
     // Report Downloads rules
     match /report_downloads/{reportId} {
       allow read, update, delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isWhitelisted());

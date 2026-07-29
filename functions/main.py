@@ -5,6 +5,7 @@ import datetime
 from datetime import timedelta
 from firebase_functions import options, https_fn, storage_fn, scheduler_fn
 from firebase_admin import initialize_app, firestore, storage
+from firebase_admin import auth as admin_auth
 import google.cloud.bigquery as bigquery
 from pptx import Presentation
 from pptx.util import Inches, Pt
@@ -18,6 +19,52 @@ options.set_global_options(region="asia-southeast2")
 # Initialize Firebase Admin SDK
 firebase_app = initialize_app()
 db = firestore.client()
+
+# Map of accounts with known UIDs that must match existing Firestore project data
+KNOWN_UIDS = {
+    "demo@hitec.id": "user_demo_hitec",
+}
+
+@https_fn.on_call()
+def sync_auth_user(req: https_fn.CallableRequest) -> dict:
+    """Creates or updates a Firebase Auth user to match a whitelist account.
+    Also ensures the whitelist_users Firestore document exists so isWhitelisted() passes."""
+    data = req.data
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password')
+    role = data.get('role', 'user')
+    plan = data.get('plan', 'starter')
+    company_id = data.get('company_id', 'co_hitec')
+
+    if not email or not password:
+        return {"success": False, "error": "Missing email or password"}
+
+    # 1. Sync Firebase Auth user
+    try:
+        user = admin_auth.get_user_by_email(email)
+        admin_auth.update_user(user.uid, password=password)
+        auth_action = "updated"
+        uid = user.uid
+    except admin_auth.UserNotFoundError:
+        uid = KNOWN_UIDS.get(email, f"user_{email.replace('@','_').replace('.','_')}")
+        admin_auth.create_user(email=email, password=password, uid=uid)
+        auth_action = "created"
+    except Exception as e:
+        return {"success": False, "error": f"Auth sync failed: {str(e)}"}
+
+    # 2. Ensure whitelist_users document exists in Firestore (for isWhitelisted() rule)
+    try:
+        wl_ref = db.collection('whitelist_users').document(email)
+        wl_ref.set({
+            'role': role,
+            'plan': plan,
+            'company_id': company_id,
+            'updated_at': datetime.datetime.now().isoformat()
+        }, merge=True)
+    except Exception as e:
+        return {"success": False, "error": f"Whitelist sync failed: {str(e)}", "auth_action": auth_action, "uid": uid}
+
+    return {"success": True, "action": auth_action, "uid": uid}
 
 def get_company_plan_limits(user_email):
     """Retrieve company plan limits (max_daily, max_kb) based on whitelist_users email."""

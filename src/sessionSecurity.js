@@ -2,6 +2,7 @@
 // Prevents account sharing between assessors; enforces 1 active session per account.
 
 import { sendAccountInUseAlert, sendSelfForceLogoutAlert, sendAdminForceLogoutAlert } from './emailAlertService';
+import { auth, signOut } from './firebase';
 
 const STORE_KEY = 'hitecmedia_mock_db';
 const SESSIONS_TABLE_KEY = 'hitec_user_sessions_v1';
@@ -392,6 +393,9 @@ export const apiLogout = async ({ token, email }) => {
   });
   saveSessionsTable(sessions);
 
+  // Sign out of Firebase Auth to invalidate Firestore credentials
+  try { await signOut(auth); } catch(e) {}
+
   return { status: 200, body: { success: true, message: 'Logged out successfully.' } };
 };
 
@@ -421,6 +425,9 @@ export const apiLogoutOtherDevices = async ({ email, current_token }) => {
     }
   });
   saveSessionsTable(sessions);
+
+  // Sign out of Firebase Auth
+  try { await signOut(auth); } catch(e) {}
 
   // EVENT B: Send email alert to admin@hitec.id
   sendSelfForceLogoutAlert({
