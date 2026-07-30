@@ -678,8 +678,8 @@
 
       // Always ensure whitelist_users is a valid object and contains default accounts + active sessions
       let activeUsers = store.whitelist_users;
-      if (!activeUsers || Array.isArray(activeUsers) || typeof activeUsers !== 'object') {
-        activeUsers = {};
+      if (Array.isArray(activeUsers) || !activeUsers || typeof activeUsers !== 'object') {
+        activeUsers = {}; // Irrecoverable format from previous bug, wipe and let safe-seed recreate defaults
       }
 
       store.whitelist_users = {
@@ -1896,6 +1896,7 @@
                   <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
                     <input type="text" id="user-password-inline" required placeholder="User password" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                    <p class="text-[9px] text-amber-500/70 mt-1 leading-tight">Saved locally; won't affect real login until synced.</p>
                   </div>
 
                   <div>
@@ -2041,6 +2042,7 @@
                     <div>
                       <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
                       <input type="text" id="user-password-inline" required value="${u.password || ''}" placeholder="User password" class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                      <p class="text-[9px] text-amber-500/70 mt-1 leading-tight">Saved locally; won't affect real login until synced.</p>
                     </div>
 
                     <div>

@@ -42,7 +42,7 @@ export function registerDebugAudit() {
       if (rawDB) {
         const parsed = JSON.parse(rawDB);
         dbStatus = 'OK';
-        whitelistValid = Array.isArray(parsed?.whitelist_users);
+        whitelistValid = typeof parsed?.whitelist_users === 'object' && !Array.isArray(parsed?.whitelist_users);
       }
     } catch (e) {
       dbStatus = 'CORRUPTED_JSON';
@@ -123,13 +123,7 @@ export const getSanitizedMockDB = () => {
     if (typeof parsed !== 'object' || parsed === null) {
       return defaultStore;
     }
-    // Strict Array enforcement
-    const users = parsed.whitelist_users;
-    if (!Array.isArray(users)) {
-      parsed.whitelist_users = (users && typeof users === 'object') 
-        ? Object.values(users) 
-        : [];
-    }
+
     return parsed;
   } catch (e) {
     console.error("sessionSecurity: Fatal parse error, falling back to default.", e);
