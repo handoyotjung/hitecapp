@@ -1980,11 +1980,13 @@
           expiryDisplay = `<div class="flex items-center gap-2"><span class="text-slate-200 font-medium">${u.expires_at}</span> ${statusBadge}</div>`;
         }
 
-        const isProtectedAdmin = cleanEmail === 'admin@hitec.id';
-        const isSuperAdmin = cleanEmail === 'handoyo.tjung@gmail.com';
-        const isProtectedFromAdmin = (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin'));
-        const disableEdit = isProtectedAdmin || isSuperAdmin || isProtectedFromAdmin;
-        const disableDelete = isProtectedAdmin || isSuperAdmin || isProtectedFromAdmin;
+        const isOwnRow = sessionUser && sessionUser.email === cleanEmail;
+        // Admins cannot modify super_admin accounts (privilege boundary)
+        const isProtectedFromAdmin = sessionUser && sessionUser.role === 'admin' && u.role === 'super_admin';
+        
+        const disableEdit = isProtectedFromAdmin;
+        // Prevent deleting your own logged-in account to avoid instant self-lockout
+        const disableDelete = isProtectedFromAdmin || isOwnRow;
         
         const isEditingThisRow = activeExpandedUserEmail === cleanEmail;
 
