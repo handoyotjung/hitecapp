@@ -113,7 +113,7 @@ const saveSessionsTable = (sessions) => {
 };
 
 export const getSanitizedMockDB = () => {
-  const defaultStore = { whitelist_users: [] };
+  const defaultStore = { whitelist_users: {} };
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw || raw === 'undefined' || raw === 'null') {
@@ -124,6 +124,9 @@ export const getSanitizedMockDB = () => {
       return defaultStore;
     }
 
+    if (!parsed.whitelist_users || typeof parsed.whitelist_users !== 'object' || Array.isArray(parsed.whitelist_users)) {
+      parsed.whitelist_users = {};
+    }
     return parsed;
   } catch (e) {
     console.error("sessionSecurity: Fatal parse error, falling back to default.", e);
@@ -347,8 +350,15 @@ export const apiLogin = async ({ email, password, device_id, device_name, view_m
       method: 'PATCH',
       headers: fetchHeaders,
       body: JSON.stringify({ fields: docFields })
-    }).catch(e => console.error(e));
-  } catch (e) {}
+    }).then(async res => {
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.error('Firestore session write failed:', res.status, text);
+      }
+    }).catch(e => console.error('Firestore network error:', e));
+  } catch (e) {
+    console.error('Error preparing session write:', e);
+  }
 
   // SANITIZE: Never expose password in any response
   const sanitizedUser = {

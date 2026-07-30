@@ -53,7 +53,8 @@ service cloud.firestore {
 
     // Sessions rules
     match /sessions/{sessionId} {
-      allow read, write: if true;
+      allow read, update, delete: if isAuthenticated() && (request.auth.token.email == resource.data.user_id || isWhitelisted());
+      allow create: if isAuthenticated() && (request.auth.token.email == request.resource.data.user_id || isWhitelisted());
     }
 
     // System Alerts rules — intentional open-create for unauthenticated Login.jsx failure path
