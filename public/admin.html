@@ -11,6 +11,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN for Admin Analytics Histogram -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <!-- Outfit Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -556,6 +559,35 @@
   </div>
 
   <script>
+    // Firebase Auth Initialization for Admin Dashboard
+    firebase.initializeApp({
+      apiKey: "AIzaSyBnTlnnHWJtDgKmnSDOwo2Kd_W_RgSlw68",
+      authDomain: "hitecmedia-app.firebaseapp.com",
+      projectId: "hitecmedia-app",
+      storageBucket: "hitecmedia-app.appspot.com",
+      messagingSenderId: "112645673298",
+      appId: "1:112645673298:web:2234b6754dc16509732a8b"
+    });
+
+    const adminAuth = firebase.auth();
+    const idTokenPromise = new Promise(resolve => {
+      const unsubscribe = adminAuth.onAuthStateChanged(async (user) => {
+        unsubscribe();
+        if (user) {
+          resolve(await user.getIdToken());
+        } else {
+          resolve(null);
+        }
+      });
+    });
+
+    async function fetchWithAuth(url, options = {}) {
+      const token = await idTokenPromise;
+      const headers = { ...options.headers };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return fetch(url, { ...options, headers });
+    }
+
     // Admin Core logic & default store defined first to avoid Temporal Dead Zone errors
     var activeExpandedUserEmail = null; // null, 'NEW', or user email string e.g. 'demo@hitec.id'
     var reportHistogramChart = null;
@@ -752,7 +784,7 @@
 
         // 2. Attempt REST API fetch from Cloudflare / Firebase
         try {
-          const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/feedback');
+          const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/feedback');
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data.documents)) {
@@ -978,7 +1010,7 @@
 
       let currentSessionsList = [];
       try {
-        const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions', { cache: 'no-store' });
+        const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.documents)) {
@@ -1040,7 +1072,7 @@
                   login_at: { stringValue: ls.login_at || new Date().toISOString() },
                   status: { stringValue: 'ACTIVE' }
                 };
-                fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${ls.token}`, {
+                fetchWithAuth(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${ls.token}`, {
                   method: 'PATCH',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ fields: docFields })
@@ -1125,7 +1157,7 @@
       if (!confirm(`Are you sure you want to terminate this active online session?`)) return;
 
       try {
-        const res = await fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${token}?updateMask=status`, {
+        const res = await fetchWithAuth(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${token}?updateMask=status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fields: { status: { stringValue: 'FORCED_LOGOUT' } } })
@@ -1209,7 +1241,7 @@
 
       // 3. Firestore REST API fetch for report_downloads
       try {
-        const res = await fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/report_downloads');
+        const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/report_downloads');
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.documents)) {
@@ -2115,7 +2147,7 @@
       saveStore(store);
 
       // Sync Firebase Auth user via Cloud Function (Callable protocol)
-      fetch('https://asia-southeast2-hitecmedia-app.cloudfunctions.net/sync_auth_user', {
+      fetchWithAuth('https://asia-southeast2-hitecmedia-app.cloudfunctions.net/sync_auth_user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: { email: email, password: password, role: role, plan: plan, company_id: userData.company_id || 'co_hitec' } })

@@ -229,7 +229,7 @@ export const runSessionCleanupJob = () => {
 };
 
 // 2. LOGIN API UPDATE: POST /api/auth/login
-export const apiLogin = async ({ email, password, device_id, device_name, view_mode }) => {
+export const apiLogin = async ({ email, password, device_id, device_name, view_mode, idToken }) => {
   runSessionCleanupJob();
 
   // Fetch real public IP address dynamically
@@ -346,9 +346,12 @@ export const apiLogin = async ({ email, password, device_id, device_name, view_m
       login_at: { stringValue: now.toISOString() },
       status: { stringValue: 'ACTIVE' }
     };
+    const fetchHeaders = { 'Content-Type': 'application/json' };
+    if (idToken) fetchHeaders['Authorization'] = `Bearer ${idToken}`;
+    
     fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${newToken}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: fetchHeaders,
       body: JSON.stringify({ fields: docFields })
     }).catch(e => console.error(e));
   } catch (e) {}

@@ -48,12 +48,30 @@ export default function Login({ onLoginSuccess, errorOverride }) {
       const deviceId = getClientDeviceId();
       const deviceName = getClientDeviceName();
 
+      let idToken = null;
+      // Parallel Firebase Auth sign-in for Firestore security rules
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        idToken = await userCredential.user.getIdToken();
+      } catch (fbErr) {
+        console.error("Firebase Auth parallel login failed:", fbErr);
+        setCloudSyncWarning("Cloud sync is currently unavailable for this account — your changes may not be saved. Contact your administrator.");
+        
+        // Log to system_alerts for admin visibility
+        fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/system_alerts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { message: { stringValue: 'Firebase Auth login failed for ' + email.trim() + ': ' + fbErr.message }, timestamp: { stringValue: new Date().toISOString() } } })
+        }).catch(() => {});
+      }
+
       const result = await apiLogin({
         email: email.trim(),
         password,
         device_id: deviceId,
         device_name: deviceName,
-        view_mode: viewMode
+        view_mode: viewMode,
+        idToken
       });
 
       if (result.status === 403 && result.body && result.body.code === 'ACCOUNT_IN_USE') {
@@ -74,23 +92,7 @@ export default function Login({ onLoginSuccess, errorOverride }) {
         viewMode: viewMode
       };
 
-      // Parallel Firebase Auth sign-in for Firestore security rules
-      try {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
-      } catch (fbErr) {
-        console.error("Firebase Auth parallel login failed:", fbErr);
-        // Using the universal helper in rendering, but we still set the state string here
-        setCloudSyncWarning("Cloud sync is currently unavailable for this account — your changes may not be saved. Contact your administrator.");
-        
-        // Log to system_alerts for admin visibility
-        fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/system_alerts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { message: { stringValue: 'Firebase Auth login failed for ' + email.trim() + ': ' + fbErr.message }, timestamp: { stringValue: new Date().toISOString() } } })
-        }).catch(() => {});
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-
+      // (Firebase Auth login moved above apiLogin)
       saveSession(sessionData);
       onLoginSuccess(sessionData);
     } catch (err) {
