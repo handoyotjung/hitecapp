@@ -10,6 +10,7 @@ const AuthContext = createContext({
   },
   onLogout: () => {},
   onOpenFeedback: () => {},
+  onOpenHelp: () => {},
   onOpenSecurity: () => {}
 });
 
@@ -30,6 +31,7 @@ export const useAuth = () => {
       },
       onLogout: () => {},
       onOpenFeedback: () => {},
+      onOpenHelp: () => {},
       onOpenSecurity: () => {}
     };
   }

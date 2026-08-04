@@ -1,5 +1,5 @@
-import React from 'react';
-import { MessageSquareIcon, LogOut, User as UserIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { MessageSquareIcon, LogOut, User as UserIcon, ChevronDown, BookOpen, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 function UserMenu() {
@@ -32,7 +32,15 @@ function UserMenu() {
 }
 
 export default function Header({ isSaving, isError }) {
-  const { user, usage, onOpenFeedback } = useAuth();
+  const { user, usage, onOpenFeedback, onOpenHelp } = useAuth();
+  const [dropOpen, setDropOpen] = useState(false);
+  const dropRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => { if (dropRef.current && !dropRef.current.contains(e.target)) setDropOpen(false); };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const reportsUsed = usage?.reportsUsedMonthly ?? usage?.reportsUsedToday ?? usage?.photosUsedToday ?? 0;
   // Dynamic monthly limit: Read from account. Fallback 300 for user, 9999 for admin
@@ -93,15 +101,37 @@ export default function Header({ isSaving, isError }) {
       {/* RIGHT: ACTIONS */}
       <div className="flex items-center gap-2 flex-shrink-0">
         {!isAdmin && (
-          <button 
-            type="button"
-            onClick={onOpenFeedback}
-            title="Resets on the 1st of every month"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm hover:bg-emerald-500/20 transition-colors"
-          >
-            <MessageSquareIcon className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline">Give Feedback</span>
-          </button>
+          <div className="relative" ref={dropRef}>
+            <button
+              type="button"
+              onClick={() => setDropOpen(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm hover:bg-emerald-500/20 transition-colors"
+            >
+              <MessageSquareIcon className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Help</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${dropOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {dropOpen && (
+              <div className="absolute right-0 mt-1.5 w-48 rounded-xl border border-slate-700 bg-slate-900 shadow-xl z-50 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => { setDropOpen(false); onOpenFeedback(); }}
+                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0" />
+                  Send Feedback
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDropOpen(false); onOpenHelp(); }}
+                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+                >
+                  <BookOpen className="w-4 h-4 text-emerald-400 shrink-0" />
+                  User Guide
+                </button>
+              </div>
+            )}
+          </div>
         )}
         {isAdmin && (
           <a href="/admin.html" target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-[#2B2B2B] transition-colors">Admin Panel</a>

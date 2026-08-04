@@ -18,6 +18,7 @@ import AutoSaveIndicator from './AutoSaveIndicator';
 import { AuthProvider } from '@/context/AuthContext';
 import { UpgradeModal } from './UpgradeModal';
 import { FeedbackModal } from './FeedbackModal';
+import { HelpModal } from './HelpModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, generateRecommendation, getAISuggestions, learnComment } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
 import { handleExportWord, getBestPhotoBase64 } from '../exportWordReport';
@@ -139,6 +140,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [planLimits, setPlanLimits] = useState({ maxDaily: 100, maxKb: 300 }); // starter defaults
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [connectivityModal, setConnectivityModal] = useState(null);
   const [mobileShareModal, setMobileShareModal] = useState(null);
   const [isCompressing, setIsCompressing] = useState(false);
@@ -2093,6 +2095,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         },
         onLogout,
         onOpenFeedback: () => setShowFeedbackModal(true),
+        onOpenHelp: () => setShowHelpModal(true),
         onOpenSecurity
       }}>
         <Header />
@@ -3202,6 +3205,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         open={showUpgradeModal} 
         onClose={() => setShowUpgradeModal(false)} 
         currentLimit={planLimits.maxDaily} 
+      />
+      <HelpModal
+        open={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
       />
       <FeedbackModal
         open={showFeedbackModal}
