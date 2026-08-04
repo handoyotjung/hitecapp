@@ -127,8 +127,16 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
     }
   }, []);
 
+  useEffect(() => {
+    if (folderInputRef.current) {
+      folderInputRef.current.setAttribute('webkitdirectory', '');
+      folderInputRef.current.setAttribute('directory', '');
+      folderInputRef.current.setAttribute('multiple', '');
+    }
+  }, []);
+
   const isAtLimit = false;
-  const handleUploadFolderClick = () => onUploadFolder ? onUploadFolder() : folderInputRef.current?.click();
+  const handleUploadFolderClick = () => folderInputRef.current?.click();
   const handleSelectPhotosClick = () => {
     if (cameraInputRef.current) {
       cameraInputRef.current.click();
@@ -150,9 +158,6 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
       <input
         type="file"
         ref={folderInputRef}
-        webkitdirectory="true"
-        directory="true"
-        multiple
         accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
         className="hidden"
         onChange={handleFolderSelect}
