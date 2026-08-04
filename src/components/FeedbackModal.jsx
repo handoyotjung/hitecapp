@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MessageSquare, Send, CheckCircle2, Loader2, Sparkles, User } from 'lucide-react';
+import { X, MessageSquare, Send, CheckCircle2, Loader2, Sparkles, User, Mic, MicOff } from 'lucide-react';
 import { aiFeedbackChatStep, aiFeedbackSynthesize } from '../aiAssessor';
 import { db, collection, addDoc } from '../firebase';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 export function FeedbackModal({ open, onClose, user, isPro = false, lang = 'ID' }) {
   const isId = lang === 'ID';
@@ -12,6 +13,14 @@ export function FeedbackModal({ open, onClose, user, isPro = false, lang = 'ID' 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const messagesEndRef = useRef(null);
+  const { isRecording, transcript, start: startMic, stop: stopMic, supported: micSupported } = useSpeechToText();
+
+  // Commit transcript to input field when recording stops — user reviews before sending
+  useEffect(() => {
+    if (transcript && !isRecording) {
+      setInputVal(prev => (prev.trim() ? prev.trim() + ' ' + transcript : transcript));
+    }
+  }, [isRecording, transcript]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize opening question when opened
   useEffect(() => {
@@ -259,6 +268,21 @@ export function FeedbackModal({ open, onClose, user, isPro = false, lang = 'ID' 
                   disabled={loadingStep || submitting}
                   className="flex-1 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500 transition-colors disabled:opacity-50"
                 />
+                {micSupported && (
+                  <button
+                    type="button"
+                    onPointerDown={(e) => { e.preventDefault(); isRecording ? stopMic() : startMic(); }}
+                    disabled={loadingStep || submitting}
+                    className={`flex items-center justify-center rounded-xl px-3 py-2.5 text-xs font-bold transition-all active:scale-95 disabled:opacity-40 ${
+                      isRecording
+                        ? 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                    }`}
+                    title={isRecording ? (isId ? 'Hentikan rekaman' : 'Stop recording') : (isId ? 'Bicara untuk mengisi' : 'Speak to fill input')}
+                  >
+                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={!inputVal.trim() || loadingStep || submitting}
