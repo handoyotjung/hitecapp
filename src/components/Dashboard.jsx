@@ -1060,69 +1060,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
   }, [commentsText, photoGrade, recMode, recommendationsLang, commentsLang, editorIndex]);
 
-  // Requirement 1: Debounced Auto-Save Logic (2-second debounce) whenever photo list or captions change
-  useEffect(() => {
-    if (!selectedProject || !user || !projectPhotos) return;
 
-    const timer = setTimeout(async () => {
-      const nowIso = new Date().toISOString();
-      const cleanPhotos = projectPhotos.map(p => ({
-        id: p.id || ("photo_" + Math.random().toString(36).substring(7)),
-        filename: p.filename || p.originalFilename || '',
-        url: p.url || '',
-        base64: p.base64 || p.thumbnailUrl || '',
-        thumbnailUrl: p.thumbnailUrl || p.base64 || p.url || '',
-        annotatedBase64: p.annotatedBase64 || '',
-        caption: p.caption || '',
-        title: p.title || p.caption || '',
-        asset_title: p.asset_title || p.caption || '',
-        date: p.date || p.exif_date || '',
-        location: p.location || p.exif_gps || '',
-        grade: p.grade || p.assessment_grade || 'F2',
-        assessment_grade: p.assessment_grade || p.grade || 'F2',
-        status: p.status || p.latest_status || 'Open',
-        latest_status: p.latest_status || p.status || 'Open',
-        comments_text: p.comments_text || p.comments || '',
-        comments: p.comments || p.comments_text || '',
-        comments_lang: p.comments_lang || 'EN',
-        recommendations_json: Array.isArray(p.recommendations_json) ? p.recommendations_json : [],
-        recommendations_lang: p.recommendations_lang || 'EN',
-        exif_date: p.exif_date || p.date || '',
-        exif_gps: p.exif_gps || p.location || '',
-        size_kb: p.size_kb || p.sizeKb || 0,
-        created_at: p.created_at || nowIso
-      }));
-
-      // 1. Save data to Firestore (projects/{projectId}) immediately with merge: true
-      try {
-        const expiresIso = new Date(Date.now() + retentionMs).toISOString();
-        await setDoc(doc(db, 'projects', selectedProject.id), {
-          userId: user.uid || '',
-          created_by: (user.email || '').trim().toLowerCase(),
-          company_id: user.companyId || 'co_hitec',
-          retention_days: retentionDays,
-          expires_at: expiresIso,
-          photos: cleanPhotos,
-          lastModified: nowIso
-        }, { merge: true });
-      } catch (err) {
-        console.error("Auto-save error updating project in Firestore:", err);
-      }
-
-      // 2. Save data to Browser LocalStorage cache
-      setProjects(prev => {
-        const updated = prev.map(proj =>
-          proj.id === selectedProject.id
-            ? { ...proj, photos: cleanPhotos, lastModified: nowIso }
-            : proj
-        );
-        saveProjectsToCache(user, updated);
-        return updated;
-      });
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [projectPhotos, selectedProject?.id, user]);
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
