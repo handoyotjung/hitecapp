@@ -87,11 +87,11 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
   };
 
   const filterAndQueueFiles = async (files) => {
-    // Only accept JPEG, PNG, GIF
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+    // Only accept JPEG, PNG, GIF, WEBP
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/webp'];
     const validFiles = files.filter(file => {
       const extension = file.name.split('.').pop().toLowerCase();
-      const isAllowedExt = ['jpg', 'jpeg', 'png', 'gif'].includes(extension);
+      const isAllowedExt = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension);
       const isAllowedMime = allowedTypes.includes(file.type);
       return isAllowedExt || isAllowedMime;
     });
@@ -153,6 +153,7 @@ export default function UploadZone({ onFilesSelected, onUploadFolder, onSelectPh
         webkitdirectory="true"
         directory="true"
         multiple
+        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
         className="hidden"
         onChange={handleFolderSelect}
       />
