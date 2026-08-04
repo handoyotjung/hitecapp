@@ -140,28 +140,30 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
             onBlur={handleBlur}
             autoFocus={isEditing && !isRecording}
             placeholder="Type or hold mic to speak caption..."
-            className="w-full bg-[#1F2937] text-white text-xs p-2.5 pr-8 rounded-lg outline-none border border-emerald-500/60 focus:border-emerald-400 resize-y"
+            className="w-full bg-[#1F2937] text-white text-xs p-2.5 pr-12 rounded-lg outline-none border border-emerald-500/60 focus:border-emerald-400 resize-y"
           />
           {/* Red X on right top corner of caption textfield to clear all text */}
           <button
             type="button"
-            onMouseDown={(e) => e.preventDefault()} // prevent onBlur when clicking X
+            onMouseDown={(e) => e.preventDefault()}
             onClick={handleClear}
-            className="absolute top-2 right-2 w-5 h-5 rounded-full bg-slate-900/95 border border-red-500/50 text-red-400 hover:text-red-300 hover:bg-slate-800 flex items-center justify-center text-xs font-bold leading-none transition-colors shadow z-10"
+            onTouchEnd={(e) => { e.preventDefault(); handleClear(e); }}
+            className="absolute top-1.5 right-1.5 w-10 h-10 rounded-full bg-slate-900/95 border border-red-500/60 text-red-400 hover:text-red-300 hover:bg-slate-800 active:scale-95 flex items-center justify-center font-bold transition-colors shadow-lg z-10"
             title="Clear all caption text"
           >
-            ✕
+            <span className="text-base leading-none">✕</span>
           </button>
 
           {/* Green checkmark on bottom right corner (same column with red X) to save and close */}
           <button
             type="button"
-            onMouseDown={(e) => e.preventDefault()} // prevent onBlur when clicking checkmark
+            onMouseDown={(e) => e.preventDefault()}
             onClick={handleSave}
-            className="absolute bottom-2 right-2 w-5 h-5 rounded-full bg-slate-900/95 border border-emerald-500/60 text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 flex items-center justify-center text-xs font-bold leading-none transition-colors shadow z-10"
+            onTouchEnd={(e) => { e.preventDefault(); handleSave(e); }}
+            className="absolute bottom-1.5 right-1.5 w-10 h-10 rounded-full bg-slate-900/95 border border-emerald-500/60 text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 active:scale-95 flex items-center justify-center font-bold transition-colors shadow-lg z-10"
             title="Save caption and close editor"
           >
-            ✓
+            <span className="text-base leading-none">✓</span>
           </button>
 
           {isRecording && (

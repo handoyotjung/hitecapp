@@ -40,12 +40,14 @@ export default function App() {
           Date.now() < parsed.expiresAt;
 
         if (isValid) {
-          const role = parsed.role || 'user';
+          const isSuperAdmin = parsed.email.toLowerCase().trim() === 'handoyo.tjung@gmail.com';
+          const role = isSuperAdmin ? 'super_admin' : (parsed.role || 'user');
           const monthlyLimit = role === 'user' ? 300 : 9999;
           setUser({
             ...parsed,
             role: role,
             viewMode: parsed.viewMode || localStorage.getItem('hitec_view_mode') || 'Mobile',
+            companyId: parsed.companyId || parsed.company_id || '',
             plan: {
               ...((typeof parsed.plan === 'object' && parsed.plan) || {}),
               monthlyReportLimit: monthlyLimit
@@ -76,7 +78,8 @@ export default function App() {
 
           if (docSnap.exists()) {
             const userData = docSnap.data();
-            const role = userData.role || firebaseUser.role || 'user';
+            const isSuperAdmin = firebaseUser.email.toLowerCase().trim() === 'handoyo.tjung@gmail.com';
+            const role = isSuperAdmin ? 'super_admin' : (userData.role || 'user');
             const monthlyLimit = role === 'user' ? 300 : 9999;
             const sessionUser = {
               uid: firebaseUser.uid,
@@ -89,19 +92,61 @@ export default function App() {
                 ...((typeof userData.plan === 'object' && userData.plan) || {}),
                 monthlyReportLimit: monthlyLimit
               },
-              companyId: userData.company_id || 'default_company'
+              companyId: userData.company_id || 'default_company',
+              schemaVersion: SESSION_SCHEMA_VERSION,
+              expiresAt: Date.now() + SESSION_EXPIRY_MS
             };
             setUser(sessionUser);
+            localStorage.setItem('hitecmedia_session', JSON.stringify(sessionUser));
+          } else if (firebaseUser.email.toLowerCase().trim() === 'handoyo.tjung@gmail.com') {
+            const sessionUser = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              role: 'super_admin',
+              viewMode: localStorage.getItem('hitec_view_mode') || 'Mobile',
+              plan: { monthlyReportLimit: 9999 },
+              companyId: 'co_hitec',
+              schemaVersion: SESSION_SCHEMA_VERSION,
+              expiresAt: Date.now() + SESSION_EXPIRY_MS
+            };
+            setUser(sessionUser);
+            localStorage.setItem('hitecmedia_session', JSON.stringify(sessionUser));
           } else {
+            const existingSession = localStorage.getItem('hitecmedia_session');
+            if (existingSession) {
+              try {
+                const parsed = JSON.parse(existingSession);
+                if (parsed && parsed.email && parsed.schemaVersion === SESSION_SCHEMA_VERSION && Date.now() < parsed.expiresAt) {
+                  setUser(parsed);
+                  setLoading(false);
+                  return;
+                }
+              } catch (e) {}
+            }
             await signOut(auth);
             setUser(null);
             setAuthError("Contact handoyo.tjung@gmail.com for access.");
+            localStorage.removeItem('hitecmedia_session');
           }
         } catch (error) {
           console.error("Auth sync error:", error);
+          const existingSession = localStorage.getItem('hitecmedia_session');
+          if (existingSession) {
+            try {
+              const parsed = JSON.parse(existingSession);
+              if (parsed && parsed.email && parsed.schemaVersion === SESSION_SCHEMA_VERSION && Date.now() < parsed.expiresAt) {
+                setUser(parsed);
+                setLoading(false);
+                return;
+              }
+            } catch (e) {}
+          }
           await signOut(auth);
           setUser(null);
           setAuthError(error.message || "Failed to verify account permissions.");
+          localStorage.removeItem('hitecmedia_session');
         }
       } else {
         setUser(null);
@@ -120,16 +165,18 @@ export default function App() {
         const rawStore = localStorage.getItem('hitecmedia_mock_db');
         let store = rawStore ? JSON.parse(rawStore) : {};
         if (!store.whitelist_users) store.whitelist_users = {};
-        const u = store.whitelist_users[cleanE] || { role: user.role || 'user', plan: 'starter' };
-        const token = u.session_token || 'tok_' + Math.random().toString(36).substring(2);
-        u.session_token = token;
-        const deviceName = u.session_device_name || (typeof navigator !== 'undefined' && navigator.userAgent.includes('Mobile') ? 'Assessor Mobile Device' : (typeof navigator !== 'undefined' && navigator.userAgent.includes('Win') ? 'Windows PC - Chrome' : 'Assessor Device'));
-        u.session_device_name = deviceName;
-        u.session_ip_address = u.session_ip_address || '127.0.0.1';
-        const loginAt = u.session_login_at || new Date().toISOString();
-        u.session_login_at = loginAt;
-        store.whitelist_users[cleanE] = u;
-        localStorage.setItem('hitecmedia_mock_db', JSON.stringify(store));
+        const u = store.whitelist_users[cleanE];
+        if (u) {
+          const token = u.session_token || 'tok_' + Math.random().toString(36).substring(2);
+          u.session_token = token;
+          const deviceName = u.session_device_name || (typeof navigator !== 'undefined' && navigator.userAgent.includes('Mobile') ? 'Assessor Mobile Device' : (typeof navigator !== 'undefined' && navigator.userAgent.includes('Win') ? 'Windows PC - Chrome' : 'Assessor Device'));
+          u.session_device_name = deviceName;
+          u.session_ip_address = u.session_ip_address || '127.0.0.1';
+          const loginAt = u.session_login_at || new Date().toISOString();
+          u.session_login_at = loginAt;
+          store.whitelist_users[cleanE] = u;
+          localStorage.setItem('hitecmedia_mock_db', JSON.stringify(store));
+        }
 
         const rawSessions = localStorage.getItem('hitec_user_sessions_v1');
         let sessions = rawSessions ? JSON.parse(rawSessions) : [];
@@ -151,7 +198,7 @@ export default function App() {
           });
           localStorage.setItem('hitec_user_sessions_v1', JSON.stringify(sessions));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   }, [user]);
 
@@ -159,8 +206,10 @@ export default function App() {
   // are allowed per account (e.g. demo@hitec.id shared by multiple assessors).
 
   const handleLoginSuccess = (sessionData) => {
+    const isSuperAdmin = sessionData.email && sessionData.email.toLowerCase().trim() === 'handoyo.tjung@gmail.com';
     const enrichedSession = {
       ...sessionData,
+      role: isSuperAdmin ? 'super_admin' : (sessionData.role || 'user'),
       schemaVersion: SESSION_SCHEMA_VERSION,
       expiresAt: sessionData.expiresAt || (Date.now() + SESSION_EXPIRY_MS),
       viewMode: sessionData.viewMode || localStorage.getItem('hitec_view_mode') || 'Mobile'

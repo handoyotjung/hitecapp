@@ -6,6 +6,40 @@ import { auth, signOut } from './firebase';
 
 const STORE_KEY = 'hitecmedia_mock_db';
 const SESSIONS_TABLE_KEY = 'hitec_user_sessions_v1';
+const FIRESTORE_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY || '';
+const PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'hitecapp-safety';
+const IS_MOCK_MODE = !FIRESTORE_API_KEY || FIRESTORE_API_KEY === 'mock-api-key-hitecmedia';
+const FIRESTORE_SESSIONS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/sessions`;
+
+function sessionDocUrl(token, extraParams = '', useKey = true) {
+  const key = (useKey && FIRESTORE_API_KEY) ? `?key=${FIRESTORE_API_KEY}` : '';
+  const sep = key ? '&' : '?';
+  return `${FIRESTORE_SESSIONS_BASE}/${token}${key}${extraParams ? sep + extraParams : ''}`;
+}
+
+async function firestorePatch(url, fields) {
+  if (IS_MOCK_MODE) return;
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (auth.currentUser) {
+      const token = await auth.currentUser.getIdToken().catch(() => null);
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        url = url.replace(/\?key=[^&]*/, '').replace(/&key=[^&]*/, '');
+      }
+    }
+    fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ fields })
+    }).then(async res => {
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.error('Firestore session write failed:', res.status, text);
+      }
+    }).catch(e => console.error('Firestore network error:', e));
+  } catch (e) {}
+}
 
 // Configuration flag for demo/mock environments
 export const suppressCloudSyncWarning = true;
@@ -79,23 +113,54 @@ export const getClientDeviceId = () => {
   return deviceId;
 };
 
-// Helper to detect human-readable Device Name
+// Helper to detect human-readable Device Name with phone model extraction
 export const getClientDeviceName = () => {
   const ua = navigator.userAgent || '';
-  let os = 'Desktop PC';
-  if (ua.includes('Win')) os = 'Windows PC';
-  else if (ua.includes('Mac')) os = 'macOS';
-  else if (ua.includes('Linux')) os = 'Linux PC';
-  else if (ua.includes('Android')) os = 'Android Device';
-  else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS Device';
 
-  let browser = 'Browser';
-  if (ua.includes('Chrome')) browser = 'Chrome';
+  let device = '';
+  // Extract specific phone/tablet models
+  if (ua.includes('iPhone')) {
+    device = 'iPhone';
+  } else if (ua.includes('iPad')) {
+    device = 'iPad';
+  } else if (ua.includes('SM-') || ua.includes('Samsung') || ua.includes('SAMSUNG')) {
+    const m = ua.match(/SM-[A-Z0-9]+/i);
+    device = m ? `Samsung ${m[0]}` : 'Samsung Galaxy';
+  } else if (ua.includes('Xiaomi') || ua.includes('Redmi') || ua.includes('POCO')) {
+    const m = ua.match(/(Redmi[^;)]*|POCO[^;)]*|Xiaomi[^;)]*)/i);
+    device = m ? m[1].trim() : 'Xiaomi';
+  } else if (ua.includes('HUAWEI') || ua.includes('Huawei')) {
+    const m = ua.match(/HUAWEI[^;)]*/i);
+    device = m ? m[0].trim() : 'Huawei';
+  } else if (ua.includes('OPPO') || ua.includes('CPH')) {
+    device = 'OPPO';
+  } else if (ua.includes('vivo')) {
+    device = 'Vivo';
+  } else if (ua.includes('Pixel')) {
+    const m = ua.match(/Pixel[^;)]*/i);
+    device = m ? `Google ${m[0].trim()}` : 'Google Pixel';
+  } else if (ua.includes('Android')) {
+    const m = ua.match(/;\s*([^;)]+)\s*Build/i);
+    device = m ? m[1].trim() : 'Android Device';
+  } else if (ua.includes('Win')) {
+    device = 'Windows PC';
+  } else if (ua.includes('Mac')) {
+    device = 'macOS';
+  } else if (ua.includes('Linux')) {
+    device = 'Linux PC';
+  } else {
+    device = 'Unknown Device';
+  }
+
+  let browser = '';
+  if (ua.includes('Edg')) browser = 'Edge';
+  else if (ua.includes('OPR') || ua.includes('Opera')) browser = 'Opera';
+  else if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
   else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
   else if (ua.includes('Firefox')) browser = 'Firefox';
-  else if (ua.includes('Edge')) browser = 'Edge';
+  else browser = 'Browser';
 
-  return `${os} - ${browser}`;
+  return `${device} - ${browser}`;
 };
 
 // Helper to load sessions DB table
@@ -226,7 +291,7 @@ export const runSessionCleanupJob = () => {
 };
 
 // 2. LOGIN API UPDATE: POST /api/auth/login
-export const apiLogin = async ({ email, password, device_id, device_name, view_mode, idToken }) => {
+export const apiLogin = async ({ email, password, device_id, device_name, view_mode, uid }) => {
   runSessionCleanupJob();
 
   // Fetch real public IP address dynamically
@@ -249,7 +314,6 @@ export const apiLogin = async ({ email, password, device_id, device_name, view_m
   const store = loadStore();
   let userDoc = store.whitelist_users && store.whitelist_users[cleanEmail];
 
-  // Auto-initialize demo/test accounts if missing
   if (!userDoc && (cleanEmail.endsWith('@hitec.id') || cleanEmail.includes('demo') || cleanEmail.includes('admin'))) {
     const isAdmin = cleanEmail.includes('admin');
     userDoc = {
@@ -343,19 +407,7 @@ export const apiLogin = async ({ email, password, device_id, device_name, view_m
       login_at: { stringValue: now.toISOString() },
       status: { stringValue: 'ACTIVE' }
     };
-    const fetchHeaders = { 'Content-Type': 'application/json' };
-    if (idToken) fetchHeaders['Authorization'] = `Bearer ${idToken}`;
-    
-    fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${newToken}`, {
-      method: 'PATCH',
-      headers: fetchHeaders,
-      body: JSON.stringify({ fields: docFields })
-    }).then(async res => {
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        console.error('Firestore session write failed:', res.status, text);
-      }
-    }).catch(e => console.error('Firestore network error:', e));
+    firestorePatch(sessionDocUrl(newToken, '', false), docFields);
   } catch (e) {
     console.error('Error preparing session write:', e);
   }
@@ -366,6 +418,8 @@ export const apiLogin = async ({ email, password, device_id, device_name, view_m
     role: userDoc.role || 'user',
     plan: userDoc.plan || 'starter',
     company_id: userDoc.company_id || 'default_company',
+    uid: uid || '',
+    view_mode: view_mode || 'Mobile',
     session_token: newToken,
     session_device_id: device_id,
     session_device_name: userDoc.session_device_name,
@@ -438,6 +492,8 @@ export const validateSession = async ({ token, device_id }) => {
     role: userDoc.role || 'user',
     plan: userDoc.plan || 'starter',
     company_id: userDoc.company_id || 'default_company',
+    uid: userDoc.uid || '',
+    view_mode: sessionEntry ? (sessionEntry.view_mode || 'Mobile') : 'Mobile',
     session_token: token,
     session_device_id: sessionEntry ? sessionEntry.device_id : (userDoc.session_device_id || device_id),
     session_device_name: sessionEntry ? sessionEntry.device_name : userDoc.session_device_name,
@@ -471,14 +527,7 @@ export const apiLogout = async ({ token, email }) => {
       s.status = 'EXPIRED';
       s.logout_at = nowStr;
       
-      // Sync to backend via Firestore REST API
-      try {
-        fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${s.token}?updateMask=status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { status: { stringValue: 'EXPIRED' } } })
-        }).catch(e => console.error(e));
-      } catch (e) {}
+      firestorePatch(sessionDocUrl(s.token, 'updateMask.fieldPaths=status', false), { status: { stringValue: 'EXPIRED' } });
     }
   });
   saveSessionsTable(sessions);
@@ -613,68 +662,81 @@ export const apiAdminForceLogout = async ({ admin_email = 'admin@hitec.id', targ
 export const updateSessionActiveProject = (token, projectId, projectName, companyName, cityName) => {
   if (!token) return;
   const sessions = loadSessionsTable();
-  const session = sessions.find(s => s.token === token && s.status === 'ACTIVE');
-  if (session) {
-    session.active_project_id = projectId || '';
-    session.active_project_name = projectName || '';
-    session.company_name = companyName || '';
-    session.city_name = cityName || '';
-    session.last_activity = new Date().toISOString();
-    saveSessionsTable(sessions);
+  let session = sessions.find(s => s.token === token && s.status === 'ACTIVE');
 
-    // Sync to backend via Firestore REST API
-    try {
-      const docFields = {
+  if (!session) {
+    const stored = localStorage.getItem('hitecmedia_session');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.token === token && parsed.email) {
+          session = {
+            token,
+            user_id: parsed.email.toLowerCase().trim(),
+            role: parsed.role || 'user',
+            device_id: parsed.session_device_id || getClientDeviceId(),
+            device_name: parsed.session_device_name || getClientDeviceName(),
+            view_mode: parsed.viewMode || localStorage.getItem('hitec_view_mode') || 'Mobile',
+            ip_address: parsed.session_ip_address || '127.0.0.1',
+            login_at: parsed.session_login_at || new Date().toISOString(),
+            last_activity: new Date().toISOString(),
+            status: 'ACTIVE'
+          };
+          sessions.push(session);
+          saveSessionsTable(sessions);
+        }
+      } catch (e) {}
+    }
+  }
+
+  if (!session) return;
+
+  session.active_project_id = projectId || '';
+  session.active_project_name = projectName || '';
+  session.company_name = companyName || '';
+  session.city_name = cityName || '';
+  session.last_activity = new Date().toISOString();
+  saveSessionsTable(sessions);
+
+  // Sync to backend via Firestore REST API
+  firestorePatch(sessionDocUrl(session.token, '', false), {
+    token: { stringValue: session.token },
+    user_id: { stringValue: session.user_id },
+    role: { stringValue: session.role || 'user' },
+    device_id: { stringValue: session.device_id || '' },
+    device_name: { stringValue: session.device_name || '' },
+    view_mode: { stringValue: session.view_mode || localStorage.getItem('hitec_view_mode') || 'Mobile' },
+    company_name: { stringValue: session.company_name || '' },
+    city_name: { stringValue: session.city_name || '' },
+    active_project_id: { stringValue: session.active_project_id || '' },
+    active_project_name: { stringValue: session.active_project_name || '' },
+    ip_address: { stringValue: session.ip_address || '127.0.0.1' },
+    login_at: { stringValue: session.login_at || '' },
+    status: { stringValue: 'ACTIVE' }
+  });
+};
+
+// Auto-migrate ALL existing valid sessions from localStorage to Firestore so they show up for the admin
+export const syncLocalSessionsToCloud = () => {
+  if (IS_MOCK_MODE) return;
+  const sessions = loadSessionsTable();
+  sessions.forEach(session => {
+    if (session.status === 'ACTIVE' && session.token) {
+      firestorePatch(sessionDocUrl(session.token, '', false), {
         token: { stringValue: session.token },
         user_id: { stringValue: session.user_id },
         role: { stringValue: session.role || 'user' },
         device_id: { stringValue: session.device_id || '' },
-        device_name: { stringValue: session.device_name },
+        device_name: { stringValue: session.device_name || '' },
         view_mode: { stringValue: session.view_mode || localStorage.getItem('hitec_view_mode') || 'Mobile' },
         company_name: { stringValue: session.company_name || '' },
         city_name: { stringValue: session.city_name || '' },
         active_project_id: { stringValue: session.active_project_id || '' },
         active_project_name: { stringValue: session.active_project_name || '' },
         ip_address: { stringValue: session.ip_address || '127.0.0.1' },
-        login_at: { stringValue: session.login_at },
+        login_at: { stringValue: session.login_at || '' },
         status: { stringValue: 'ACTIVE' }
-      };
-      fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${session.token}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: docFields })
-      }).catch(e => console.error(e));
-    } catch (e) {}
-  }
-};
-
-// Auto-migrate ALL existing valid sessions from localStorage to Firestore so they show up for the admin
-export const syncLocalSessionsToCloud = () => {
-  const sessions = loadSessionsTable();
-  sessions.forEach(session => {
-    if (session.status === 'ACTIVE' && session.token) {
-      try {
-        const docFields = {
-          token: { stringValue: session.token },
-          user_id: { stringValue: session.user_id },
-          role: { stringValue: session.role || 'user' },
-          device_id: { stringValue: session.device_id || '' },
-          device_name: { stringValue: session.device_name },
-          view_mode: { stringValue: session.view_mode || localStorage.getItem('hitec_view_mode') || 'Mobile' },
-          company_name: { stringValue: session.company_name || '' },
-          city_name: { stringValue: session.city_name || '' },
-          active_project_id: { stringValue: session.active_project_id || '' },
-          active_project_name: { stringValue: session.active_project_name || '' },
-          ip_address: { stringValue: session.ip_address || '127.0.0.1' },
-          login_at: { stringValue: session.login_at },
-          status: { stringValue: 'ACTIVE' }
-        };
-        fetch(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${session.token}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: docFields })
-        }).catch(() => {});
-      } catch (e) {}
+      });
     }
   });
 };

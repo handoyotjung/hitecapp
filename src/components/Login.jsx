@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Lock, User as UserIcon, Eye, EyeOff, ShieldCheck, LogOut } from 'lucide-react';
 import { apiLogin, apiLogoutOtherDevices, getClientDeviceId, getClientDeviceName, suppressCloudSyncWarning, shouldShowCloudSyncWarning } from '../sessionSecurity';
 import { SESSION_SCHEMA_VERSION, SESSION_EXPIRY_MS } from '../App';
-import { auth, signInWithEmailAndPassword } from '../firebase';
+import { auth, db, signInWithEmailAndPassword, collection, addDoc } from '../firebase';
 
 export default function Login({ onLoginSuccess, errorOverride }) {
   const [error, setError] = useState(null);
@@ -49,20 +49,27 @@ export default function Login({ onLoginSuccess, errorOverride }) {
       const deviceName = getClientDeviceName();
 
       let idToken = null;
-      // Parallel Firebase Auth sign-in for Firestore security rules
+      let authUid = null;
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
         idToken = await userCredential.user.getIdToken();
+        authUid = userCredential.user.uid;
       } catch (fbErr) {
         console.error("Firebase Auth parallel login failed:", fbErr);
         setCloudSyncWarning("Cloud sync is currently unavailable for this account — your changes may not be saved. Contact your administrator.");
         
         // Log to system_alerts for admin visibility
-        fetch('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/system_alerts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { message: { stringValue: 'Firebase Auth login failed for ' + email.trim() + ': ' + fbErr.message }, timestamp: { stringValue: new Date().toISOString() } } })
-        }).catch(() => {});
+        try {
+          await addDoc(collection(db, 'system_alerts'), {
+            type: 'auth_error',
+            email: email.trim(),
+            error: fbErr.message,
+            timestamp: new Date().toISOString(),
+            resolved: false
+          });
+        } catch (e) {
+          console.error("Failed to log auth error to system_alerts:", e);
+        }
       }
 
       const result = await apiLogin({
@@ -71,7 +78,8 @@ export default function Login({ onLoginSuccess, errorOverride }) {
         device_id: deviceId,
         device_name: deviceName,
         view_mode: viewMode,
-        idToken
+        idToken,
+        uid: authUid
       });
 
       if (result.status === 403 && result.body && result.body.code === 'ACCOUNT_IN_USE') {
@@ -84,9 +92,11 @@ export default function Login({ onLoginSuccess, errorOverride }) {
         throw new Error(result.body?.message || "Invalid email or password.");
       }
 
+      // Ensure authUid is populated from auth object if it was missed
+      if (!authUid) authUid = auth.currentUser?.uid;
       const sessionData = {
         ...result.body.user,
-        uid: "user_" + email.trim().toLowerCase(),
+        uid: authUid,
         token: result.body.token,
         session_device_id: deviceId,
         viewMode: viewMode

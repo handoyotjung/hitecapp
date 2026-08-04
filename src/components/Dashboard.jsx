@@ -256,7 +256,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       updateDoc(doc(db, 'photos', currentPhoto.id), {
         ...fieldUpdates,
         project_id: currentPhoto.project_id || selectedProject?.id || '',
-        company_id: currentPhoto.company_id || user?.companyId || 'hitec',
+        company_id: currentPhoto.company_id || user?.companyId || 'co_hitec',
         expires_at: expiresIso,
         lastModified: new Date().toISOString()
       }).catch(() => {});
@@ -519,7 +519,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         if (!p.id) return;
         const payload = {
           project_id: proj.id,
-          company_id: u.companyId || p.company_id || 'hitec',
+          company_id: u.companyId || p.company_id || 'co_hitec',
           caption: p.caption || '',
           title: p.title || p.caption || '',
           asset_title: p.asset_title || p.caption || '',
@@ -596,9 +596,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     const fetchPlan = async () => {
       try {
         // Query plan based on whitelist user company/plan
-        const userWhitelistDoc = await getDocs(query(collection(db, 'whitelist_users'), where('email', '==', user.email.toLowerCase())));
-        if (!userWhitelistDoc.empty) {
-          const userData = userWhitelistDoc.docs[0].data();
+        const userWhitelistDoc = await getDoc(doc(db, 'whitelist_users', user.email.toLowerCase()));
+        if (userWhitelistDoc.exists()) {
+          const userData = userWhitelistDoc.data();
           const planName = userData.plan || 'starter';
           
           const planSnap = await getDoc(doc(db, 'plan', planName));
@@ -641,17 +641,34 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
 
     // 2. Background Firestore sync
-    const q = user.companyId
-      ? query(collection(db, 'projects'), where('company_id', '==', user.companyId))
-      : query(collection(db, 'projects'), where('created_by', '==', (user.email || '').trim().toLowerCase()));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // 2. Background Firestore sync
+    // Query 1: by company_id (catches projects created after migration)
+    const q1 = query(collection(db, 'projects'), where('company_id', '==', user.companyId || 'co_hitec'));
+    // Query 2: by created_by email (catches old projects and projects without company_id)
+    const q2 = query(collection(db, 'projects'), where('created_by', '==', (user.email || '').trim().toLowerCase()));
+
+    const mergeAndSetProjects = (snapshotProjs) => {
+      setProjects(prev => {
+        // Merge by id — deduplicate, newer snapshot wins
+        const map = new Map(prev.map(p => [p.id, p]));
+        snapshotProjs.forEach(p => map.set(p.id, p));
+        const merged = Array.from(map.values());
+        saveProjectsToCache(user, merged);
+        setLoadingProjects(false);
+        setSelectedProject(sp => {
+          if (sp && merged.some(p => p.id === sp.id)) return merged.find(p => p.id === sp.id);
+          return merged.length > 0 ? merged[0] : null;
+        });
+        return merged;
+      });
+    };
+
+    const parseSnapshot = (snapshot) => {
       const projs = [];
       const nowMs = Date.now();
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        if (data.expires_at && new Date(data.expires_at).getTime() < nowMs) {
-          return;
-        }
+        if (data.expires_at && new Date(data.expires_at).getTime() < nowMs) return;
         projs.push({
           id: docSnap.id,
           lastModified: new Date(0).toISOString(),
@@ -661,20 +678,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             : []
         });
       });
+      return projs;
+    };
 
-      // Update state & refresh cache
-      setProjects(projs);
-      setLoadingProjects(false);
-      saveProjectsToCache(user, projs);
+    const unsub1 = onSnapshot(q1, (snapshot) => mergeAndSetProjects(parseSnapshot(snapshot)));
+    const unsub2 = onSnapshot(q2, (snapshot) => mergeAndSetProjects(parseSnapshot(snapshot)));
 
-      setSelectedProject(prev => {
-        if (prev && projs.some(p => p.id === prev.id)) {
-          return projs.find(p => p.id === prev.id);
-        }
-        return projs.length > 0 ? projs[0] : null;
-      });
-    });
-    return () => unsubscribe();
+    return () => { unsub1(); unsub2(); };
   }, [user]);
 
   // Dynamic Monthly Report Downloads Counter: tracks generated reports (PDF, PPT, DOC) created in current calendar month
@@ -755,7 +765,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       user_email: userEmailClean,
       user_id: user.uid || userEmailClean,
       userId: user.uid || userEmailClean,
-      company_id: user.companyId || 'hitec',
+      company_id: user.companyId || 'co_hitec',
       city_name: selectedProject?.city_name || cityName.trim() || '',
       report_type: reportType, // 'pdf', 'ppt', 'doc'
       download_date: todayStr,
@@ -847,7 +857,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         setEditorIndex(prevIndex => (prevIndex !== null && prevIndex >= 0 && prevIndex < resultList.length) ? prevIndex : (resultList.length > 0 ? 0 : null));
         return resultList;
       });
-      autosave({ snapshotsSyncedAt: Date.now() });
 
       // Automatically sync saved Firestore photos into projectQueues so photo list persists after relogging in
       setProjectQueues(prev => {
@@ -886,6 +895,47 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     });
     return () => unsubscribe();
   }, [selectedProject?.id]);
+
+  // Requirement 3: Real-time photolist sync across devices from projects onSnapshot
+  useEffect(() => {
+    if (!selectedProject || !selectedProject.photos) return;
+    
+    setProjectPhotos(prev => {
+      let hasChanges = false;
+      
+      const mergedList = selectedProject.photos.map((serverPhoto, index) => {
+        const localPhoto = prev.find(p => (p.filename || p.id) === (serverPhoto.filename || serverPhoto.id));
+        if (!localPhoto) {
+          hasChanges = true;
+          return serverPhoto;
+        }
+        if (localPhoto.caption !== serverPhoto.caption || 
+            localPhoto.title !== serverPhoto.title ||
+            localPhoto.comments_text !== serverPhoto.comments_text ||
+            localPhoto.grade !== serverPhoto.grade ||
+            localPhoto.status !== serverPhoto.status ||
+            localPhoto.recommendations_json !== serverPhoto.recommendations_json) {
+           hasChanges = true;
+        }
+        if (prev[index] !== localPhoto) hasChanges = true;
+        
+        return { ...localPhoto, ...serverPhoto };
+      });
+
+      // Append local photos that haven't been synced to selectedProject.photos yet
+      prev.forEach(localPhoto => {
+        const existsOnServer = selectedProject.photos.some(p => (p.filename || p.id) === (localPhoto.filename || localPhoto.id));
+        if (!existsOnServer) {
+          mergedList.push(localPhoto);
+          hasChanges = true;
+        }
+      });
+
+      if (prev.length !== mergedList.length) hasChanges = true;
+
+      return hasChanges ? mergedList : prev;
+    });
+  }, [selectedProject?.photos]);
 
   // 20-Second Auto-Removal Engine for Warning/Error/Rejected/Blocked Photos across Desktop & Mobile
   useEffect(() => {
@@ -1046,7 +1096,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         await setDoc(doc(db, 'projects', selectedProject.id), {
           userId: user.uid || '',
           created_by: (user.email || '').trim().toLowerCase(),
-          company_id: user.companyId || 'hitec',
+          company_id: user.companyId || 'co_hitec',
           retention_days: retentionDays,
           expires_at: expiresIso,
           photos: cleanPhotos,
@@ -1066,7 +1116,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         saveProjectsToCache(user, updated);
         return updated;
       });
-      autosave({ photos: cleanPhotos });
     }, 1500);
 
     return () => clearTimeout(timer);
@@ -1095,7 +1144,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         lastModified: nowIso,
         created_by: (user.email || '').trim().toLowerCase(),
         userId: user.uid || '',
-        company_id: user.companyId || 'hitec',
+        company_id: user.companyId || 'co_hitec',
         company_name: companyName.trim(),
         city_name: cityName.trim(),
         retention_days: retentionDays,
@@ -1342,6 +1391,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               ));
             }
           );
+          await registerAndListenAfterDirectPut(item, filePath);
         }
       } catch (err) {
         console.warn('Signed URL path failed, falling back to SDK upload:', err);
@@ -1377,7 +1427,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           const newPhotoObj = {
             id: photoId,
             project_id: selectedProject?.id || 'demo',
-            company_id: user?.companyId || 'hitec',
+            company_id: selectedProject?.company_id || user?.companyId || user?.company_id || 'co_hitec',
             city_name: selectedProject?.city_name || cityName?.trim() || '',
             filename: item.finalFilename,
             original_filename: item.originalName,
@@ -1423,7 +1473,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         await setDoc(photoDocRef, {
           id: photoId,
           project_id: selectedProject.id,
-          company_id: user.companyId,
+          company_id: selectedProject?.company_id || user.companyId || user.company_id || '',
           city_name: selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '',
           filename: item.finalFilename,
           original_filename: item.originalName,
@@ -1434,7 +1484,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           upload_timestamp: Date.now(),
           uploaded_by: user.email,
           caption: '',
-          status: 'pending',
+          status: 'done',
           created_at: new Date().toISOString()
         });
 
@@ -1485,7 +1535,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     await setDoc(photoDocRef, {
       id: photoId,
       project_id: selectedProject.id,
-      company_id: user.companyId,
+      company_id: selectedProject?.company_id || user.companyId || user.company_id || '',
       city_name: selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '',
       filename: item.finalFilename,
       original_filename: item.originalName,
@@ -1894,7 +1944,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           expires_at: expiresIso,
           updated_at: nowIso,
           last_saved_by: user.email || '',
-          company_id: user.companyId || 'hitec'
+          company_id: user.companyId || 'co_hitec'
         }, { merge: true });
       } catch (err) {
         console.error("Error saving project to cloud:", err);
@@ -1907,7 +1957,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               status: 'done',
               expires_at: expiresIso,
               retention_days: retentionDays,
-              company_id: user.companyId || 'hitec',
+              company_id: user.companyId || 'co_hitec',
               city_name: selectedProject?.city_name || cityName.trim() || localStorage.getItem('hitec_city_name') || '',
               upload_date: p.upload_date || todayStr,
               upload_timestamp: p.upload_timestamp || Date.now()
@@ -2193,9 +2243,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   <option value="">Loading projects...</option>
                 ) : projects.length === 0 ? (
                   <option value="">No projects. Create one above ↑</option>
-                ) : (
-                  <option value="">-- Select Project --</option>
-                )}
+                ) : null}
                 {!loadingProjects && projects.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -2293,8 +2341,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   return (
                     <div
                       key={item.id}
-                      draggable={true}
-                      onDragStart={() => setDraggedItemIndex(index)}
+                      data-queue-index={index}
                       onDragOver={(e) => {
                         e.preventDefault();
                         if (dragOverItemIndex !== index) setDragOverItemIndex(index);
@@ -2305,10 +2352,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       onDrop={(e) => {
                         e.preventDefault();
                         handleDropQueueItem(index);
-                      }}
-                      onDragEnd={() => {
-                        setDraggedItemIndex(null);
-                        setDragOverItemIndex(null);
                       }}
                       className={`flex items-center gap-2 rounded-xl border p-2.5 transition-all cursor-grab active:cursor-grabbing w-full min-w-0 overflow-hidden ${
                         dragOverItemIndex === index
@@ -2426,10 +2469,40 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
                         {/* RIGHT: 6 white dots drag icon to the right of status icon */}
                         <div
-                          className="text-slate-400 hover:text-white transition-colors p-1 cursor-grab active:cursor-grabbing ml-1"
-                          title="Drag row to reorder position"
+                          data-grip="true"
+                          className="text-slate-400 hover:text-white transition-colors p-2 cursor-grab active:cursor-grabbing ml-1 touch-none select-none"
+                          title="Hold and drag to reorder"
+                          draggable={true}
+                          onDragStart={(e) => { e.stopPropagation(); setDraggedItemIndex(index); }}
+                          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onDragEnd={() => { setDraggedItemIndex(null); setDragOverItemIndex(null); }}
+                          onTouchStart={(e) => {
+                            e.stopPropagation();
+                            setDraggedItemIndex(index);
+                          }}
+                          onTouchMove={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const touch = e.touches[0];
+                            const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+                            const rowEl = els.find(el => el.dataset && el.dataset.queueIndex !== undefined);
+                            if (rowEl) {
+                              const targetIndex = parseInt(rowEl.dataset.queueIndex, 10);
+                              if (!isNaN(targetIndex) && targetIndex !== dragOverItemIndex) {
+                                setDragOverItemIndex(targetIndex);
+                              }
+                            }
+                          }}
+                          onTouchEnd={(e) => {
+                            e.stopPropagation();
+                            if (dragOverItemIndex !== null && dragOverItemIndex !== draggedItemIndex) {
+                              handleDropQueueItem(dragOverItemIndex);
+                            }
+                            setDraggedItemIndex(null);
+                            setDragOverItemIndex(null);
+                          }}
                         >
-                          <GripVertical className="h-4 w-4" />
+                          <GripVertical className="h-5 w-5" />
                         </div>
                       </div>
                     </div>

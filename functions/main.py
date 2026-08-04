@@ -4,6 +4,7 @@ import json
 import datetime
 from datetime import timedelta
 from firebase_functions import options, https_fn, storage_fn, scheduler_fn
+from firebase_functions.core import init
 from firebase_admin import initialize_app, firestore, storage
 from firebase_admin import auth as admin_auth
 import google.cloud.bigquery as bigquery
@@ -18,7 +19,12 @@ options.set_global_options(region="asia-southeast2")
 
 # Initialize Firebase Admin SDK
 firebase_app = initialize_app()
-db = firestore.client()
+db = None
+
+@init
+def initialize():
+    global db
+    db = firestore.client()
 
 # Map of accounts with known UIDs that must match existing Firestore project data
 KNOWN_UIDS = {
@@ -160,8 +166,11 @@ def getSignedUploadUrl(req: https_fn.CallableRequest) -> dict:
         print(f"Error generating signed URL: {e}")
         return {"error": "SIGNED_URL_GENERATION_FAILED", "detail": str(e)}
 
-@storage_fn.on_object_finalized()
-def onPhotoUpload(event: storage_fn.StorageEvent) -> None:
+# Storage triggers must be co-located with the underlying Firebase Storage bucket
+# in us-west1 to prevent cross-region egress costs and latency.
+# Bucket: hitecapp-safety.firebasestorage.app (us-west1, Oregon).
+@storage_fn.on_object_finalized(region="us-west1")
+def onPhotoUpload(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]) -> None:
     """Authoritative trigger checking uploads inside GCS projects/ paths."""
     path = event.data.name
     if not path.startswith('projects/'):
@@ -244,7 +253,11 @@ def onPhotoUpload(event: storage_fn.StorageEvent) -> None:
         # Update Firestore doc as done
         photo_ref.set({
             'status': 'done',
+            'grade': photo_data.get('grade', 'F2'),
+            'assessment_grade': photo_data.get('assessment_grade', 'F2'),
             'size_kb': size_kb,
+            'upload_date': date_str,
+            'expires_at': (datetime.datetime.utcnow() + datetime.timedelta(days=90)).isoformat(),
             'updated_at': datetime.datetime.utcnow().isoformat()
         }, merge=True)
 
@@ -797,9 +810,9 @@ def api_admin_accounts(req: https_fn.Request) -> https_fn.Response:
 
     return https_fn.Response(json.dumps({'error': 'Method not allowed'}), status=405, headers=headers)
 
-@https_fn.onRequest()
+@https_fn.on_request()
 def api_admin_sessions(req: https_fn.Request) -> https_fn.Response:
-    "\""HTTP Cloud Function handling GET, POST, DELETE for /api/admin/sessions backed by Firestore."\""
+    """HTTP Cloud Function handling GET, POST, DELETE for /api/admin/sessions backed by Firestore."""
     headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',

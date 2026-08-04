@@ -74,7 +74,7 @@ A `.env.production` file is included in the project root:
 VITE_FIREBASE_API_KEY=mock-api-key-hitecmedia
 VITE_FIREBASE_AUTH_DOMAIN=hitecmedia-app.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=hitecmedia-app
-VITE_FIREBASE_STORAGE_BUCKET=hitecmedia-app.appspot.com
+VITE_FIREBASE_STORAGE_BUCKET=hitecapp-safety.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=1234567890
 VITE_FIREBASE_APP_ID=1:1234567890:web:abcdef123456
 ```

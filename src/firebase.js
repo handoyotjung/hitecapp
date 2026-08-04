@@ -153,7 +153,7 @@ if (!isMockMode) {
   auth = getAuth(firebaseApp);
   db = getFirestore(firebaseApp);
   storage = getStorage(firebaseApp);
-  functions = getFunctions(firebaseApp);
+  functions = getFunctions(firebaseApp, 'asia-southeast2');
 } else {
   // Initialize Mock DB
   if (!localStorage.getItem("hitecmedia_mock_db")) {
@@ -292,7 +292,8 @@ export const signInWithEmailAndPassword = async (authInstance, email, password) 
       uid: "mock_user_" + Math.random().toString(36).substring(7),
       email: cleanEmail,
       displayName: cleanEmail.split('@')[0],
-      photoURL: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+      photoURL: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+      getIdToken: async () => 'mock-id-token-' + Date.now()
     };
     authInstance.currentUser = mockCurrentUser;
     authListeners.forEach(cb => cb(mockCurrentUser));

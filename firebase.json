@@ -1,55 +1,74 @@
 {
   "hosting": {
     "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "sw.js",
+        "headers": [{"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}]
+      },
+      {
+        "source": "index.html",
+        "headers": [{"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}]
+      }
     ],
     "rewrites": [
       {
+        "source": "/api/feedback",
+        "function": "api_feedback",
+        "region": "asia-southeast2"
+      },
+      {
         "source": "/api/admin/accounts",
-        "function": "api_admin_accounts"
+        "function": "api_admin_accounts",
+        "region": "asia-southeast2"
       },
       {
         "source": "/api/admin/sessions",
-        "function": "api_admin_sessions"
+        "function": "api_admin_sessions",
+        "region": "asia-southeast2"
       },
       {
-        "source": "/api/feedback",
-        "function": "api_feedback"
+        "source": "/api/sync_auth_user",
+        "function": "sync_auth_user",
+        "region": "asia-southeast2"
+      },
+      {
+        "source": "/api/exportPPTX",
+        "function": "exportPPTX",
+        "region": "asia-southeast2"
+      },
+      {
+        "source": "/api/exportXLSX",
+        "function": "exportXLSX",
+        "region": "asia-southeast2"
+      },
+      {
+        "source": "/api/exportPDF",
+        "function": "exportPDF",
+        "region": "asia-southeast2"
+      },
+      {
+        "source": "/api/validateUpload",
+        "function": "validateUpload",
+        "region": "asia-southeast2"
+      },
+      {
+        "source": "/api/getSignedUploadUrl",
+        "function": "getSignedUploadUrl",
+        "region": "asia-southeast2"
       },
       {
         "source": "**",
         "destination": "/index.html"
       }
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(js|css|png|jpg|jpeg|gif|ico|svg)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=31536000, immutable"
-          }
-        ]
-      },
-      {
-        "source": "**",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
-      }
     ]
-  },
-  "functions": {
-    "source": "functions"
   },
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "functions"
   },
   "storage": {
     "rules": "storage.rules"

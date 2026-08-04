@@ -89,7 +89,6 @@
                 <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
                 Manage Accounts
               </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Whitelist authorized assessor accounts, configure plans, set expiration dates, and manage inline account credentials.</p>
             </div>
             
             <div class="flex items-center gap-2 flex-wrap">
@@ -97,8 +96,6 @@
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add New Account
               </button>
-              <button onclick="syncAdminAccountsAndRender()" class="rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-3.5 py-2 text-xs font-semibold text-indigo-300 hover:bg-indigo-500 hover:text-white transition-colors cursor-pointer">Sync Cloud</button>
-              <button onclick="purgeDemoAccounts()" class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer" title="Remove default hardcoded demo accounts">Purge Demo Accounts</button>
               <button onclick="exportWhitelist()" class="rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer">Export JSON</button>
               <label class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors">
                 Import JSON
@@ -137,7 +134,7 @@
             </div>
             <div class="flex flex-wrap items-center gap-3">
               <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-300">
-                <input type="checkbox" id="hideLocalIpToggle" class="sr-only peer" checked>
+                <input type="checkbox" id="hideLocalIpToggle" class="sr-only peer">
                 <div class="relative w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
                 <span class="ms-2">Hide Local/Testing IPs</span>
               </label>
@@ -561,12 +558,12 @@
   <script>
     // Firebase Auth Initialization for Admin Dashboard
     firebase.initializeApp({
-      apiKey: "AIzaSyBnTlnnHWJtDgKmnSDOwo2Kd_W_RgSlw68",
-      authDomain: "hitecmedia-app.firebaseapp.com",
-      projectId: "hitecmedia-app",
-      storageBucket: "hitecmedia-app.appspot.com",
-      messagingSenderId: "112645673298",
-      appId: "1:112645673298:web:2234b6754dc16509732a8b"
+      apiKey: "AIzaSyATlN5wwRxufoMPQEaI4XVWapWw4q1AaF8",
+      authDomain: "hitecapp-safety.firebaseapp.com",
+      projectId: "hitecapp-safety",
+      storageBucket: "hitecapp-safety.firebasestorage.app",
+      messagingSenderId: "139227119972",
+      appId: "1:139227119972:web:97e5a0d921821946797a71"
     });
 
     const adminAuth = firebase.auth();
@@ -576,7 +573,23 @@
         if (user) {
           resolve(await user.getIdToken());
         } else {
-          resolve(null);
+          // Attempt silent sign-in using stored credentials
+          try {
+            const stored = JSON.parse(localStorage.getItem('hitecmedia_mock_db') || '{}');
+            const sessionRaw = localStorage.getItem('hitecmedia_session');
+            const session = sessionRaw ? JSON.parse(sessionRaw) : null;
+            const email = session && session.email;
+            const password = email && stored.whitelist_users && stored.whitelist_users[email.toLowerCase()] && stored.whitelist_users[email.toLowerCase()].password;
+            if (email && password) {
+              const cred = await adminAuth.signInWithEmailAndPassword(email, password);
+              resolve(await cred.user.getIdToken());
+            } else {
+              resolve(null);
+            }
+          } catch (e) {
+            console.warn('[Admin] Silent Firebase Auth sign-in failed:', e.message);
+            resolve(null);
+          }
         }
       });
     });
@@ -748,20 +761,6 @@
       return store;
     }
 
-    async function syncAdminAccountsAndRender() {
-      try {
-        const res = await fetch('/api/admin/accounts');
-        if (res.ok) {
-          const cloudUsers = await res.json();
-          const store = loadStore();
-          store.whitelist_users = { ...store.whitelist_users, ...cloudUsers };
-          saveStore(store);
-          renderUsers();
-        }
-      } catch (err) {
-        console.error("Failed to sync accounts", err);
-      }
-    }
 
     async function syncFirestoreFeedback() {
       const btn = document.getElementById('btn-fb-refresh');
@@ -784,7 +783,7 @@
 
         // 2. Attempt REST API fetch from Cloudflare / Firebase
         try {
-          const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/feedback');
+          const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/(default)/documents/feedback');
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data.documents)) {
@@ -989,7 +988,6 @@
       renderFeedbackSection();
       renderCommentLogs();
       syncFirestoreFeedback();
-      syncAdminAccountsAndRender();
       initAdminTabFromUrl();
 
       // 5-second real-time auto polling for feedback and report downloads submitted from any device or incognito mode
@@ -1003,43 +1001,139 @@
 
     const forceLoggedOutTokens = new Set();
 
+    var cachedProjectsList = [];
+
+    async function fetchAllProjects() {
+      const projects = [];
+      const parseVal = (v) => {
+        if (!v) return '';
+        if (v.stringValue !== undefined) return v.stringValue;
+        if (v.integerValue !== undefined) return parseInt(v.integerValue);
+        if (v.timestampValue !== undefined) return v.timestampValue;
+        return v;
+      };
+      try {
+        let nextPageToken = null;
+        do {
+          let url = 'https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/(default)/documents/projects?pageSize=100';
+          if (nextPageToken) url += '&pageToken=' + encodeURIComponent(nextPageToken);
+          const res = await fetchWithAuth(url, { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.documents)) {
+              data.documents.forEach(docItem => {
+                const f = docItem.fields || {};
+                projects.push({
+                  id: parseVal(f.id) || docItem.name.split('/').pop(),
+                  name: parseVal(f.name),
+                  created_by: parseVal(f.created_by),
+                  created_at: parseVal(f.created_at),
+                  lastModified: parseVal(f.lastModified),
+                  company_name: parseVal(f.company_name),
+                  city_name: parseVal(f.city_name),
+                  device_name: parseVal(f.device_name),
+                  expires_at: parseVal(f.expires_at)
+                });
+              });
+            }
+            nextPageToken = data.nextPageToken || null;
+          } else { nextPageToken = null; }
+        } while (nextPageToken);
+      } catch (e) {
+        console.error("Failed to fetch projects from Firestore", e);
+      }
+      cachedProjectsList = projects;
+      return projects;
+    }
+
+    function showActivityLog(userId, deviceName) {
+      const modal = document.getElementById('activity-log-modal');
+      const content = document.getElementById('activity-log-content');
+      if (!modal || !content) return;
+      const userProjects = cachedProjectsList.filter(p => (p.created_by || '').toLowerCase() === userId.toLowerCase());
+      userProjects.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      let html = `<div class="mb-3 text-sm text-slate-300"><span class="font-bold text-white">${userId}</span> <span class="text-slate-500">|</span> ${deviceName || 'Unknown Device'}</div>`;
+      if (userProjects.length === 0) {
+        html += '<div class="text-slate-500 text-sm py-4 text-center">No project activity found for this user.</div>';
+      } else {
+        html += '<div class="space-y-2 max-h-[50vh] overflow-y-auto">';
+        userProjects.forEach(p => {
+          const createdDate = p.created_at ? new Date(p.created_at).toLocaleString() : '-';
+          const modifiedDate = p.lastModified ? new Date(p.lastModified).toLocaleString() : '-';
+          html += `
+            <div class="rounded-lg border border-slate-700/60 bg-slate-800/40 p-3">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-white text-sm">${p.name || 'Untitled'}</span>
+                <span class="text-[10px] text-slate-500 font-mono">${p.id || ''}</span>
+              </div>
+              <div class="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                <div><span class="text-slate-500">Company:</span> <span class="text-indigo-300">${p.company_name || '-'}</span></div>
+                <div><span class="text-slate-500">City:</span> <span class="text-slate-300">${p.city_name || '-'}</span></div>
+                <div><span class="text-slate-500">Created:</span> <span class="text-slate-300">${createdDate}</span></div>
+                <div><span class="text-slate-500">Last Modified:</span> <span class="text-slate-300">${modifiedDate}</span></div>
+                <div><span class="text-slate-500">Device:</span> <span class="text-amber-300">${p.device_name || '-'}</span></div>
+              </div>
+            </div>`;
+        });
+        html += '</div>';
+      }
+      content.innerHTML = html;
+      modal.classList.remove('hidden');
+    }
+
+    function closeActivityLogModal() {
+      document.getElementById('activity-log-modal').classList.add('hidden');
+    }
+
     async function renderOnlineSessions() {
       const tbody = document.getElementById('online-sessions-body');
       const countEl = document.getElementById('active-sessions-count');
       if (!tbody) return;
 
       let currentSessionsList = [];
+      const parseVal = (v) => {
+        if (!v) return '';
+        if (v.stringValue !== undefined) return v.stringValue;
+        if (v.integerValue !== undefined) return parseInt(v.integerValue);
+        return v;
+      };
+      const parseSessionDoc = (docItem) => {
+        const fields = docItem.fields || {};
+        return {
+          token: parseVal(fields.token) || docItem.name.split('/').pop(),
+          user_id: parseVal(fields.user_id),
+          role: parseVal(fields.role) || 'user',
+          device_id: parseVal(fields.device_id),
+          device_name: parseVal(fields.device_name),
+          view_mode: parseVal(fields.view_mode),
+          company_name: parseVal(fields.company_name),
+          city_name: parseVal(fields.city_name),
+          active_project_id: parseVal(fields.active_project_id),
+          active_project_name: parseVal(fields.active_project_name),
+          ip_address: parseVal(fields.ip_address),
+          login_at: parseVal(fields.login_at),
+          status: parseVal(fields.status)
+        };
+      };
       try {
-        const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.documents)) {
-            data.documents.forEach(docItem => {
-              const fields = docItem.fields || {};
-              const parseVal = (v) => {
-                if (!v) return '';
-                if (v.stringValue !== undefined) return v.stringValue;
-                if (v.integerValue !== undefined) return parseInt(v.integerValue);
-                return v;
-              };
-              currentSessionsList.push({
-                token: parseVal(fields.token) || docItem.name.split('/').pop(),
-                user_id: parseVal(fields.user_id),
-                role: parseVal(fields.role) || 'user',
-                device_id: parseVal(fields.device_id),
-                device_name: parseVal(fields.device_name),
-                view_mode: parseVal(fields.view_mode),
-                company_name: parseVal(fields.company_name),
-                city_name: parseVal(fields.city_name),
-                active_project_id: parseVal(fields.active_project_id),
-                active_project_name: parseVal(fields.active_project_name),
-                ip_address: parseVal(fields.ip_address),
-                login_at: parseVal(fields.login_at),
-                status: parseVal(fields.status)
+        let nextPageToken = null;
+        do {
+          let url = 'https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/(default)/documents/sessions?pageSize=100';
+          if (nextPageToken) url += '&pageToken=' + encodeURIComponent(nextPageToken);
+          const res = await fetchWithAuth(url, { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.documents)) {
+              data.documents.forEach(docItem => {
+                currentSessionsList.push(parseSessionDoc(docItem));
               });
-            });
+            }
+            nextPageToken = data.nextPageToken || null;
+          } else {
+            console.warn("Firestore sessions fetch returned:", res.status);
+            nextPageToken = null;
           }
-        }
+        } while (nextPageToken);
       } catch (e) {
         console.error("Failed to fetch sessions from Firestore", e);
       }
@@ -1050,7 +1144,7 @@
         const rawLocal = localStorage.getItem('hitec_user_sessions_v1');
         if (rawLocal) {
           const localSessions = JSON.parse(rawLocal);
-          
+
           localSessions.forEach(ls => {
             if (ls && ls.status === 'ACTIVE' && ls.token) {
               const exists = currentSessionsList.find(bs => bs.token === ls.token);
@@ -1072,7 +1166,7 @@
                   login_at: { stringValue: ls.login_at || new Date().toISOString() },
                   status: { stringValue: 'ACTIVE' }
                 };
-                fetchWithAuth(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${ls.token}`, {
+                fetchWithAuth(`https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/(default)/documents/sessions/${ls.token}`, {
                   method: 'PATCH',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ fields: docFields })
@@ -1083,26 +1177,86 @@
         }
       } catch (e) {}
 
-      const hideLocalIps = document.getElementById('hideLocalIpToggle') ? document.getElementById('hideLocalIpToggle').checked : true;
+      // Fetch projects to enrich session data with device_name and show offline project activity
+      const allProjects = await fetchAllProjects();
+      const nowMs = Date.now();
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-      const displaySessionsList = currentSessionsList.filter(s => {
-        if (s.role !== 'user') return false;
+      // Build map of user -> their most recent project device_name
+      const userProjectDeviceMap = {};
+      allProjects.forEach(p => {
+        if (p.created_by && p.device_name) {
+          const existing = userProjectDeviceMap[p.created_by];
+          if (!existing || new Date(p.created_at || 0).getTime() > new Date(existing.created_at || 0).getTime()) {
+            userProjectDeviceMap[p.created_by] = p;
+          }
+        }
+      });
+
+      // Enrich sessions with device_name from projects if session device_name is generic
+      currentSessionsList.forEach(s => {
+        const userId = (s.user_id || '').toLowerCase();
+        if (userId && userProjectDeviceMap[userId] && (!s.device_name || s.device_name === 'Unknown Device')) {
+          s.device_name = userProjectDeviceMap[userId].device_name;
+        }
+      });
+
+      // Find users with recent project activity who don't have an active session (offline but recently active)
+      const onlineUserIds = new Set(currentSessionsList.map(s => (s.user_id || '').toLowerCase()));
+      const offlineProjectUsers = [];
+      const seenOfflineUsers = new Set();
+      allProjects.forEach(p => {
+        if (!p.created_by) return;
+        const userId = p.created_by.toLowerCase();
+        if (onlineUserIds.has(userId) || seenOfflineUsers.has(userId)) return;
+        const modTime = new Date(p.lastModified || p.created_at || 0).getTime();
+        if (nowMs - modTime < SEVEN_DAYS_MS) {
+          seenOfflineUsers.add(userId);
+          offlineProjectUsers.push({
+            token: 'offline_' + userId,
+            user_id: userId,
+            role: 'user',
+            device_name: p.device_name || '',
+            view_mode: '',
+            company_name: p.company_name || '',
+            city_name: p.city_name || '',
+            active_project_name: p.name || '',
+            ip_address: '-',
+            login_at: p.lastModified || p.created_at || '',
+            status: 'OFFLINE',
+            _isOffline: true
+          });
+        }
+      });
+
+      const hideLocalIps = document.getElementById('hideLocalIpToggle') ? document.getElementById('hideLocalIpToggle').checked : false;
+
+      const userSessions = currentSessionsList.filter(s => s.role !== 'user' ? false : true);
+      const displaySessionsList = userSessions.filter(s => {
         if (hideLocalIps && ['127.0.0.1', '::1', 'localhost'].includes(s.ip_address)) return false;
         return true;
       });
 
+      // Combine online sessions + offline project users
+      const combinedList = [...displaySessionsList, ...offlineProjectUsers];
+
       if (countEl) {
-        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${displaySessionsList.length} Online Sessions`;
+        const onlineCount = displaySessionsList.length;
+        const offlineCount = offlineProjectUsers.length;
+        const hiddenCount = userSessions.length - displaySessionsList.length;
+        const hiddenNote = hideLocalIps && hiddenCount > 0 ? ` <span class="text-slate-500">(${hiddenCount} local hidden)</span>` : '';
+        const offlineNote = offlineCount > 0 ? ` <span class="text-slate-500">+ ${offlineCount} recent</span>` : '';
+        countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${onlineCount} Online${offlineNote}${hiddenNote}`;
       }
 
-      if (displaySessionsList.length === 0) {
+      if (combinedList.length === 0) {
         tbody.innerHTML = `<tr>
           <td colspan="7" class="py-12 text-center">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800/50 mb-3">
               <i data-lucide="users" class="w-6 h-6 text-slate-500"></i>
             </div>
-            <div class="text-slate-400 font-medium">No external active sessions</div>
-            <div class="text-xs text-slate-500 mt-1">Local and admin sessions are hidden</div>
+            <div class="text-slate-400 font-medium">No active or recent sessions</div>
+            <div class="text-xs text-slate-500 mt-1">Users will appear here when they log in or create projects</div>
           </td>
         </tr>`;
         if (window.lucide) window.lucide.createIcons();
@@ -1110,16 +1264,20 @@
       }
 
       tbody.innerHTML = '';
-      displaySessionsList.forEach(s => {
+      combinedList.forEach(s => {
         const cleanE = (s.user_id || '').toLowerCase().trim();
+        const isOffline = s._isOffline === true;
 
-        const statusBadge = '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online</span>';
-        const viewModeBadge = s.view_mode 
-          ? `<span class="rounded ${s.view_mode === 'Mobile' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'} border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ml-1.5">${s.view_mode}</span>` 
+        const statusBadge = isOffline
+          ? '<span class="rounded bg-slate-500/10 text-slate-400 border border-slate-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-slate-500"></span> Recent</span>'
+          : '<span class="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-bold uppercase text-[9px] tracking-wider flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online</span>';
+        const viewModeBadge = s.view_mode
+          ? `<span class="rounded ${s.view_mode === 'Mobile' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'} border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ml-1.5">${s.view_mode}</span>`
           : '';
 
+        const rowBg = isOffline ? '' : 'bg-emerald-950/10';
         const tr = document.createElement('tr');
-        tr.className = `border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors bg-emerald-950/10`;
+        tr.className = `border-b border-slate-800/40 hover:bg-slate-900/20 transition-colors ${rowBg}`;
         tr.innerHTML = `
           <td class="py-3.5 pr-2">
             <div class="flex items-center gap-2">
@@ -1137,16 +1295,21 @@
           <td class="py-3.5 px-2 text-slate-300 font-medium text-xs">
             ${s.active_project_name || '-'}
           </td>
-          <td class="py-3.5 px-2 font-mono text-emerald-400">
-            ${s.ip_address || '127.0.0.1'}
+          <td class="py-3.5 px-2 font-mono ${isOffline ? 'text-slate-500' : 'text-emerald-400'}">
+            ${s.ip_address || '-'}
           </td>
           <td class="py-3.5 px-2 text-slate-400">
-            ${new Date(s.login_at).toLocaleString()}
+            ${s.login_at ? new Date(s.login_at).toLocaleString() : '-'}
           </td>
           <td class="py-3.5 pl-2 text-right">
-            <button onclick="adminForceLogoutSession('${s.token}')" class="rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-600 px-3 py-1 text-xs font-bold text-rose-400 hover:text-white transition-all">
-              Force Logout
-            </button>
+            <div class="flex items-center justify-end gap-1.5">
+              <button onclick="showActivityLog('${cleanE}', '${(s.device_name || '').replace(/'/g, "\\'")}')" class="rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-600 px-2.5 py-1 text-xs font-bold text-sky-400 hover:text-white transition-all" title="View activity log">
+                View Log
+              </button>
+              ${!isOffline ? `<button onclick="adminForceLogoutSession('${s.token}')" class="rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-600 px-2.5 py-1 text-xs font-bold text-rose-400 hover:text-white transition-all">
+                Force Logout
+              </button>` : ''}
+            </div>
           </td>
         `;
         tbody.appendChild(tr);
@@ -1157,7 +1320,7 @@
       if (!confirm(`Are you sure you want to terminate this active online session?`)) return;
 
       try {
-        const res = await fetchWithAuth(`https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/sessions/${token}?updateMask=status`, {
+        const res = await fetchWithAuth(`https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/(default)/documents/sessions/${token}?updateMask=status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fields: { status: { stringValue: 'FORCED_LOGOUT' } } })
@@ -1241,7 +1404,7 @@
 
       // 3. Firestore REST API fetch for report_downloads
       try {
-        const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecmedia-app/databases/(default)/documents/report_downloads');
+        const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/(default)/documents/report_downloads');
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.documents)) {
@@ -1848,6 +2011,27 @@
       renderUsers();
     }
 
+    function editUser(email) {
+      const store = loadStore();
+      const u = store.whitelist_users[email];
+      if (!u) return;
+
+      const cleanEmail = email.toLowerCase();
+      if (activeExpandedUserEmail === cleanEmail) {
+        activeExpandedUserEmail = null;
+        renderUsers();
+        return;
+      }
+
+      if (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin')) {
+        alert("As an Admin, you can only manage accounts with role: User.");
+        return;
+      }
+
+      activeExpandedUserEmail = cleanEmail;
+      renderUsers();
+    }
+
     function setInlineExpiryPreset(months) {
       const d = new Date();
       d.setMonth(d.getMonth() + months);
@@ -2150,24 +2334,25 @@
       store.whitelist_users[email] = userData;
       saveStore(store);
 
-      // Sync Firebase Auth user via Cloud Function (Callable protocol)
-      fetchWithAuth('https://asia-southeast2-hitecmedia-app.cloudfunctions.net/sync_auth_user', {
+      // Sync Firebase Auth user via Cloud Function (best-effort, non-blocking)
+      fetchWithAuth('https://asia-southeast2-hitecapp-safety.cloudfunctions.net/sync_auth_user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: { email: email, password: password, role: role, plan: plan, company_id: userData.company_id || 'co_hitec' } })
       }).then(async res => {
         if (!res.ok) {
-          const errText = await res.text().catch(() => 'Unknown error');
-          alert(`⚠️ Firebase Auth sync failed (HTTP ${res.status}): ${errText}\n\nThe local whitelist was saved, but this account may not be able to create or save projects in the cloud.`);
+          console.warn('[Admin] Firebase Auth sync HTTP error:', res.status);
           return;
         }
         const json = await res.json();
         const result = json.result || json;
-        if (!result.success) {
-          alert(`⚠️ Firebase Auth sync error: ${result.error || 'Unknown'}\n\nThe local whitelist was saved, but this account may not be able to create or save projects in the cloud.`);
+        if (result.success) {
+          console.info('[Admin] Firebase Auth synced:', email, result.action);
+        } else {
+          console.warn('[Admin] Firebase Auth sync returned error:', result.error);
         }
       }).catch(err => {
-        alert(`⚠️ Failed to sync account to Firebase Auth: ${err.message}\n\nThe local whitelist was saved, but this account may not work for cloud project saves.`);
+        console.warn('[Admin] Firebase Auth sync unavailable (function not deployed):', err.message);
       });
 
       // Legacy backend sync (best-effort)
@@ -2180,17 +2365,19 @@
       const u = store.whitelist_users[email];
       if (!u) return;
 
+      const cleanEmail = email.toLowerCase();
+      if (activeExpandedUserEmail === cleanEmail) {
+        activeExpandedUserEmail = null;
+        renderUsers();
+        return;
+      }
+
       if (sessionUser && sessionUser.role === 'admin' && (u.role === 'super_admin' || u.role === 'admin')) {
         alert("As an Admin, you can only manage accounts with role: User.");
         return;
       }
 
-      const cleanEmail = email.toLowerCase();
-      if (activeExpandedUserEmail === cleanEmail) {
-        activeExpandedUserEmail = null;
-      } else {
-        activeExpandedUserEmail = cleanEmail;
-      }
+      activeExpandedUserEmail = cleanEmail;
       renderUsers();
     }
 
@@ -2223,20 +2410,6 @@
         renderUsers();
       }
 
-      function purgeDemoAccounts() {
-        const store = loadStore();
-        const demoEmails = ["demo@hitec.id"];
-        let removedCount = 0;
-        demoEmails.forEach(email => {
-          if (store.whitelist_users[email]) {
-            delete store.whitelist_users[email];
-            removedCount++;
-          }
-        });
-        saveStore(store);
-        renderUsers();
-        alert(`Purged ${removedCount} default demo accounts from your whitelist database.`);
-      }
 
     function exportWhitelist() {
       const store = loadStore();
@@ -2442,7 +2615,7 @@
     /* ========================================================
      * IN-APP AI FEEDBACK & SYNTHESIS BACKLOG LOGIC
      * ======================================================== */
-    let currentFeedbackMode = 'list';
+    var currentFeedbackMode = 'list';
 
     function switchFeedbackMode(mode) {
       currentFeedbackMode = mode;
@@ -2912,6 +3085,23 @@ Acceptance Criteria:
       };
     } catch (bcErr) {}
   </script>
+
+  <!-- Activity Log Modal -->
+  <div id="activity-log-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-2xl rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <svg class="h-5 w-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+          Device Activity Log
+        </h3>
+        <button onclick="closeActivityLogModal()" class="rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300">
+          Close
+        </button>
+      </div>
+      <div id="activity-log-content" class="text-sm text-slate-300">
+      </div>
+    </div>
+  </div>
 
   <!-- Email Preview Modal -->
   <div id="email-preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">

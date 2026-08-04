@@ -5,3 +5,40 @@ dist
 cloudflared.exe
 backup/
 scratch/
+
+# Credentials — never commit
+firebase-sa.json
+*.pem
+*.key
+token.txt
+sessions.json
+sessions2.json
+
+# Debug/test artifacts
+*.png
+debug*.png
+*.cjs
+e2e_test.cjs
+live_e2e_test.cjs
+final_e2e.cjs
+working_e2e.cjs
+check_*.cjs
+fetch-admin.cjs
+firebase-admin-test.cjs
+firebase-sdk-test.cjs
+test_*.cjs
+script*.cjs
+preview_index.js
+temp.txt
+text_only.txt
+live_test_dom.html
+implementation_plan.md
+
+# Python/venv
+functions/venv/
+functions/__pycache__/
+functions/rules.txt
+create_accounts.py
+create_admin.py
+update_passwords.py
+gen_ppt.py
