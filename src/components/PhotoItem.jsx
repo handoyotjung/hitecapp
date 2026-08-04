@@ -100,7 +100,7 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
               <p 
                 onClick={() => setIsEditing(true)} 
                 title="Click to expand 5-row caption editor"
-                className="text-xs text-emerald-400 cursor-pointer truncate mt-0.5 hover:underline"
+                className={`text-xs cursor-pointer truncate mt-0.5 hover:underline ${caption ? 'text-emerald-400' : 'text-yellow-400'}`}
               >
                 {caption || 'No caption (click to expand editor)'}
               </p>

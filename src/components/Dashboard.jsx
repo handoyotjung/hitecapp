@@ -660,7 +660,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           if (sp && merged.some(p => p.id === sp.id)) return merged.find(p => p.id === sp.id);
           return merged.length > 0 ? merged[0] : null;
         });
-        setIsViewMode(false);
         return merged;
       });
     };
@@ -2235,6 +2234,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   const val = e.target.value;
                   const proj = val ? projects.find(p => p.id === val) : null;
                   setSelectedProject(proj);
+                  setIsViewMode(false);
                   if (proj && proj.company_name) {
                     setCompanyName(proj.company_name);
                     localStorage.setItem('hitec_company_name', proj.company_name);
@@ -2430,7 +2430,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           <div className="min-w-0 flex-1 overflow-hidden">
                             <p className="truncate block w-full min-w-0 text-xs font-medium text-slate-200 group-hover:text-emerald-300 transition-colors">{item.finalFilename}</p>
                             <p className="text-[10px] text-slate-500">{Math.round(item.sizeKb)} KB</p>
-                            <p className={`text-[10px] truncate block w-full min-w-0 mt-0.5 ${currentCaption ? 'text-emerald-400 font-medium' : 'text-slate-600 italic'}`}>
+                            <p className={`text-[10px] truncate block w-full min-w-0 mt-0.5 ${currentCaption ? 'text-emerald-400 font-medium' : 'text-yellow-400 italic'}`}>
                               {currentCaption || 'No caption'}
                             </p>
                           </div>
