@@ -371,14 +371,16 @@ def exportPPTX(req: https_fn.CallableRequest) -> dict:
     prs.save(pptx_io)
     pptx_io.seek(0)
 
-    export_path = f"exports/{project_id}_report.pptx"
+    export_filename = data.get('export_filename') or f"{project_id}_report.pptx"
+    export_path = f"exports/{export_filename}"
     export_blob = bucket.blob(export_path)
     export_blob.upload_from_file(pptx_io, content_type='application/vnd.openxmlformats-officedocument.presentationml.presentation')
 
     # Generate 24-hr GCS Signed URL
     signed_url = export_blob.generate_signed_url(
         expiration=datetime.timedelta(hours=24),
-        method='GET'
+        method='GET',
+        response_disposition=f'attachment; filename="{export_filename}"'
     )
 
     return {"downloadUrl": signed_url}

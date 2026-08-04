@@ -1,7 +1,7 @@
 import React from 'react';
 import { Save, CheckCircle2, FileDown, Presentation, FileText, Loader2 } from 'lucide-react';
 
-export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport, isLocked = false, isSaving = false }) {
+export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport, isLocked = false, isSaving = false, isViewMode = false, onToggleViewMode }) {
   const isSaved = Boolean(isConfirmed);
 
   return (
@@ -14,8 +14,8 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
         {/* 1. Manual Save / AutoSave Trigger Button */}
         <button
           type="button"
-          onClick={() => !isLocked && onExport('confirm')}
-          disabled={isLocked || isSaving}
+          onClick={isViewMode ? onToggleViewMode : () => { if (!isLocked) onExport('confirm'); if (onToggleViewMode) onToggleViewMode(); }}
+          disabled={isLocked}
           className={`h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
             isLocked
               ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
@@ -40,7 +40,7 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
           ) : (
             <>
               <Save className="h-4 w-4 shrink-0" />
-              <span className="truncate">{confirmCount > 0 ? `Save (${confirmCount})` : 'Save'}</span>
+              <span className="truncate">{confirmCount > 0 ? `Save (${confirmCount})` : (isViewMode ? 'Edit' : 'Save')}</span>
             </>
           )}
         </button>

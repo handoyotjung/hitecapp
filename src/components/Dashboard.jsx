@@ -400,6 +400,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Custom testing selection states
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [confirmedExports, setConfirmedExports] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(false);
   const [alertPopup, setAlertPopup] = useState(null);
   const [companyName, setCompanyName] = useState(() => localStorage.getItem('hitec_company_name') || '');
   const [cityName, setCityName] = useState(() => localStorage.getItem('hitec_city_name') || '');
@@ -659,6 +660,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           if (sp && merged.some(p => p.id === sp.id)) return merged.find(p => p.id === sp.id);
           return merged.length > 0 ? merged[0] : null;
         });
+        setIsViewMode(false);
         return merged;
       });
     };
@@ -1158,6 +1160,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       }
       setNewProjectName('');
       setSelectedProject(newProjObj);
+      setIsViewMode(false);
       setIsHeaderCollapsed(true); // RULE 2: Auto force collapse when project IS created
       setProjects(prev => {
         if (prev.some(p => p.id === newProjObj.id)) {
@@ -1773,11 +1776,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   };
 
   const getExportFileName = (extension) => {
-    const company = companyName.trim() ? companyName.trim().replace(/[\\/:*?"<>|]/g, "_") : (selectedProject?.name || "Company").replace(/[\\/:*?"<>|]/g, "_");
-    const city = cityName.trim() ? cityName.trim().replace(/[\\/:*?"<>|]/g, "_") : "City";
+    const company = companyName.trim() ? companyName.trim().replace(/[\\/:*?"<>|]/g, "") : (selectedProject?.name || "Company").replace(/[\\/:*?"<>|]/g, "");
+    const city = cityName.trim() ? cityName.trim().replace(/[\\/:*?"<>|]/g, "") : "City";
     const year = new Date().getFullYear();
     const ext = extension.replace(/^\./, '');
-    return `${company}_${city}_${year}.${ext}`;
+    return `${company} ${city} ${year}.${ext}`;
   };
 
   const handleExport = async (format) => {
@@ -2149,6 +2152,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Company</label>
                 <input
                   type="text"
+                  disabled={isViewMode}
                   placeholder="Enter company name..."
                   value={companyName}
                   onChange={(e) => {
@@ -2173,6 +2177,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">City</label>
                 <input
                   type="text"
+                  disabled={isViewMode}
                   placeholder="Enter city..."
                   value={cityName}
                   onChange={(e) => {
@@ -2206,6 +2211,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             <form onSubmit={handleCreateProject} className="flex gap-2 mb-3">
               <input
                 type="text"
+                disabled={isViewMode}
                 placeholder="New project name..."
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
@@ -2223,6 +2229,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             {/* Project Select Dropdown + Rename/Delete Options */}
             <div className="flex gap-2 items-center">
               <select
+                disabled={isViewMode}
                 value={selectedProject?.id || ''}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -2281,6 +2288,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             isMobileMode={isMobileMode}
             isCompressing={isCompressing}
             isLocked={!hasProject}
+            disabled={isViewMode}
           />
 
           {/* Queue List */}
@@ -2292,6 +2300,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   <label className="flex items-center gap-1.5 cursor-pointer group">
                     <input
                       type="checkbox"
+                      disabled={isViewMode}
                       checked={allDoneSelected}
                       onChange={handleSelectAll}
                       className="h-3.5 w-3.5 rounded border-slate-600 bg-slate-800 accent-emerald-500 cursor-pointer"
@@ -2308,7 +2317,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 {queue.length > 0 && (
                   <button 
                     onClick={handleRemove}
-                    disabled={!allDoneSelected && selectedPhotos.length === 0}
+                    disabled={isViewMode || (!allDoneSelected && selectedPhotos.length === 0)}
                     className="flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-400 bg-rose-950/30 hover:bg-rose-950/50 border border-rose-900/50 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40 disabled:hover:text-rose-500 disabled:hover:bg-rose-950/30 disabled:cursor-not-allowed"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Remove
@@ -2383,6 +2392,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                       {isDone && matchedPhoto ? (
                         <div className="flex-1 min-w-0 overflow-hidden">
                           <PhotoItem 
+                            disabled={isViewMode}
                             photo={matchedPhoto} 
                             onUpdateCaption={handleUpdateCaptionFromVoice} 
                             onSelectPhoto={() => {
@@ -2470,6 +2480,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         {/* RIGHT: 6 white dots drag icon to the right of status icon */}
                         <div
                           data-grip="true"
+                          style={{ pointerEvents: isViewMode ? 'none' : 'auto' }}
                           className="text-slate-400 hover:text-white transition-colors p-2 cursor-grab active:cursor-grabbing ml-1 touch-none select-none"
                           title="Hold and drag to reorder"
                           draggable={true}
@@ -2520,6 +2531,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             onExport={handlePublishBarExport}
             isLocked={!hasProject}
             isSaving={isSaving}
+            isViewMode={isViewMode}
+            onToggleViewMode={() => setIsViewMode(v => !v)}
           />
           </div>
 
@@ -2993,6 +3006,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 <button
                   type="button"
                   onClick={handleSaveReport}
+                  disabled={isViewMode}
                   className="h-[38px] flex items-center gap-1.5 rounded-xl bg-[#107C41] hover:bg-[#0C5E31] px-3 text-xs font-bold text-white shadow-md shadow-[#107C41]/25 active:scale-95 transition-all cursor-pointer shrink-0"
                   title="Save all report details and attach attributes to this photo entry in left column list"
                 >
