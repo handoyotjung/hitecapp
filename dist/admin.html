@@ -14,7 +14,7 @@
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
   <!-- Outfit Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -442,11 +442,11 @@
               <p class="text-xs text-slate-400 mt-0.5">Product experience interviews and developer-actionable Antigravity synthesis from logged-in HitecApp Indonesian & English users.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-              <input
-                type="text"
-                id="feedback-search-input"
-                oninput="renderFeedbackSection()"
-                placeholder="Search user or issue..."
+              <input 
+                type="text" 
+                id="feedback-search-input" 
+                oninput="renderFeedbackSection()" 
+                placeholder="Search user or issue..." 
                 class="rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-1.5 text-xs text-slate-200 outline-none focus:border-emerald-500 transition-colors w-48"
               />
               <div class="flex items-center gap-2">
@@ -1014,8 +1014,6 @@
           tabParam = 'account';
         } else if (hash.includes('ai-agent')) {
           tabParam = 'ai-agent';
-        } else if (hash.includes('feedback-section')) {
-          tabParam = 'ai-agent';
         }
       }
 
@@ -1038,35 +1036,11 @@
         setTimeout(function() {
           var target = document.getElementById('comment-logs');
           if (target) target.scrollIntoView({ behavior: 'smooth' });
-      // If hash contains feedback-section, scroll to the feedback section
-      
-      
-      if (hash && hash.includes('feedback-section')) {
-        setTimeout(function() {
-          var target = document.getElementById('feedback-section');
-          if (target) {
-            target.style.display = 'block';
-            target.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 500);
-      }
         }, 300);
       } else if (hash && (hash.includes('feedback') || hash.includes('survey'))) {
         setTimeout(function() {
           var target = document.getElementById('feedback-section');
           if (target) target.scrollIntoView({ behavior: 'smooth' });
-      // If hash contains feedback-section, scroll to the feedback section
-      
-      
-      if (hash && hash.includes('feedback-section')) {
-        setTimeout(function() {
-          var target = document.getElementById('feedback-section');
-          if (target) {
-            target.style.display = 'block';
-            target.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 500);
-      }
         }, 300);
       }
     }
@@ -1216,7 +1190,7 @@
                         <span>🔍 Inspect (13 Items)</span>
                       </button>
                       <button onclick="copyDebugReport(${idx})" title="Copy Markdown debug report" class="px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center gap-1 transition-colors">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1M8 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
                         <span>Copy Log</span>
                       </button>
                     </div>
@@ -1366,10 +1340,10 @@
     function escapeHtml(str) {
       if (!str) return '';
       return String(str)
-        .replace(/&/g, '&')
-        .replace(/</g, '<')
-        .replace(/>/g, '>')
-        .replace(/"/g, '"');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     }
 
     const forceLoggedOutTokens = new Set();

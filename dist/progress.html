@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Status Board · HitecApp</title>
+  <meta name="description" content="HitecApp-Safety project progress dashboard — real-time status board for ATEX compliance assessment platform by PT Safety Indonesia Utama.">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+  <!-- Outfit Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Outfit', sans-serif; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+      animation: fadeInUp 0.5s ease-out both;
+    }
+    .animate-delay-1 { animation-delay: 0.1s; }
+    .animate-delay-2 { animation-delay: 0.2s; }
+    .animate-delay-3 { animation-delay: 0.3s; }
+    .animate-delay-4 { animation-delay: 0.4s; }
+    .animate-delay-5 { animation-delay: 0.5s; }
+    .animate-delay-6 { animation-delay: 0.6s; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen relative overflow-x-hidden">
+  <!-- Glowing backgrounds -->
+  <div class="absolute top-0 right-1/4 -z-10 h-96 w-96 rounded-full bg-sky-500/10 blur-[120px]"></div>
+  <div class="absolute bottom-10 left-1/4 -z-10 h-96 w-96 rounded-full bg-sky-400/10 blur-[120px]"></div>
+  <div class="absolute top-1/2 left-1/2 -z-10 h-64 w-64 rounded-full bg-emerald-500/5 blur-[100px]"></div>
+
+  <!-- Header -->
+  <header class="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/60 px-6 md:px-8 backdrop-blur-md sticky top-0 z-30">
+    <div class="flex items-center gap-2.5">
+      <img src="/logo-hs-white.png" alt="HS Logo" class="h-7 w-auto object-contain" />
+      <span class="text-xl font-bold tracking-tight text-white">STATUS BOARD</span>
+      <span class="text-xl font-light tracking-tight text-slate-500">·</span>
+      <span class="text-xl font-bold tracking-tight text-sky-400">HitecApp</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-xs text-slate-400 hidden sm:inline font-medium">hitecapp-safety</span>
+      <a href="/" class="text-xs font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1">
+        Back to App
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+      </a>
+      <!-- Survey Button -->
+      <a href="/survey.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+        <span>Take Survey</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto p-6 md:p-8 space-y-8">
+
+    <!-- Overall Progress Arc Gauge -->
+    <section class="animate-fade-in-up animate-delay-1">
+      <div class="flex flex-col items-center justify-center py-6">
+        <div class="relative" style="width: 220px; height: 220px;">
+          <canvas id="overallGaugeCanvas"></canvas>
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span id="overall-percent-text" class="text-5xl font-extrabold text-white">92.5%</span>
+            <span class="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">Overall Progress</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Phase Cards -->
+    <section class="animate-fade-in-up animate-delay-2">
+      <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="h-2 w-2 rounded-full bg-sky-400"></span>
+        Development Phases
+      </h2>
+      <div id="phase-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Build & Deployment Pipeline Section -->
+    <section class="animate-fade-in-up animate-delay-2.5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Active Build & Deployment Pipeline
+        </h2>
+        <span class="inline-flex items-center rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-400">
+          100% COMPLETE
+        </span>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md shadow-xl space-y-6">
+        <!-- Progress Bar -->
+        <div>
+          <div class="flex items-center justify-between text-xs font-bold mb-2">
+            <span class="text-slate-300 uppercase tracking-wider">Client UI/UX Survey Platform & Real-Time Sync</span>
+            <span class="text-emerald-400 font-extrabold">100%</span>
+          </div>
+          <div class="w-full h-3 rounded-full bg-slate-800 overflow-hidden p-0.5 border border-slate-700/50">
+            <div class="h-full rounded-full bg-gradient-to-r from-sky-500 via-emerald-400 to-emerald-500 transition-all duration-1000 shadow-lg shadow-emerald-500/20" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Pipeline Stages Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                <th class="pb-3 px-3">Stage</th>
+                <th class="pb-3 px-3">Status</th>
+                <th class="pb-3 px-3">Progress</th>
+                <th class="pb-3 px-3">Details</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-medium">
+              <tr class="hover:bg-slate-800/30 transition-colors">
+                <td class="py-3 px-3 font-bold text-white flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  1. Survey Platform (<code class="text-sky-300">survey.html</code>)
+                </td>
+                <td class="py-3 px-3">
+                  <span class="inline-flex items-center rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400 uppercase">Complete</span>
+                </td>
+                <td class="py-3 px-3 font-extrabold text-emerald-400">100%</td>
+                <td class="py-3 px-3 text-slate-400">13-factor ATEX assessment survey, interactive gold star rating, and direct Firestore <code class="text-slate-300">client_surveys</code> submission.</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30 transition-colors">
+                <td class="py-3 px-3 font-bold text-white flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  2. Status Board Integration (<code class="text-sky-300">progress.html</code>)
+                </td>
+                <td class="py-3 px-3">
+                  <span class="inline-flex items-center rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400 uppercase">Complete</span>
+                </td>
+                <td class="py-3 px-3 font-extrabold text-emerald-400">100%</td>
+                <td class="py-3 px-3 text-slate-400">Live <code class="text-sky-300">onSnapshot</code> listener on <code class="text-slate-300">client_surveys</code> streaming live evaluations, average rating, and comments.</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30 transition-colors">
+                <td class="py-3 px-3 font-bold text-white flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  3. Production Build Verification
+                </td>
+                <td class="py-3 px-3">
+                  <span class="inline-flex items-center rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400 uppercase">Complete</span>
+                </td>
+                <td class="py-3 px-3 font-extrabold text-emerald-400">100%</td>
+                <td class="py-3 px-3 text-slate-400">Vite build & static asset verification clean.</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30 transition-colors">
+                <td class="py-3 px-3 font-bold text-white flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  4. Hosting Deployment
+                </td>
+                <td class="py-3 px-3">
+                  <span class="inline-flex items-center rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400 uppercase">Complete</span>
+                </td>
+                <td class="py-3 px-3 font-extrabold text-emerald-400">100%</td>
+                <td class="py-3 px-3 text-slate-400"><strong>Live on Hosting:</strong> Deployed to Firebase Hosting project <code class="text-slate-300">hitecapp-safety</code>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Stats Row -->
+    <section class="animate-fade-in-up animate-delay-3">
+      <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Live Platform Stats
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Total Projects -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-md flex items-center gap-4 shadow-xl hover:border-emerald-500/30 transition-colors">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/30 shrink-0">
+            <svg class="h-6 w-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <p id="stat-total-projects" class="text-3xl font-extrabold text-emerald-400">—</p>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Projects</p>
+          </div>
+        </div>
+        <!-- Active Sessions -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-md flex items-center gap-4 shadow-xl hover:border-sky-500/30 transition-colors">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500/10 border border-sky-500/30 shrink-0">
+            <svg class="h-6 w-6 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-2-2"/></svg>
+          </div>
+          <div>
+            <p id="stat-active-sessions" class="text-3xl font-extrabold text-sky-400">—</p>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Sessions</p>
+          </div>
+        </div>
+        <!-- Feedback Resolved -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-md flex items-center gap-4 shadow-xl hover:border-sky-500/30 transition-colors">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500/10 border border-sky-500/30 shrink-0">
+            <svg class="h-6 w-6 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <p id="stat-feedback-count" class="text-3xl font-extrabold text-sky-400">—</p>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Feedback Entries</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Client Survey Feedback Section -->
+    <section id="feedback-section" class="animate-fade-in-up animate-delay-3.5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-amber-400 animate-pulse"></span>
+          Live Client UI/UX Feedback & Assessor Evaluations
+        </h2>
+        <a href="/survey.html" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-colors">
+          <span>Take Client Survey</span>
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md shadow-xl space-y-6">
+        <!-- Summary Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4">
+            <div class="text-2xl font-extrabold text-amber-400" id="live-survey-total">0</div>
+            <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Total Evaluations Received</div>
+          </div>
+          <div class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4">
+            <div class="text-2xl font-extrabold text-amber-400" id="live-survey-avg">—</div>
+            <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Overall Satisfaction Rating</div>
+          </div>
+          <div class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4">
+            <div class="text-2xl font-extrabold text-sky-400" id="live-survey-count">0</div>
+            <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Criteria Factors Scored</div>
+          </div>
+        </div>
+
+        <!-- Live Submissions Feed -->
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Recent Field Assessor Submissions</h3>
+          <div id="live-survey-feed" class="space-y-3">
+            <p class="text-xs text-slate-500 italic">Listening for live survey submissions...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent Activity Feed -->
+    <section class="animate-fade-in-up animate-delay-4">
+      <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="h-2 w-2 rounded-full bg-amber-400 animate-pulse"></span>
+        Recent Activity
+      </h2>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-md shadow-xl">
+        <div id="activity-feed" class="space-y-3">
+          <p class="text-sm text-slate-500 italic">Loading recent activity...</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center text-xs text-slate-600 py-8 border-t border-slate-900">
+    PT Safety Indonesia Utama · ATEX Compliance · 2026
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // DASHBOARD_CONFIG — edit these values to update phase progress
+    // ═══════════════════════════════════════════════════════════════
+    const DASHBOARD_CONFIG = {
+      overall: { percent: 92.5, label: 'Overall Progress' },
+      phases: [
+        { id: 'PH-01', name: 'Foundation & Auth',    percent: 100, status: 'resolved',    color: '#22c55e',
+          blockers: [] },
+        { id: 'PH-02', name: 'AI Assessor & Editor', percent: 100, status: 'resolved',    color: '#22c55e',
+          blockers: [] },
+        { id: 'PH-03', name: 'Export & Quota Mgmt',  percent: 100, status: 'resolved',    color: '#22c55e',
+          blockers: [] },
+        { id: 'PH-04', name: 'Enterprise & Scale',   percent: 70,  status: 'in-progress', color: '#f59e0b',
+          blockers: ['Batched release queue', 'Cloud Run migration: assessed, not needed — already on 2nd gen Cloud Functions', 'Multi-tenant project isolation'] }
+      ]
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // Firebase Init
+    // ═══════════════════════════════════════════════════════════════
+    firebase.initializeApp({
+      apiKey: "AIzaSyATlN5wwRxufoMPQEaI4XVWapWw4q1AaF8",
+      authDomain: "hitecapp-safety.firebaseapp.com",
+      projectId: "hitecapp-safety",
+      storageBucket: "hitecapp-safety.firebasestorage.app",
+      messagingSenderId: "139227119972",
+      appId: "1:139227119972:web:97e5a0d921821946797a71"
+    });
+    const db = firebase.firestore();
+
+    // ═══════════════════════════════════════════════════════════════
+    // Overall Progress Arc Gauge (Chart.js Doughnut)
+    // ═══════════════════════════════════════════════════════════════
+    function renderOverallGauge() {
+      const pct = DASHBOARD_CONFIG.overall.percent;
+      document.getElementById('overall-percent-text').textContent = pct + '%';
+
+      const ctx = document.getElementById('overallGaugeCanvas').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [pct, 100 - pct],
+            backgroundColor: ['#38bdf8', '#1e293b'],
+            borderWidth: 0,
+            borderRadius: pct > 0 && pct < 100 ? 6 : 0
+          }]
+        },
+        options: {
+          cutout: '80%',
+          rotation: -135,
+          circumference: 270,
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
+          },
+          animation: {
+            animateRotate: true,
+            duration: 1200,
+            easing: 'easeOutQuart'
+          }
+        }
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Phase Cards with mini progress rings
+    // ═══════════════════════════════════════════════════════════════
+    const statusMeta = {
+      'resolved':    { label: 'Resolved',    bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+      'in-progress': { label: 'In Progress', bg: 'bg-sky-500/10',     text: 'text-sky-400',     border: 'border-sky-500/30' },
+      'open':        { label: 'Open',        bg: 'bg-amber-500/10',   text: 'text-amber-400',   border: 'border-amber-500/30' },
+      'not-started': { label: 'Not Started', bg: 'bg-slate-500/10',   text: 'text-slate-400',   border: 'border-slate-500/30' }
+    };
+
+    function renderPhaseCards() {
+      const grid = document.getElementById('phase-cards-grid');
+      grid.innerHTML = '';
+
+      DASHBOARD_CONFIG.phases.forEach((phase, idx) => {
+        const meta = statusMeta[phase.status] || statusMeta['not-started'];
+        const canvasId = 'phase-ring-' + idx;
+
+        const card = document.createElement('div');
+        card.className = 'rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-md shadow-xl hover:border-slate-700 transition-all duration-300 flex flex-col gap-4';
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="inline-flex items-center rounded-lg ${meta.bg} ${meta.border} border px-2.5 py-1 text-[10px] font-bold ${meta.text} uppercase tracking-wider">${phase.id}</span>
+            <span class="inline-flex items-center rounded-full ${meta.bg} ${meta.border} border px-2.5 py-0.5 text-[10px] font-bold ${meta.text}">${meta.label}</span>
+          </div>
+          <p class="text-sm font-bold text-white">${phase.name}</p>
+          <div class="flex items-center justify-center">
+            <div class="relative" style="width:72px;height:72px;">
+              <canvas id="${canvasId}" width="72" height="72"></canvas>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-sm font-extrabold text-white">${phase.percent}%</span>
+              </div>
+            </div>
+          </div>
+          ${phase.blockers && phase.blockers.length ? `<ul class="flex flex-col gap-1 mt-1">${phase.blockers.map(b => `<li class="text-[11px] text-slate-400 flex items-start gap-1"><span class="mt-0.5 shrink-0 text-slate-600">•</span>${b}</li>`).join('')}</ul>` : ''}
+        `;
+        grid.appendChild(card);
+
+        // Render mini ring
+        requestAnimationFrame(() => {
+          const ringCtx = document.getElementById(canvasId).getContext('2d');
+          new Chart(ringCtx, {
+            type: 'doughnut',
+            data: {
+              datasets: [{
+                data: [phase.percent, 100 - phase.percent],
+                backgroundColor: [phase.color, '#1e293b'],
+                borderWidth: 0,
+                borderRadius: phase.percent > 0 && phase.percent < 100 ? 4 : 0
+              }]
+            },
+            options: {
+              cutout: '75%',
+              responsive: false,
+              plugins: { legend: { display: false }, tooltip: { enabled: false } },
+              animation: { animateRotate: true, duration: 1000, easing: 'easeOutQuart' }
+            }
+          });
+        });
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Live Firestore Stats (onSnapshot, graceful fallback)
+    // ═══════════════════════════════════════════════════════════════
+    function initLiveStats() {
+      // Total Projects
+      try {
+        db.collection('projects').onSnapshot(
+          (snap) => { document.getElementById('stat-total-projects').textContent = snap.size; },
+          () => { document.getElementById('stat-total-projects').textContent = '—'; }
+        );
+      } catch (e) {
+        document.getElementById('stat-total-projects').textContent = '—';
+      }
+
+      // Active Sessions
+      try {
+        db.collection('sessions').onSnapshot(
+          (snap) => { document.getElementById('stat-active-sessions').textContent = snap.size; },
+          () => { document.getElementById('stat-active-sessions').textContent = '—'; }
+        );
+      } catch (e) {
+        document.getElementById('stat-active-sessions').textContent = '—';
+      }
+
+      // Feedback count
+      try {
+        db.collection('feedback').onSnapshot(
+          (snap) => { document.getElementById('stat-feedback-count').textContent = snap.size; },
+          () => { document.getElementById('stat-feedback-count').textContent = '—'; }
+        );
+      } catch (e) {
+        document.getElementById('stat-feedback-count').textContent = '—';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Recent Activity Feed (last 5 feedback entries, real-time)
+    // ═══════════════════════════════════════════════════════════════
+    function timeAgo(dateStr) {
+      if (!dateStr) return '';
+      const now = new Date();
+      let date;
+      if (dateStr.toDate) {
+        date = dateStr.toDate();
+      } else {
+        date = new Date(dateStr);
+      }
+      const diff = Math.floor((now - date) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function initActivityFeed() {
+      const feed = document.getElementById('activity-feed');
+      try {
+        db.collection('feedback')
+          .orderBy('timestamp', 'desc')
+          .limit(5)
+          .onSnapshot(
+            (snap) => {
+              if (snap.empty) {
+                feed.innerHTML = '<p class="text-sm text-slate-500 italic">No recent activity</p>';
+                return;
+              }
+              feed.innerHTML = '';
+              snap.forEach((doc) => {
+                const d = doc.data();
+                const title = d.title || d.summary || 'Feedback entry';
+                const ts = d.timestamp || d.created_at;
+
+                const entry = document.createElement('div');
+                entry.className = 'flex items-start gap-3 py-2.5 border-b border-slate-800/50 last:border-0';
+                entry.innerHTML = `
+                  <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10 border border-sky-500/20 shrink-0 mt-0.5">
+                    <svg class="h-4 w-4 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-slate-200 truncate">${title}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">${d.userEmail || d.userId || 'Unknown user'}</p>
+                  </div>
+                  <span class="text-xs text-slate-500 font-medium whitespace-nowrap shrink-0">${timeAgo(ts)}</span>
+                `;
+                feed.appendChild(entry);
+              });
+            },
+            () => {
+              feed.innerHTML = '<p class="text-sm text-slate-500 italic">Unable to load activity feed</p>';
+            }
+          );
+      } catch (e) {
+        feed.innerHTML = '<p class="text-sm text-slate-500 italic">Unable to load activity feed</p>';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Initialize everything on DOM load
+    // ═══════════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+      renderOverallGauge();
+      renderPhaseCards();
+      initLiveStats();
+      initActivityFeed();
+      initLiveSurveyWidget();
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // Live Client Survey Feedback Widget
+    // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // Live Client Survey Feedback & Debug Inspector Widget
+    // ═══════════════════════════════════════════════════════════════
+    const surveyFactorTitles = {
+      a1: 'Mobile Login & Top Header Layout',
+      a2: 'Choosing & Creating Projects on Mobile',
+      a3: 'Taking Photos & Background Upload Speed',
+      a4: 'Typing Captions & Voice Input (Speech-to-Text)',
+      a5: 'Reordering Photos with Finger (Drag & Drop)',
+      a6: 'Downloading Reports on Mobile (PDF / PPT)',
+      b1: 'Two-Side Screen Layout (List + Zoom Editor)',
+      b2: 'AI Safety Recommendations & Grammar Fix (Gemini)',
+      b3: 'Reordering Photos with Mouse (Drag Handle)',
+      b4: 'Exporting Final Reports (PDF, PPT, Word)',
+      c1: 'Real-Time Sync Between Multi-Devices',
+      c2: 'Overall Inspection Safety & Trust',
+      c3: 'Feature Wishlist & Improvement Ideas'
+    };
+
+    let cachedSurveys = [];
+
+    function initLiveSurveyWidget() {
+      const totalEl = document.getElementById('live-survey-total');
+      const avgEl = document.getElementById('live-survey-avg');
+      const countEl = document.getElementById('live-survey-count');
+      const feedEl = document.getElementById('live-survey-feed');
+
+      try {
+        db.collection('client_surveys')
+          .orderBy('submittedAt', 'desc')
+          .limit(15)
+          .onSnapshot(
+            (snap) => {
+              const totalSurveys = snap.size;
+              if (totalEl) totalEl.textContent = totalSurveys;
+
+              let grandRatingSum = 0;
+              let grandRatingCount = 0;
+              cachedSurveys = [];
+
+              if (feedEl) feedEl.innerHTML = '';
+
+              if (snap.empty) {
+                if (avgEl) avgEl.textContent = '—';
+                if (countEl) countEl.textContent = '0';
+                if (feedEl) feedEl.innerHTML = '<p class="text-xs text-slate-500 italic">No survey responses submitted yet. Click "Take Client Survey" to add an evaluation.</p>';
+                return;
+              }
+
+              snap.forEach((doc, idx) => {
+                const data = doc.data();
+                data._id = doc.id;
+                cachedSurveys.push(data);
+
+                const evaluator = data.evaluator || {};
+                const name = evaluator.name || data.name || 'Anonymous Assessor';
+                const org = evaluator.organization || data.organization || 'PT Safety Indonesia Utama';
+                const role = evaluator.role || data.role || 'ATEX Assessor';
+                const project = evaluator.project || data.project || 'General Inspection';
+                const avgScore = data.averageRating || data.rating || 0;
+                const ratings = data.ratings || {};
+                const comments = data.comments || {};
+                const submittedAt = data.submittedAt || data.timestamp || '';
+
+                if (avgScore > 0) {
+                  grandRatingSum += Number(avgScore);
+                  grandRatingCount++;
+                }
+
+                // Analyze low scores & comments for debug inspection
+                const lowScoreItems = [];
+                const qualitativeComments = [];
+                Object.keys(surveyFactorTitles).forEach(k => {
+                  const r = ratings[k] || 0;
+                  const c = comments[k] ? comments[k].trim() : '';
+                  if (r > 0 && r <= 3) {
+                    lowScoreItems.push({ key: k, title: surveyFactorTitles[k], rating: r });
+                  }
+                  if (c.length > 0) {
+                    qualitativeComments.push({ key: k, title: surveyFactorTitles[k], comment: c, rating: r });
+                  }
+                });
+
+                const cardId = `survey-card-${idx}`;
+                const detailsId = `survey-details-${idx}`;
+
+                const card = document.createElement('div');
+                card.id = cardId;
+                card.className = 'rounded-2xl border border-slate-800 bg-slate-950/80 p-4 sm:p-5 space-y-4 hover:border-slate-700 transition-all shadow-lg';
+                
+                // Color badge based on score
+                let scoreBadgeClass = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+                if (avgScore < 3.0) scoreBadgeClass = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+                else if (avgScore < 4.0) scoreBadgeClass = 'bg-amber-500/10 border-amber-500/30 text-amber-400';
+
+                card.innerHTML = `
+                  <!-- Header Row -->
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-900 pb-3">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="h-2.5 w-2.5 rounded-full ${avgScore >= 3.5 ? 'bg-emerald-400' : 'bg-amber-400'}"></span>
+                        <strong class="text-sm font-bold text-white">${escapeHtml(name)}</strong>
+                        <span class="text-[11px] font-semibold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">${escapeHtml(role)}</span>
+                      </div>
+                      <div class="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+                        <span>🏢 ${escapeHtml(org)}</span>
+                        <span>•</span>
+                        <span>📍 ${escapeHtml(project)}</span>
+                        <span>•</span>
+                        <span class="text-slate-500">🕒 ${timeAgo(submittedAt)}</span>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 self-start sm:self-auto">
+                      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border font-extrabold text-xs shadow-sm ${scoreBadgeClass}">
+                        <span>★ ${Number(avgScore).toFixed(2)}</span>
+                        <span class="text-[10px] text-slate-400">/ 5.0</span>
+                      </div>
+                      <button onclick="toggleSurveyDetails('${detailsId}', this)" class="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors">
+                        <span>🔍 Inspect (13 Items)</span>
+                      </button>
+                      <button onclick="copyDebugReport(${idx})" title="Copy Markdown debug report" class="px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center gap-1 transition-colors">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <span>Copy Log</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Quick Alert Summary for Debugging -->
+                  <div class="flex flex-wrap gap-2 text-xs">
+                    ${qualitativeComments.length > 0 ? `
+                      <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-semibold">
+                        <span>💬 ${qualitativeComments.length} Specific User Notes/Suggestions</span>
+                      </div>
+                    ` : `
+                      <span class="text-[11px] text-slate-500 italic">No individual comments attached</span>
+                    `}
+                    ${lowScoreItems.length > 0 ? `
+                      <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] font-semibold">
+                        <span>⚠️ ${lowScoreItems.length} Factors Need Attention (Score ≤ 3)</span>
+                      </div>
+                    ` : `
+                      <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-semibold">
+                        <span>✓ All Factors Scored High (4-5 Stars)</span>
+                      </div>
+                    `}
+                  </div>
+
+                  <!-- Highlighted Comments Snippet (if any) -->
+                  ${qualitativeComments.length > 0 ? `
+                    <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+                      <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Key Assessor Notes:</div>
+                      ${qualitativeComments.slice(0, 3).map(qc => `
+                        <div class="text-xs text-slate-300 flex items-start gap-2">
+                          <span class="text-sky-400 font-bold shrink-0">• [${qc.title} - ★${qc.rating || '-'}/5]:</span>
+                          <span class="italic text-slate-200">"${escapeHtml(qc.comment)}"</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
+
+                  <!-- Detailed 13-Factor Inspector Accordion (Hidden by default) -->
+                  <div id="${detailsId}" class="hidden pt-3 border-t border-slate-900 space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                      <span>Full 13-Factor Breakdown & Scores</span>
+                      <span class="text-[10px] font-normal text-slate-500">1: Poor &bull; 3: Fair &bull; 5: Excellent</span>
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                      ${Object.keys(surveyFactorTitles).map((k, kIdx) => {
+                        const score = ratings[k] || 0;
+                        const comment = comments[k] ? comments[k].trim() : '';
+                        let colorBadge = 'bg-slate-900 border-slate-800 text-slate-400';
+                        if (score >= 4) colorBadge = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+                        else if (score === 3) colorBadge = 'bg-amber-500/10 border-amber-500/30 text-amber-400';
+                        else if (score > 0 && score < 3) colorBadge = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+
+                        return `
+                          <div class="rounded-xl border border-slate-800/80 bg-slate-900/40 p-2.5 space-y-1">
+                            <div class="flex items-center justify-between gap-2">
+                              <span class="text-xs font-semibold text-slate-200">${kIdx + 1}. ${surveyFactorTitles[k]}</span>
+                              <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-extrabold border ${colorBadge}">
+                                ★ ${score > 0 ? score : '—'}/5
+                              </span>
+                            </div>
+                            ${comment ? `
+                              <div class="text-[11px] text-purple-200 bg-purple-950/30 border border-purple-800/40 rounded-lg p-1.5 italic flex items-start gap-1.5 mt-1">
+                                <span class="shrink-0 text-purple-400">💬</span>
+                                <span>"${escapeHtml(comment)}"</span>
+                              </div>
+                            ` : ''}
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                `;
+
+                if (feedEl) feedEl.appendChild(card);
+              });
+
+              if (grandRatingCount > 0 && avgEl) {
+                avgEl.textContent = '★ ' + (grandRatingSum / grandRatingCount).toFixed(2);
+              } else if (avgEl) {
+                avgEl.textContent = '—';
+              }
+
+              if (countEl) {
+                countEl.textContent = grandRatingCount * 13;
+              }
+            },
+            (err) => {
+              console.warn('Error streaming client_surveys:', err);
+              if (feedEl) feedEl.innerHTML = '<p class="text-xs text-slate-500 italic">Listening for live survey feedback...</p>';
+            }
+          );
+      } catch (e) {
+        console.error('Live survey widget error:', e);
+      }
+    }
+
+    function toggleSurveyDetails(id, btn) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        btn.innerHTML = `<span>▲ Hide Details</span>`;
+        btn.classList.add('bg-sky-500/20', 'text-sky-300');
+      } else {
+        el.classList.add('hidden');
+        btn.innerHTML = `<span>🔍 Inspect (13 Items)</span>`;
+        btn.classList.remove('bg-sky-500/20', 'text-sky-300');
+      }
+    }
+
+    function copyDebugReport(idx) {
+      const data = cachedSurveys[idx];
+      if (!data) return;
+
+      const evaluator = data.evaluator || {};
+      const name = evaluator.name || 'Anonymous';
+      const role = evaluator.role || 'Assessor';
+      const org = evaluator.organization || 'Client';
+      const project = evaluator.project || 'Testing';
+      const avg = data.averageRating || 0;
+      const ratings = data.ratings || {};
+      const comments = data.comments || {};
+
+      let md = `### 📋 User Feedback Debug Report\n`;
+      md += `* **Evaluator**: ${name} (${role}) - ${org}\n`;
+      md += `* **Project**: ${project}\n`;
+      md += `* **Overall Rating**: ★ ${avg} / 5.0\n`;
+      md += `* **Submitted**: ${data.submittedAt || new Date().toISOString()}\n\n`;
+      md += `#### 🔍 Factor-by-Factor Breakdown:\n`;
+
+      Object.keys(surveyFactorTitles).forEach((k, i) => {
+        const score = ratings[k] || 'N/A';
+        const comment = comments[k] ? ` -> *Note: "${comments[k]}"*` : '';
+        const flag = (score <= 3 && score > 0) ? ' ⚠️ [NEEDS FIX]' : '';
+        md += `${i + 1}. **${surveyFactorTitles[k]}**: ★ ${score}/5${flag}${comment}\n`;
+      });
+
+      navigator.clipboard.writeText(md).then(() => {
+        alert("✓ Debug Report copied to clipboard in Markdown format!");
+      }).catch(err => {
+        console.error("Clipboard copy failed:", err);
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

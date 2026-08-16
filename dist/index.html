@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        // 1. Fail-safe synchronous emergency reset
+        window.__hitecEmergencyReset = function() {
+          try { localStorage.clear(); } catch(e) {}
+          try { 
+            var watchdogFired = sessionStorage.getItem('__hitec_watchdog_fired');
+            sessionStorage.clear(); 
+            if (watchdogFired) {
+              sessionStorage.setItem('__hitec_watchdog_fired', watchdogFired);
+            }
+          } catch(e) {}
+          
+          try {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (var i = 0; i < registrations.length; i++) {
+                  registrations[i].unregister();
+                }
+              }).catch(function() {});
+            }
+          } catch(e) {}
+
+          var cleanPath = window.location.pathname || '/';
+          window.location.href = cleanPath + '?nocache=' + new Date().getTime();
+        };
+
+        // 2. Error Shield Listener
+        var renderErrorBox = function(msg, file, line) {
+          window.__hitecErrorCaught = true;
+          
+          var diagnosticHint = "";
+          if (msg.indexOf('Script error') > -1 || line === 0 || msg.indexOf('Failed to fetch dynamically imported module') > -1) {
+            diagnosticHint = "<p style='font-size:11px;color:#856404;background:#fff3cd;padding:6px;border-radius:4px;'><strong>Hint:</strong> The browser was blocked from reading the script, or Cloudflare returned HTML instead of a .js asset file.</p>";
+          }
+
+          var overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.9);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+          
+          overlay.innerHTML = '<div style="padding:20px;width:100%;max-width:400px;font-family:sans-serif;color:#721c24;background:#f8d7da;border:1px solid #f5c6cb;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">' +
+            '<h3 style="margin-top:0;">Bootstrap Fatal Error</h3>' +
+            '<p style="font-size:12px;font-weight:bold;">' + msg + '</p>' +
+            '<p style="font-size:10px;color:#555;">File: ' + file + ':' + line + '</p>' +
+            diagnosticHint +
+            '<button onclick="window.__hitecEmergencyReset()" style="margin-top:10px;padding:12px 16px;width:100%;background:#721c24;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;">Clear Storage & Force Reload</button>' +
+            '</div>';
+            
+          if (document.body) {
+            document.body.appendChild(overlay);
+          } else {
+            window.addEventListener('DOMContentLoaded', function() { document.body.appendChild(overlay); });
+          }
+        };
+
+        window.addEventListener('error', function(e) {
+          // Ignore non-fatal element load errors (like missing images)
+          if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'LINK')) {
+            console.warn('Ignored non-fatal resource load error:', e.target.src || e.target.href);
+            return;
+          }
+          var msg = e.message || 'Unknown Script Error';
+          var file = e.filename || 'N/A';
+          var line = e.lineno || '0';
+          renderErrorBox(msg, file, line);
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          var msg = e.reason ? (e.reason.message || e.reason) : 'Unhandled Promise Rejection';
+          renderErrorBox(String(msg), 'N/A (Promise)', '0');
+        });
+
+        // 3. Automated Blank-Screen Watchdog (Fires after 4000ms if #root is empty)
+        window.addEventListener('DOMContentLoaded', function() {
+          setTimeout(function() {
+            var root = document.getElementById('root');
+            var alreadyTried = false;
+            try { alreadyTried = sessionStorage.getItem('__hitec_watchdog_fired') === 'true'; } catch(e) {}
+
+            // If root is still empty, no error box was caught, and we haven't auto-reset yet:
+            if (root && root.children.length === 0 && !window.__hitecErrorCaught && !alreadyTried) {
+              try { sessionStorage.setItem('__hitec_watchdog_fired', 'true'); } catch(e) {}
+              console.warn('[HitecApp Watchdog] Silent blank screen detected. Executing auto-recovery...');
+              window.__hitecEmergencyReset();
+            }
+          }, 4000);
+        });
+      })();
+    </script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      /* Critical inline fallback to prevent invisible white logos on white screens */
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-color: #0f172a; /* Sleek dark slate/black fallback */
+        color: #ffffff;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      
+      /* Global Safety Net: Hide Cloud Sync Warning in Demo Mode */
+      html[data-demo-mode="true"] .cloud-sync-warning-banner,
+      html[data-demo-mode="true"] [class*="cloud-sync-warning"] {
+        display: none !important;
+      }
+    </style>
+    <title>HitecApp - Tool for Safety Indonesia</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index.CKbw2PcR.js"></script>
+    <link rel="stylesheet" href="/assets/style.DjhpCXYt.css">
+  </head>
+  <body class="h-full bg-slate-950 text-slate-50 antialiased selection:bg-indigo-500 selection:text-white overflow-hidden">
+    <div id="root" class="h-full"></div>
+  </body>
+</html>
