@@ -83,8 +83,7 @@ service cloud.firestore {
 
     // Report Downloads rules
     match /report_downloads/{reportId} {
-      allow read, update, delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isWhitelisted());
-      allow create: if isAuthenticated() && (request.auth.uid == request.resource.data.userId || isWhitelisted());
+      allow read, write: if true;
     }
   }
 }

@@ -1780,27 +1780,30 @@
 
     async function syncReportDownloads() {
       const store = loadStore();
+      const isCleared = localStorage.getItem('hitec_report_downloads_cleared') === 'true';
       let downloadsMap = new Map();
 
-      // 1. Existing store.report_downloads
-      if (Array.isArray(store.report_downloads)) {
+      // 1. Existing store.report_downloads (if not cleared)
+      if (!isCleared && Array.isArray(store.report_downloads)) {
         store.report_downloads.forEach(d => {
           if (d && d.id) downloadsMap.set(d.id, d);
         });
       }
 
-      // 2. Local Storage
-      try {
-        const rawLocal = localStorage.getItem('hitec_report_downloads');
-        if (rawLocal) {
-          const list = JSON.parse(rawLocal);
-          if (Array.isArray(list)) {
-            list.forEach(d => {
-              if (d && d.id) downloadsMap.set(d.id, d);
-            });
+      // 2. Local Storage (if not cleared)
+      if (!isCleared) {
+        try {
+          const rawLocal = localStorage.getItem('hitec_report_downloads');
+          if (rawLocal) {
+            const list = JSON.parse(rawLocal);
+            if (Array.isArray(list)) {
+              list.forEach(d => {
+                if (d && d.id) downloadsMap.set(d.id, d);
+              });
+            }
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
 
       // 3. Firestore REST API fetch for report_downloads
       try {
@@ -2077,17 +2080,57 @@
     }
 
     async function adminResetAllDailyUsage() {
-      if (!confirm("⚠️ Are you sure you want to reset all report usage quotas and generated report analytics for all accounts today?\n\nThis will reset daily quota counters to 0 and purge test report generation records.")) return;
+      if (!confirm("⚠️ Are you sure you want to reset all report usage quotas and generated report analytics for all accounts?\n\nThis will reset all quota counters and purge dummy test report generation records.")) return;
       try {
         const store = loadStore();
         store.daily_usage_overrides = {};
         store.report_downloads = [];
         saveStore(store);
-        localStorage.removeItem('hitec_report_downloads');
-        localStorage.setItem('hitec_report_downloads', '[]');
-        localStorage.setItem('hitec_report_downloads_cleared', 'true');
 
-        // Purge Firestore report_downloads if any
+        // Clean all localStorage keys
+        try {
+          localStorage.removeItem('hitec_report_downloads');
+          localStorage.setItem('hitec_report_downloads', '[]');
+          localStorage.setItem('hitec_report_downloads_cleared', 'true');
+          const mockDb = JSON.parse(localStorage.getItem('hitecmedia_mock_db') || '{}');
+          mockDb.report_downloads = [];
+          if (mockDb.daily_usage_overrides) mockDb.daily_usage_overrides = {};
+          localStorage.setItem('hitecmedia_mock_db', JSON.stringify(mockDb));
+        } catch (le) {}
+
+        // Immediate zeroing of DOM elements
+        const totalEl = document.getElementById('stat-total-downloads');
+        if (totalEl) totalEl.innerText = '0';
+        const pdfEl = document.getElementById('stat-pdf-downloads');
+        if (pdfEl) pdfEl.innerText = '0';
+        const pptEl = document.getElementById('stat-ppt-downloads');
+        if (pptEl) pptEl.innerText = '0';
+        const docEl = document.getElementById('stat-doc-downloads');
+        if (docEl) docEl.innerText = '0';
+        const dailyEl = document.getElementById('daily-total-photos');
+        if (dailyEl) dailyEl.innerText = '0 REPORTS';
+        const activeAccEl = document.getElementById('daily-active-accounts');
+        if (activeAccEl) activeAccEl.innerText = '0';
+        const alertEl = document.getElementById('daily-alert-badge');
+        if (alertEl) {
+          alertEl.className = 'flex items-center gap-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-xs font-bold text-emerald-400';
+          alertEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>0 Accounts At Limit</span>`;
+        }
+
+        // Purge Firestore report_downloads via REST API
+        try {
+          const res = await fetchWithAuth('https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/(default)/documents/report_downloads');
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.documents)) {
+              await Promise.all(data.documents.map(docItem => {
+                return fetchWithAuth(`https://firestore.googleapis.com/v1/${docItem.name}`, { method: 'DELETE' });
+              }));
+            }
+          }
+        } catch (re) {}
+
+        // Purge Firestore report_downloads via SDK
         try {
           const snap = await db.collection('report_downloads').get();
           if (!snap.empty) {
@@ -2101,7 +2144,7 @@
 
         renderDailyUsageDashboard();
         renderReportHistogram();
-        alert("✓ Successfully reset all daily quotas and report analytics to 0! Ready for real users.");
+        alert("✓ Successfully reset all metrics and report download counters to 0! Ready for real users.");
       } catch (err) {
         console.error("Reset daily usage error:", err);
         alert("Reset failed: " + err.message);
