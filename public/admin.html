@@ -1038,35 +1038,11 @@
         setTimeout(function() {
           var target = document.getElementById('comment-logs');
           if (target) target.scrollIntoView({ behavior: 'smooth' });
-      // If hash contains feedback-section, scroll to the feedback section
-      
-      
-      if (hash && hash.includes('feedback-section')) {
-        setTimeout(function() {
-          var target = document.getElementById('feedback-section');
-          if (target) {
-            target.style.display = 'block';
-            target.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 500);
-      }
         }, 300);
       } else if (hash && (hash.includes('feedback') || hash.includes('survey'))) {
         setTimeout(function() {
           var target = document.getElementById('feedback-section');
           if (target) target.scrollIntoView({ behavior: 'smooth' });
-      // If hash contains feedback-section, scroll to the feedback section
-      
-      
-      if (hash && hash.includes('feedback-section')) {
-        setTimeout(function() {
-          var target = document.getElementById('feedback-section');
-          if (target) {
-            target.style.display = 'block';
-            target.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 500);
-      }
         }, 300);
       }
     }
