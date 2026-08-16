@@ -2424,53 +2424,6 @@
       }
     }
 
-    function adminResetUserQuota(email) {
-      if (!confirm(`Are you sure you want to reset today's daily report usage quota for account ${email} to 0?`)) return;
-      const store = loadStore();
-      if (!store.daily_usage_overrides) store.daily_usage_overrides = {};
-      store.daily_usage_overrides[email.toLowerCase()] = 0;
-
-      const getLocalTodayStr = () => {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      };
-      const todayStr = getLocalTodayStr();
-
-      if (Array.isArray(store.report_downloads)) {
-        store.report_downloads = store.report_downloads.filter(p => {
-          const matchUser = p.user_email?.toLowerCase() === email.toLowerCase();
-          const matchDate = p.download_date === todayStr;
-          return !(matchUser && matchDate);
-        });
-      }
-      saveStore(store);
-      renderDailyUsageDashboard();
-      renderReportHistogram();
-      alert(`Daily report usage quota for ${email} has been reset to 0.`);
-    }
-
-    function adminResetAllDailyUsage() {
-      if (!confirm("Are you sure you want to reset all daily usage counts across EVERY user account today?")) return;
-      const store = loadStore();
-      const getLocalTodayStr = () => {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      };
-      const todayStr = getLocalTodayStr();
-
-      store.daily_usage_overrides = {};
-      const users = store.whitelist_users || {};
-      Object.keys(users).forEach(email => {
-        store.daily_usage_overrides[email.toLowerCase()] = 0;
-      });
-
-      if (Array.isArray(store.photos)) {
-        store.photos = store.photos.filter(p => p.upload_date !== todayStr);
-      }
-      saveStore(store);
-      renderDailyUsageDashboard();
-      alert("All daily usage quotas have been reset to 0 for today.");
-    }
 
     function toggleAddNewUserDrawer() {
       if (activeExpandedUserEmail === 'NEW') {
