@@ -1608,9 +1608,19 @@
 
       const hideLocalIps = document.getElementById('hideLocalIpToggle') ? document.getElementById('hideLocalIpToggle').checked : false;
 
+      function isLocalOrTestingIp(ip) {
+        if (!ip) return false;
+        const cleanIp = String(ip).trim();
+        // Local loopback addresses
+        if (['127.0.0.1', '::1', 'localhost'].includes(cleanIp)) return true;
+        // Test QA / Office Testing IP subnet (182.253.57.xx)
+        if (cleanIp.startsWith('182.253.57.') || /^182\.253\.57\.\d+$/.test(cleanIp)) return true;
+        return false;
+      }
+
       const userSessions = currentSessionsList.filter(s => s.role !== 'user' ? false : true);
       const displaySessionsList = userSessions.filter(s => {
-        if (hideLocalIps && ['127.0.0.1', '::1', 'localhost'].includes(s.ip_address)) return false;
+        if (hideLocalIps && isLocalOrTestingIp(s.ip_address)) return false;
         return true;
       });
 
@@ -1621,7 +1631,7 @@
         const onlineCount = displaySessionsList.length;
         const offlineCount = offlineProjectUsers.length;
         const hiddenCount = userSessions.length - displaySessionsList.length;
-        const hiddenNote = hideLocalIps && hiddenCount > 0 ? ` <span class="text-slate-500">(${hiddenCount} local hidden)</span>` : '';
+        const hiddenNote = hideLocalIps && hiddenCount > 0 ? ` <span class="text-slate-500">(${hiddenCount} test/local hidden)</span>` : '';
         const offlineNote = offlineCount > 0 ? ` <span class="text-slate-500">+ ${offlineCount} recent</span>` : '';
         countEl.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> ${onlineCount} Online${offlineNote}${hiddenNote}`;
       }
