@@ -1,0 +1,22 @@
+[
+  {
+    "origin": [
+      "https://hitecapp-safety.web.app",
+      "https://hitecapp-safety.firebaseapp.com",
+      "https://hitecmedia-app.web.app",
+      "https://hitecmedia-app.firebaseapp.com",
+      "http://localhost:5173",
+      "http://localhost:4173"
+    ],
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Range",
+      "x-goog-resumable",
+      "x-goog-meta-firebaseStorageDownloadTokens",
+      "Authorization"
+    ]
+  }
+]

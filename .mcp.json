@@ -1,0 +1,49 @@
+{
+  "mcpServers": {
+    "gcp_bigquery": {
+      "command": "npx",
+      "args": ["-y", "@toolbox-sdk/server@>=1.1.0", "--prebuilt", "bigquery", "--stdio"],
+      "env": {
+        "BIGQUERY_LOCATION": "asia-southeast2",
+        "BIGQUERY_PROJECT": "hitecapp-safety"
+      }
+    },
+    "gcp_dataplex": {
+      "command": "npx",
+      "args": ["-y", "@toolbox-sdk/server@>=1.1.0", "--prebuilt", "dataplex", "--stdio"],
+      "env": {
+        "DATAPLEX_PROJECT": "hitecapp-safety"
+      }
+    },
+    "gcp_cloud_sql_admin": {
+      "command": "npx",
+      "args": ["-y", "@toolbox-sdk/server@>=1.1.0", "--prebuilt", "cloud-sql-postgres-admin", "--stdio"],
+      "env": {
+        "GOOGLE_CLOUD_PROJECT": "hitecapp-safety"
+      }
+    },
+    "gcp_spanner": {
+      "command": "npx",
+      "args": ["-y", "@toolbox-sdk/server@>=1.1.0", "--prebuilt", "spanner", "--stdio"],
+      "env": {
+        "SPANNER_PROJECT": "hitecapp-safety"
+      }
+    },
+    "gcp_dataproc": {
+      "command": "npx",
+      "args": ["-y", "@toolbox-sdk/server@>=1.1.0", "--prebuilt", "dataproc", "--stdio"],
+      "env": {
+        "DATAPROC_PROJECT": "hitecapp-safety",
+        "DATAPROC_REGION": "asia-southeast2"
+      }
+    },
+    "gcp_serverless_spark": {
+      "command": "npx",
+      "args": ["-y", "@toolbox-sdk/server@>=1.1.0", "--prebuilt", "serverless-spark", "--stdio"],
+      "env": {
+        "SERVERLESS_SPARK_PROJECT": "hitecapp-safety",
+        "SERVERLESS_SPARK_LOCATION": "asia-southeast2"
+      }
+    }
+  }
+}

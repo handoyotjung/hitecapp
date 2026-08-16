@@ -1,0 +1,13 @@
+
+> hitecdashboard@0.0.0 build
+> vite build
+
+[36mvite v8.2.1 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...✓ 1796 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.81 kB │ gzip:  0.52 kB
+dist/assets/index-B9f2RY0s.css    2.57 kB │ gzip:  0.98 kB
+dist/assets/index-Z4_3W5WO.js   196.60 kB │ gzip: 62.17 kB
+
+[32m✓ built in 469ms[39m

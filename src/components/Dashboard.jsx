@@ -739,6 +739,23 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const trackReportDownload = async (reportType) => {
     if (!user || !user.email) return;
     const userEmailClean = (user.email || '').trim().toLowerCase();
+
+    // Check if running from automated QA test, Puppeteer, localhost, or test query
+    const isTestRunner = Boolean(
+      (typeof navigator !== 'undefined' && navigator.webdriver) ||
+      (typeof window !== 'undefined' && (
+        window.__isMobileTestQA ||
+        window.__isDesktopTestQA ||
+        window.__isPuppeteer ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.search.includes('test=true') ||
+        window.location.search.includes('qa=true')
+      )) ||
+      /test|qa|puppeteer/i.test(user?.email || '') ||
+      /test|qa/i.test(selectedProject?.name || '')
+    );
+
     const reportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const record = {
       id: reportId,
@@ -747,12 +764,22 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       userId: user.uid || userEmailClean,
       company_id: user.companyId || 'co_hitec',
       city_name: selectedProject?.city_name || cityName.trim() || '',
+      project_name: selectedProject?.name || '',
       report_type: reportType, // 'pdf', 'ppt', 'doc'
       download_date: todayStr,
       month_key: currentMonthStr,
       download_timestamp: Date.now(),
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      is_test: isTestRunner,
+      test_qa: isTestRunner
     };
+
+    // If QA test or Puppeteer, do not pollute Firestore production collection
+    if (isTestRunner) {
+      console.log("[QA Test Guard] Report download logged locally for test runner; excluded from production analytics.");
+      setMonthlyReportCount(prev => prev + 1);
+      return;
+    }
 
     // 1. Save to LocalStorage mock DB
     try {

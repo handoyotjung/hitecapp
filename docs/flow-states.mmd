@@ -1,0 +1,8 @@
+stateDiagram-v2
+    [*] --> EditMode : Project loaded / created
+    EditMode --> SavingInProgress : User clicks Save
+    SavingInProgress --> ViewMode : Save complete
+    ViewMode --> EditMode : User clicks Edit
+    ViewMode --> ExportTriggered : User clicks PDF / PPT / DOC
+    ExportTriggered --> ViewMode : Export complete
+    EditMode --> EditMode : AutoSave silent 700ms debounce

@@ -1,0 +1,23 @@
+flowchart TD
+    A([Open App]) --> B[Login Screen]
+    B --> C{Auth OK?}
+    C -- No --> B
+    C -- Yes --> D[Dashboard]
+    D --> E{Project exists?}
+    E -- No --> F[Create Project\nCompany + City + Name]
+    E -- Yes --> G[Select Project from dropdown]
+    F --> H[Edit Mode — default]
+    G --> H
+    H --> I[Add Photos]
+    I --> J[Add Captions / Grades]
+    J --> K{Ready to save?}
+    K -- No --> I
+    K -- Yes --> L[Click Save]
+    L --> M[View Mode — locked]
+    M --> N{Export?}
+    N -- Yes --> O[PDF / PPT / DOC]
+    N -- No --> P{More edits?}
+    P -- Yes --> Q[Click Edit]
+    Q --> H
+    P -- No --> R([Done])
+    O --> R

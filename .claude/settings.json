@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -sf --max-time 2 http://127.0.0.1:8787/health > /dev/null 2>&1 || bash /c/Users/Administrator/.zen-claude/start.sh & curl -sf --max-time 2 http://127.0.0.1:7779/health > /dev/null 2>&1 || py -3 /c/Users/Administrator/.zen-claude/cody-bridge.py &",
+            "async": true,
+            "statusMessage": "Starting claude-zen proxy..."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(firebase use *)",
+      "Bash(certutil -hashfile dist/index.html MD5)",
+      "Bash(npm run *)",
+      "Bash(firebase deploy *)",
+      "Bash(firebase functions:list --project hitecmedia-app)",
+      "Bash(npx vitest *)",
+      "Bash(gcloud storage *)",
+      "Bash(gcloud functions *)",
+      "Bash(npm list *)",
+      "Bash(node test_upload_visual.cjs)",
+      "Bash(npx vite *)",
+      "Bash(curl -s \"https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/\\(default\\)/documents/whitelist_users/demo@hitec.id?key=AIzaSyATlN5wwRxufoMPQEaI4XVWapWw4q1AaF8\")",
+      "Bash(gcloud firestore *)",
+      "Bash(gcloud auth *)",
+      "Bash(curl -s -H \"Authorization: Bearer $\\(gcloud auth print-access-token\\)\" \"https://firestore.googleapis.com/v1/projects/hitecapp-safety/databases/\\(default\\)/documents/whitelist_users/demo%40hitec.id\")",
+      "Bash(python gen_ppt.py)",
+      "Bash(pip install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(mkdir \"C:\\\\Antigravity IDE\\\\HitecApp\\\\Safety\\\\.claude\\\\commands\")",
+      "Bash(rm \"C:\\\\Antigravity IDE\\\\HitecApp\\\\Safety\\\\.claude\\\\commands\\\\save.md\")",
+      "Bash(node qa_mobile_test.cjs)",
+      "Bash(ls \"C:\\\\Users\\\\Administrator\\\\Pictures\\\\HitecApp\" 2>/dev/null || echo \"FOLDER NOT FOUND\")",
+      "Read(//c/Users/Administrator/Pictures/HitecApp/**)",
+      "Bash(ls \"C:\\\\Users\\\\Administrator\\\\Pictures\\\\HitecApp\")",
+      "Bash(ls \"C:\\\\Users\\\\Administrator\\\\Downloads\" --sort=time | head -10)",
+      "Read(//c/Users/Administrator/Downloads/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Antigravity IDE\\HitecApp\\Safety\\.claude",
+      "C:\\Antigravity IDE\\HitecApp\\Safety\\.claude\\commands"
+    ]
+  }
+}

@@ -1778,6 +1778,17 @@
       renderDailyUsageDashboard();
     }
 
+    function isTestOrQAEntity(email, proj, ip, obj) {
+      if (obj && (obj.is_test === true || obj.isTest === true || obj.test_qa === true)) return true;
+      const cleanEmail = (email || '').toLowerCase().trim();
+      const cleanProj = (proj || '').toLowerCase().trim();
+      const cleanIp = (ip || '').trim();
+      if (/test|qa|puppeteer/i.test(cleanEmail)) return true;
+      if (/test|qa|puppeteer/i.test(cleanProj)) return true;
+      if (cleanIp && (['127.0.0.1', '::1', 'localhost'].includes(cleanIp) || cleanIp.startsWith('182.253.57.'))) return true;
+      return false;
+    }
+
     async function syncReportDownloads() {
       const store = loadStore();
       const isCleared = localStorage.getItem('hitec_report_downloads_cleared') === 'true';
@@ -1786,7 +1797,9 @@
       // 1. Existing store.report_downloads (if not cleared)
       if (!isCleared && Array.isArray(store.report_downloads)) {
         store.report_downloads.forEach(d => {
-          if (d && d.id) downloadsMap.set(d.id, d);
+          if (d && d.id && !isTestOrQAEntity(d.user_email || d.user_id, d.project_name || d.projectName || d.city_name, d.ip_address, d)) {
+            downloadsMap.set(d.id, d);
+          }
         });
       }
 
@@ -1798,7 +1811,9 @@
             const list = JSON.parse(rawLocal);
             if (Array.isArray(list)) {
               list.forEach(d => {
-                if (d && d.id) downloadsMap.set(d.id, d);
+                if (d && d.id && !isTestOrQAEntity(d.user_email || d.user_id, d.project_name || d.projectName || d.city_name, d.ip_address, d)) {
+                  downloadsMap.set(d.id, d);
+                }
               });
             }
           }
@@ -1817,6 +1832,7 @@
                 if (!v) return '';
                 if (v.stringValue !== undefined) return v.stringValue;
                 if (v.integerValue !== undefined) return parseInt(v.integerValue);
+                if (v.booleanValue !== undefined) return v.booleanValue;
                 if (v.timestampValue !== undefined) return v.timestampValue;
                 return v;
               };
@@ -1825,12 +1841,15 @@
                 user_email: parseVal(fields.user_email || fields.userId || fields.user_id),
                 user_id: parseVal(fields.user_id || fields.user_email),
                 company_id: parseVal(fields.company_id),
+                project_name: parseVal(fields.project_name),
+                ip_address: parseVal(fields.ip_address),
                 report_type: parseVal(fields.report_type),
                 download_date: parseVal(fields.download_date),
                 download_timestamp: parseVal(fields.download_timestamp),
-                created_at: parseVal(fields.created_at)
+                created_at: parseVal(fields.created_at),
+                is_test: parseVal(fields.is_test) || false
               };
-              if (item.user_email) {
+              if (item.user_email && !isTestOrQAEntity(item.user_email, item.project_name, item.ip_address, item)) {
                 downloadsMap.set(item.id, item);
               }
             });
@@ -1916,6 +1935,9 @@
           }
         }
       } catch (e) {}
+
+      // Filter out automated QA tests, Puppeteer runs, and testing IPs
+      allDownloads = allDownloads.filter(d => !isTestOrQAEntity(d.user_email || d.user_id, d.project_name || d.projectName || d.city_name, d.ip_address, d));
 
       // Strictly map & filter USER role accounts only (Exclude Admin accounts)
       const userEntries = Object.keys(users).map(email => {
@@ -2228,7 +2250,9 @@
 
       downloads = downloads.filter(d => {
         const email = (d.user_email || d.user_id || d.userId || '').toLowerCase();
-        return !adminEmails.has(email);
+        if (adminEmails.has(email)) return false;
+        if (isTestOrQAEntity(email, d.project_name || d.projectName || d.city_name, d.ip_address, d)) return false;
+        return true;
       });
 
       const isCleared = localStorage.getItem('hitec_report_downloads_cleared') === 'true';

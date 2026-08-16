@@ -7,12 +7,12 @@ from firebase_functions import options, https_fn, storage_fn, scheduler_fn
 from firebase_functions.core import init
 from firebase_admin import initialize_app, firestore, storage
 from firebase_admin import auth as admin_auth
-import google.cloud.bigquery as bigquery
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from PIL import Image
 import pandas as pd
 import requests
+import google.generativeai as genai
 
 # Set global GCP region to asia-southeast2 (Jakarta) for all 2nd Gen Cloud Functions
 options.set_global_options(region="asia-southeast2")
@@ -79,22 +79,20 @@ def get_company_plan_limits(user_email):
         user_snap = user_ref.get()
         if user_snap.exists:
             user_data = user_snap.to_dict()
-            plan_name = user_data.get('plan', 'starter')
+            plan_name = user_data.get('plan', 'basic')
             
             plan_snap = db.collection('plan').document(plan_name).get()
             if plan_snap.exists:
                 plan_data = plan_snap.to_dict()
                 return {
-                    'max_daily': plan_data.get('max_daily_photos', 300 if plan_name == 'pro' else 100),
                     'max_kb': plan_data.get('max_file_size_kb', 1024 if plan_name == 'pro' else 300)
                 }
             return {
-                'max_daily': 300 if plan_name == 'pro' else 100,
                 'max_kb': 1024 if plan_name == 'pro' else 300
             }
     except Exception as e:
         print(f"Error checking plan limits: {e}")
-    return {'max_daily': 100, 'max_kb': 300}  # Starter fallback
+    return {'max_kb': 300}  # Basic fallback
 
 @https_fn.on_call()
 def validateUpload(req: https_fn.CallableRequest) -> dict:
@@ -115,18 +113,6 @@ def validateUpload(req: https_fn.CallableRequest) -> dict:
     # 1. Size check
     if size_kb > limits['max_kb']:
         return {"error": "FILE_TOO_LARGE"}
-
-    # 2. Daily count check
-    today_str = datetime.date.today().isoformat()
-    photos_ref = db.collection('photos')
-    query_photos = photos_ref.where('company_id', '==', company_id) \
-                             .where('upload_date', '==', today_str) \
-                             .where('status', '==', 'done')
-    
-    # Perform count
-    count = len(query_photos.get())
-    if count >= limits['max_daily']:
-        return {"error": "DAILY_LIMIT_REACHED"}
         
     return {"valid": True}
 
@@ -187,7 +173,7 @@ def onPhotoUpload(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]) ->
 
     # Clean extension & name
     extension = filename.split('.')[-1].lower() if '.' in filename else ''
-    allowed_types = ['jpeg', 'jpg', 'png', 'gif']
+    allowed_types = ['jpeg', 'jpg', 'png', 'gif', 'webp']
     mime_type = event.data.content_type or ''
 
     # Get corresponding photo doc from Firestore
@@ -253,6 +239,7 @@ def onPhotoUpload(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]) ->
         # Update Firestore doc as done
         photo_ref.set({
             'status': 'done',
+            'url': f"https://storage.googleapis.com/{event.data.bucket}/{event.data.name}",
             'grade': photo_data.get('grade', 'F2'),
             'assessment_grade': photo_data.get('assessment_grade', 'F2'),
             'size_kb': size_kb,
@@ -386,11 +373,12 @@ def exportPPTX(req: https_fn.CallableRequest) -> dict:
     return {"downloadUrl": signed_url}
 
 def _generate_pdf_report(req: https_fn.CallableRequest) -> dict:
-    """Queries BigQuery/Firestore table or uses frontend photos_data, and creates professional PDF report of photos."""
+    """Reads photos from Firestore (or uses frontend photos_data) and creates a professional PDF report of photos."""
     data = req.data or {}
     project_id = data.get('project_id')
     if not project_id:
         return {"error": "MISSING_PROJECT_ID"}
+    project_name = data.get('project_name', project_id)
 
     view_mode = data.get('view_mode') or 'Desktop'
     is_mobile_mode = view_mode == 'Mobile'
@@ -422,70 +410,35 @@ def _generate_pdf_report(req: https_fn.CallableRequest) -> dict:
                 'view_mode': view_mode
             })
     else:
-        # 1. Try querying BigQuery first (as requested)
-        try:
-            bq_client = bigquery.Client()
-            query_str = """
-                SELECT 
-                  JSON_VALUE(data, '$.filename') as filename,
-                  JSON_VALUE(data, '$.caption') as caption,
-                  JSON_VALUE(data, '$.annotatedBase64') as annotatedBase64,
-                  JSON_VALUE(data, '$.base64') as base64,
-                  JSON_VALUE(data, '$.url') as url,
-                  JSON_VALUE(data, '$.recommendation') as recommendation,
-                  JSON_VALUE(data, '$.risk') as risk
-                FROM `mediaflow.photos_raw_latest` 
-                WHERE JSON_VALUE(data, '$.project_id') = @project_id
-            """
-            job_config = bigquery.QueryJobConfiguration(
-                query_parameters=[
-                    bigquery.ScalarQueryParameter("project_id", "STRING", project_id)
-                ]
-            )
-            query_job = bq_client.query(query_str, job_config=job_config)
-            results = query_job.result()
-            
-            for r in results:
-                rows.append({
-                    'Photo Filename': r.filename or 'IMG.jpg',
-                    'Caption': r.caption or 'No visual defects observed.',
-                    'Recommendation': r.recommendation or 'No specific recommendation noted.',
-                    'Risk Level': r.risk or 'COMPLIANT',
-                    'annotatedBase64': r.annotatedBase64 or r.base64 or '',
-                    'base64': r.base64 or '',
-                    'url': r.url or '',
-                    'filename': r.filename or 'IMG.jpg'
-                })
-        except Exception as bq_err:
-            print(f"BigQuery query failed, falling back to Firestore: {bq_err}")
-            photos_ref = db.collection('photos')
-            query_photos = photos_ref.where('project_id', '==', project_id).where('status', '==', 'done').get()
-            now_utc = datetime.datetime.now(datetime.timezone.utc)
-            for doc_snap in query_photos:
-                p_data = doc_snap.to_dict()
-                exp = p_data.get('expires_at')
-                if exp:
-                    try:
-                        exp_dt = datetime.datetime.fromisoformat(exp.replace('Z', '+00:00'))
-                        if exp_dt < now_utc:
-                            continue
-                    except Exception:
-                        pass
-                recs = p_data.get('recommendations_json') or p_data.get('recommendations') or p_data.get('recommendation') or []
-                rec_text = '\n'.join(recs) if isinstance(recs, list) else str(recs)
-                if not rec_text or rec_text == '[]':
-                    rec_text = "No specific recommendation noted."
-                risk = p_data.get('risk') or p_data.get('risk_level') or "COMPLIANT"
-                rows.append({
-                    'Photo Filename': p_data.get('filename') or 'IMG.jpg',
-                    'Caption': p_data.get('caption') or p_data.get('comments') or p_data.get('comments_text') or 'No visual defects observed.',
-                    'Recommendation': rec_text,
-                    'Risk Level': risk,
-                    'annotatedBase64': p_data.get('annotatedBase64') or p_data.get('base64') or '',
-                    'base64': p_data.get('base64') or '',
-                    'url': p_data.get('url') or p_data.get('localUrl') or p_data.get('thumbnailUrl') or '',
-                    'filename': p_data.get('filename') or 'IMG.jpg'
-                })
+        # BigQuery mediaflow path removed 2026-08-11 (sandbox project deleted) - read Firestore directly
+        photos_ref = db.collection('photos')
+        query_photos = photos_ref.where('project_id', '==', project_id).where('status', '==', 'done').get()
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        for doc_snap in query_photos:
+            p_data = doc_snap.to_dict()
+            exp = p_data.get('expires_at')
+            if exp:
+                try:
+                    exp_dt = datetime.datetime.fromisoformat(exp.replace('Z', '+00:00'))
+                    if exp_dt < now_utc:
+                        continue
+                except Exception:
+                    pass
+            recs = p_data.get('recommendations_json') or p_data.get('recommendations') or p_data.get('recommendation') or []
+            rec_text = '\n'.join(recs) if isinstance(recs, list) else str(recs)
+            if not rec_text or rec_text == '[]':
+                rec_text = "No specific recommendation noted."
+            risk = p_data.get('risk') or p_data.get('risk_level') or "COMPLIANT"
+            rows.append({
+                'Photo Filename': p_data.get('filename') or 'IMG.jpg',
+                'Caption': p_data.get('caption') or p_data.get('comments') or p_data.get('comments_text') or 'No visual defects observed.',
+                'Recommendation': rec_text,
+                'Risk Level': risk,
+                'annotatedBase64': p_data.get('annotatedBase64') or p_data.get('base64') or '',
+                'base64': p_data.get('base64') or '',
+                'url': p_data.get('url') or p_data.get('localUrl') or p_data.get('thumbnailUrl') or '',
+                'filename': p_data.get('filename') or 'IMG.jpg'
+            })
 
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
@@ -671,7 +624,7 @@ def _generate_pdf_report(req: https_fn.CallableRequest) -> dict:
                 Paragraph("-", normal_style)
             ])
 
-    t = Table(table_data, colWidths=[40, 500] if is_mobile_mode else [25, 115, 170, 170, 60])
+    t = Table(table_data, colWidths=[40, 500] if is_mobile_mode else [23, 112, 168, 168, 57])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
@@ -859,3 +812,47 @@ def api_admin_sessions(req: https_fn.Request) -> https_fn.Response:
             return https_fn.Response(json.dumps({'error': str(err)}), status=500, headers=headers)
 
     return https_fn.Response(json.dumps({'error': 'Method not allowed'}), status=405, headers=headers)
+
+@https_fn.on_call()
+def generateAISuggestions(req: https_fn.CallableRequest) -> dict:
+    """Callable function to generate AI observation suggestions and recommendations using Gemini 1.5 Flash."""
+    data = req.data or {}
+    observation = data.get('observation', '')
+    language = data.get('language', 'EN')
+    grade = data.get('grade', 'F2')
+
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if api_key:
+        genai.configure(api_key=api_key)
+
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = (
+            f"You are an ATEX & Industrial Safety Lead Assessor for PT Safety Indonesia Utama.\n"
+            f"Analyze the following field observation:\n"
+            f"Observation: {observation}\n"
+            f"Target Language: {language}\n"
+            f"Assessment Grade: {grade}\n\n"
+            f"Provide a JSON object with two fields:\n"
+            f'1. "suggestion": A polished, professional, and grammatically corrected version of the observation in {language}.\n'
+            f'2. "recommendation": An ATEX/IEC standard-aligned engineering recommendation to mitigate the hazard.\n'
+            f"Return ONLY valid JSON with keys \"suggestion\" and \"recommendation\"."
+        )
+        response = model.generate_content(
+            prompt,
+            generation_config={"response_mime_type": "application/json"}
+        )
+        text = response.text.strip()
+        result = json.loads(text)
+        return {
+            "suggestion": str(result.get("suggestion", observation)),
+            "recommendation": str(result.get("recommendation", ""))
+        }
+    except Exception as e:
+        print(f"Error in generateAISuggestions: {e}")
+        fallback_suggestion = f"Inspeksi dan verifikasi area: {observation}" if language == 'ID' else f"Field inspection observation: {observation}"
+        fallback_rec = f"Verify compliance against ATEX/IEC standard for grade {grade}."
+        return {
+            "suggestion": fallback_suggestion,
+            "recommendation": fallback_rec
+        }

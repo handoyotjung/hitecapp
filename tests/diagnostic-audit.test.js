@@ -29,13 +29,13 @@ describe('Diagnostic Audit Utility', () => {
   });
 
   it('returns a valid JSON schema report with correct values', () => {
-    // Set up a valid mock DB structure to test whitelistIsArray
+    // Set up a valid mock DB structure (object keyed by email)
     localStorage.setItem('hitecmedia_mock_db', JSON.stringify({
-      whitelist_users: ['demo@hitec.id']
+      whitelist_users: { "demo@hitec.id": { role: "user" } }
     }));
 
     registerDebugAudit();
-    
+
     // Spy on console.table to verify it's called
     const consoleSpy = vi.spyOn(console, 'table').mockImplementation(() => {});
 

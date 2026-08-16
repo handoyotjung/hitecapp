@@ -14,7 +14,7 @@
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
   <!-- Outfit Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -397,7 +397,7 @@
               <p class="text-xs text-slate-400 mt-0.5">Real-time Firestore <code class="text-amber-400">client_surveys</code> streaming: 13-criteria ATEX assessor reviews, star ratings, and debug inspector.</p>
             </div>
             <div class="flex items-center gap-2">
-              <a href="/survey.html" target="_blank" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-colors">
+              <a href="/survey.html" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-colors">
                 <span>Take Client Survey</span>
                 <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
               </a>
@@ -452,11 +452,11 @@
               <p class="text-xs text-slate-400 mt-0.5">Product experience interviews and developer-actionable Antigravity synthesis from logged-in HitecApp Indonesian & English users.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-              <input 
-                type="text" 
-                id="feedback-search-input" 
-                oninput="renderFeedbackSection()" 
-                placeholder="Search user or issue..." 
+              <input
+                type="text"
+                id="feedback-search-input"
+                oninput="renderFeedbackSection()"
+                placeholder="Search user or issue..."
                 class="rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-1.5 text-xs text-slate-200 outline-none focus:border-emerald-500 transition-colors w-48"
               />
               <div class="flex items-center gap-2">
@@ -1011,6 +1011,8 @@
           tabParam = 'account';
         } else if (hash.includes('ai-agent')) {
           tabParam = 'ai-agent';
+        } else if (hash.includes('feedback-section')) {
+          tabParam = 'ai-agent';
         }
       }
 
@@ -1193,7 +1195,7 @@
                         <span>🔍 Inspect (13 Items)</span>
                       </button>
                       <button onclick="copyDebugReport(${idx})" title="Copy Markdown debug report" class="px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center gap-1 transition-colors">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1M8 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
                         <span>Copy Log</span>
                       </button>
                     </div>
@@ -1313,6 +1315,33 @@
       }
     }
 
+    async function adminResetClientSurveys() {
+      if (!confirm("⚠️ Are you sure you want to permanently delete all Client Survey responses from Firestore?\n\nThis will purge all QA test submissions and reset all star ratings to zero for real users.")) return;
+      try {
+        const snap = await db.collection('client_surveys').get();
+        const deletePromises = [];
+        snap.forEach(doc => {
+          deletePromises.push(doc.ref.delete());
+        });
+        await Promise.all(deletePromises);
+
+        cachedSurveys = [];
+        const totalEl = document.getElementById('live-survey-total');
+        const avgEl = document.getElementById('live-survey-avg');
+        const countEl = document.getElementById('live-survey-count');
+        const feedEl = document.getElementById('live-survey-feed');
+        if (totalEl) totalEl.textContent = '0';
+        if (avgEl) avgEl.textContent = '—';
+        if (countEl) countEl.textContent = '0';
+        if (feedEl) feedEl.innerHTML = '<p class="text-xs text-slate-500 italic">No survey responses submitted yet. Click "Take Client Survey" to add an evaluation.</p>';
+
+        alert(`✓ Successfully deleted ${snap.size} test survey response(s) from Firestore! Ready for real users.`);
+      } catch (err) {
+        console.error("Reset surveys error:", err);
+        alert("Reset failed: " + err.message);
+      }
+    }
+
     function copyDebugReport(idx) {
       const data = cachedSurveys[idx];
       if (!data) return;
@@ -1354,35 +1383,6 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
-    }
-
-    async function adminResetClientSurveys() {
-      if (!confirm("⚠️ Are you sure you want to permanently delete all Client Survey responses from Firestore?\n\nThis will purge all QA test submissions and reset all star ratings to zero for real users.")) return;
-      try {
-        const snap = await db.collection('client_surveys').get();
-        if (snap.empty) {
-          alert("Survey collection is already empty.");
-          return;
-        }
-        const batch = db.batch();
-        snap.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-
-        cachedSurveys = [];
-        const totalEl = document.getElementById('live-survey-total');
-        const avgEl = document.getElementById('live-survey-avg');
-        const countEl = document.getElementById('live-survey-count');
-        const feedEl = document.getElementById('live-survey-feed');
-        if (totalEl) totalEl.textContent = '0';
-        if (avgEl) avgEl.textContent = '—';
-        if (countEl) countEl.textContent = '0';
-        if (feedEl) feedEl.innerHTML = '<p class="text-xs text-slate-500 italic">No survey responses submitted yet. Click "Take Client Survey" to add an evaluation.</p>';
-
-        alert(`✓ Successfully deleted ${snap.size} test survey response(s) from Firestore! Ready for real users.`);
-      } catch (err) {
-        console.error("Reset surveys error:", err);
-        alert("Reset failed: " + err.message);
-      }
     }
 
     const forceLoggedOutTokens = new Set();
@@ -1778,6 +1778,17 @@
       renderDailyUsageDashboard();
     }
 
+    function isTestOrQAEntity(email, proj, ip, obj) {
+      if (obj && (obj.is_test === true || obj.isTest === true || obj.test_qa === true)) return true;
+      const cleanEmail = (email || '').toLowerCase().trim();
+      const cleanProj = (proj || '').toLowerCase().trim();
+      const cleanIp = (ip || '').trim();
+      if (/test|qa|puppeteer/i.test(cleanEmail)) return true;
+      if (/test|qa|puppeteer/i.test(cleanProj)) return true;
+      if (cleanIp && (['127.0.0.1', '::1', 'localhost'].includes(cleanIp) || cleanIp.startsWith('182.253.57.'))) return true;
+      return false;
+    }
+
     async function syncReportDownloads() {
       const store = loadStore();
       const isCleared = localStorage.getItem('hitec_report_downloads_cleared') === 'true';
@@ -1786,7 +1797,9 @@
       // 1. Existing store.report_downloads (if not cleared)
       if (!isCleared && Array.isArray(store.report_downloads)) {
         store.report_downloads.forEach(d => {
-          if (d && d.id) downloadsMap.set(d.id, d);
+          if (d && d.id && !isTestOrQAEntity(d.user_email || d.user_id, d.project_name || d.projectName || d.city_name, d.ip_address, d)) {
+            downloadsMap.set(d.id, d);
+          }
         });
       }
 
@@ -1798,7 +1811,9 @@
             const list = JSON.parse(rawLocal);
             if (Array.isArray(list)) {
               list.forEach(d => {
-                if (d && d.id) downloadsMap.set(d.id, d);
+                if (d && d.id && !isTestOrQAEntity(d.user_email || d.user_id, d.project_name || d.projectName || d.city_name, d.ip_address, d)) {
+                  downloadsMap.set(d.id, d);
+                }
               });
             }
           }
@@ -1817,6 +1832,7 @@
                 if (!v) return '';
                 if (v.stringValue !== undefined) return v.stringValue;
                 if (v.integerValue !== undefined) return parseInt(v.integerValue);
+                if (v.booleanValue !== undefined) return v.booleanValue;
                 if (v.timestampValue !== undefined) return v.timestampValue;
                 return v;
               };
@@ -1825,12 +1841,15 @@
                 user_email: parseVal(fields.user_email || fields.userId || fields.user_id),
                 user_id: parseVal(fields.user_id || fields.user_email),
                 company_id: parseVal(fields.company_id),
+                project_name: parseVal(fields.project_name),
+                ip_address: parseVal(fields.ip_address),
                 report_type: parseVal(fields.report_type),
                 download_date: parseVal(fields.download_date),
                 download_timestamp: parseVal(fields.download_timestamp),
-                created_at: parseVal(fields.created_at)
+                created_at: parseVal(fields.created_at),
+                is_test: parseVal(fields.is_test) || false
               };
-              if (item.user_email) {
+              if (item.user_email && !isTestOrQAEntity(item.user_email, item.project_name, item.ip_address, item)) {
                 downloadsMap.set(item.id, item);
               }
             });
@@ -1916,6 +1935,9 @@
           }
         }
       } catch (e) {}
+
+      // Filter out automated QA tests, Puppeteer runs, and testing IPs
+      allDownloads = allDownloads.filter(d => !isTestOrQAEntity(d.user_email || d.user_id, d.project_name || d.projectName || d.city_name, d.ip_address, d));
 
       // Strictly map & filter USER role accounts only (Exclude Admin accounts)
       const userEntries = Object.keys(users).map(email => {
@@ -2228,7 +2250,9 @@
 
       downloads = downloads.filter(d => {
         const email = (d.user_email || d.user_id || d.userId || '').toLowerCase();
-        return !adminEmails.has(email);
+        if (adminEmails.has(email)) return false;
+        if (isTestOrQAEntity(email, d.project_name || d.projectName || d.city_name, d.ip_address, d)) return false;
+        return true;
       });
 
       const isCleared = localStorage.getItem('hitec_report_downloads_cleared') === 'true';

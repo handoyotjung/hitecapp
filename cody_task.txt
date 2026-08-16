@@ -1,0 +1,35 @@
+TASK: Build Client UI/UX Survey Platform (public/survey.html) and Link to public/progress.html
+
+REQUIREMENTS:
+1. Create public/survey.html:
+   - Professional dark-themed UI matching PT Safety Indonesia Utama (Tailwind CSS CDN, Outfit font, slate-950 background, sky-400 / emerald-400 accents).
+   - Client Info Header: Name, Organization/Company, Assessor Role (Lead Assessor, Field Inspector, Safety Officer, Client), Project Evaluated.
+   - Two Tabbed/Navigated Sections:
+     [Section A: Mobile Field Assessor Experience]
+       - 1. Mobile Header and Authentication
+       - 2. Project Switcher and Creation
+       - 3. In-Browser Camera and Photo Ingestion
+       - 4. 5-Row Expandable Caption Editor and Speech-to-Text
+       - 5. Mobile Touch Drag Reordering
+       - 6. Mobile Publishing Bar (PDF/PPT/DOC)
+     [Section B: Desktop Lead Assessor Experience]
+       - 1. Two-Panel Split Layout (List + Editor)
+       - 2. AI Assessor and ATEX Compliance Panel
+       - 3. Multi-Photo Drag-and-Drop Reordering
+       - 4. Desktop Publishing Bar and Document Generation
+     [Section C: Overall Platform and Sync]
+       - Multi-Device Real-Time Sync
+       - Report Output Document Quality
+       - General Wishlist / Feature Requests
+   - For every question card: Include interactive 1-to-5 star rating selector with visual gold star states, plus a clean empty textarea for specific qualitative feedback. Include a visual thumbnail/preview container for each module.
+   - Firebase Integration: Initialize Firebase (projectId: "hitecapp-safety") and submit survey payload directly to firestore collection "client_surveys". Include success modal with confirmation.
+
+2. Update public/progress.html:
+   - Add a dedicated "Live Client Survey Feedback and Debugging Sourceplan" widget.
+   - Use real-time Firestore onSnapshot listener on "client_surveys" to display live feedback stream, total responses received, and average rating breakdown per container.
+
+3. Verify:
+   - Run npm run test to verify 17/17 tests pass.
+   - Run npm run build to verify clean production build into dist/.
+   - Skip firebase deploy per Batched Deployment Rule.
+   - Report compact: CHANGE: APPLIED / BUILD: PASS / TEST: PASS.
