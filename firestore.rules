@@ -29,15 +29,27 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
-    // Projects rules
+    // Projects rules — public read for progress dashboard
     match /projects/{projectId} {
-      allow read, write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isWhitelisted());
-      allow create: if isAuthenticated() && (request.auth.uid == request.resource.data.userId || isWhitelisted());
+      allow read: if true;
+      allow write: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.token.email == resource.data.created_by ||
+        isWhitelisted()
+      );
+      allow create: if isAuthenticated() && (
+        request.auth.uid == request.resource.data.userId ||
+        request.auth.token.email == request.resource.data.created_by ||
+        isWhitelisted()
+      );
     }
 
     // Photos rules
     match /photos/{photoId} {
-      allow read, write: if isWhitelisted();
+      allow read, write: if isWhitelisted() ||
+        (isAuthenticated() && request.auth.token.email == resource.data.uploaded_by);
+      allow create: if isWhitelisted() ||
+        (isAuthenticated() && request.auth.token.email == request.resource.data.uploaded_by);
     }
 
     // Plan rules
@@ -51,9 +63,10 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // Sessions rules — restricted to authenticated whitelisted users
+    // Sessions rules — public read for progress dashboard
     match /sessions/{sessionId} {
-      allow read, create, update, delete: if isAuthenticated() && isWhitelisted();
+      allow read: if true;
+      allow create, update, delete: if isAuthenticated() && isWhitelisted();
     }
 
     // System Alerts rules — intentional open-create for unauthenticated Login.jsx failure path
@@ -61,6 +74,11 @@ service cloud.firestore {
       allow create: if true;
       allow read: if isWhitelisted();
       allow update, delete: if isSuperAdmin();
+    }
+
+    // Client Surveys — public read/create, open write/delete for admin cleanup
+    match /client_surveys/{surveyId} {
+      allow read, write: if true;
     }
 
     // Report Downloads rules
