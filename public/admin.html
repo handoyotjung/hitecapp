@@ -242,8 +242,9 @@
               <button onclick="renderDailyUsageDashboard(); renderReportHistogram();" title="Refresh All Stats" class="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 text-xs font-bold text-indigo-300 hover:text-white transition-all active:scale-95 shadow-md cursor-pointer">
                 ↻ Refresh All Stats
               </button>
-              <button onclick="adminResetAllDailyUsage()" class="rounded-xl bg-rose-600/90 hover:bg-rose-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-md active:scale-95 cursor-pointer">
-                Reset All Quotas Today
+              <button onclick="adminResetAllDailyUsage()" title="Reset all report download analytics, quotas, and puppeteer dummy metrics" class="inline-flex items-center gap-1.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 px-3.5 py-1.5 text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                <span>Reset</span>
               </button>
             </div>
           </div>
@@ -1878,9 +1879,7 @@
 
       // Ensure default usage overrides exist for user accounts if not previously set
       if (!store.daily_usage_overrides) {
-        store.daily_usage_overrides = {
-          "demo@hitec.id": 5
-        };
+        store.daily_usage_overrides = {};
       }
 
       // Ensure default user accounts exist in store
