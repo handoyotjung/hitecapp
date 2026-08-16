@@ -14,7 +14,7 @@ function UserMenu() {
         <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
           isPro ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'
         }`}>
-          {isPro ? 'Pro' : 'Starter'}
+          {isPro ? 'Pro' : 'Basic'}
         </span>
       </div>
 
@@ -74,19 +74,19 @@ export default function Header({ isSaving, isError }) {
       </div>
 
       {/* CENTER: DYNAMIC MONTHLY USAGE FOR USERS / UNLIMITED FOR ADMINS */}
-      <div className="flex-1 flex items-center justify-center px-4 min-w-0">
+      <div className="flex-1 flex items-center justify-center px-2 sm:px-4 min-w-0">
         {!isAdmin ? (
-          <div className="flex items-center gap-3 w-full max-w-xl">
-            <span className="text-xs text-gray-400 uppercase tracking-wider flex-shrink-0">MONTHLY USAGE</span>
-            
-            <div className="flex-1 h-1.5 bg-[#1F2937] rounded-full overflow-hidden">
-              <div 
+          <div className="flex items-center gap-2 sm:gap-3 w-full max-w-xl">
+            <span className="text-xs text-gray-400 uppercase tracking-wider flex-shrink-0 hidden md:inline">MONTHLY USAGE</span>
+
+            <div className="flex-1 h-1.5 bg-[#1F2937] rounded-full overflow-hidden min-w-[60px]">
+              <div
                 className={`h-full rounded-full transition-all duration-300 ${barColor}`}
                 style={{ width: `${percent}%` }}
               />
             </div>
 
-            <span className={`text-xs font-semibold flex-shrink-0 ${textColor}`}>
+            <span className={`text-[10px] sm:text-xs font-semibold flex-shrink-0 whitespace-nowrap ${textColor}`}>
               {reportsUsed} / {reportsLimit} REPORTS
             </span>
           </div>
@@ -112,22 +112,22 @@ export default function Header({ isSaving, isError }) {
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${dropOpen ? 'rotate-180' : ''}`} />
             </button>
             {dropOpen && (
-              <div className="absolute right-0 mt-1.5 w-48 rounded-xl border border-slate-700 bg-slate-900 shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-1.5 w-40 sm:w-48 rounded-xl border border-slate-700 bg-slate-900 shadow-xl z-50 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => { setDropOpen(false); onOpenFeedback(); }}
-                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2 sm:gap-2.5 w-full px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-200 hover:bg-slate-800 transition-colors"
                 >
                   <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0" />
-                  Send Feedback
+                  <span className="truncate">Send Feedback</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { setDropOpen(false); onOpenHelp(); }}
-                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2 sm:gap-2.5 w-full px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-200 hover:bg-slate-800 transition-colors"
                 >
                   <BookOpen className="w-4 h-4 text-emerald-400 shrink-0" />
-                  User Guide
+                  <span className="truncate">User Guide</span>
                 </button>
               </div>
             )}

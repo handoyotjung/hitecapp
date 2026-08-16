@@ -75,11 +75,11 @@ const mockStore = {
   whitelist_users: {
     "handoyo.tjung@gmail.com": { role: "super_admin", company_id: "co_hitec", plan: "pro", password: "adminpassword", created_at: "2025-01-01" },
     "admin@hitec.id": { role: "admin", company_id: "co_hitec", plan: "pro", password: "demopassword", created_at: "2026-01-01" },
-    "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "starter", password: "demopassword", created_at: "2026-01-01" }
+    "demo@hitec.id": { role: "user", company_id: "co_hitec", plan: "basic", password: "demopassword", created_at: "2026-01-01" }
   },
   plan: {
-    "starter": { max_daily_photos: 100, max_file_size_kb: 300 },
-    "pro": { max_daily_photos: 300, max_file_size_kb: 1024 }
+    "basic": { max_file_size_kb: 300 },
+    "pro": { max_file_size_kb: 1024 }
   },
   projects: [],
   photos: [],
@@ -326,6 +326,87 @@ export class GoogleAuthProvider {
 // FIRESTORE WRAPPERS
 // ----------------------------------------------------
 const dbListeners = {};
+
+const getFilteredItems = (store, queryInstance) => {
+  const colPath = queryInstance.colRef.path;
+  const data = store[colPath];
+  let items = [];
+
+  if (Array.isArray(data)) {
+    items = [...data];
+  } else if (typeof data === 'object' && data !== null) {
+    items = Object.keys(data).map(id => ({ id, email: id, ...data[id] }));
+  }
+  const nowMs = Date.now();
+  items = items.filter(item => !item.expires_at || new Date(item.expires_at).getTime() >= nowMs);
+
+  const constraints = queryInstance.constraints || [];
+  constraints.forEach(c => {
+    if (c.type === 'where' || c.field) {
+      const field = c.field;
+      const op = c.op;
+      const value = c.value;
+      items = items.filter(item => {
+        let itemVal = item[field];
+        if (field === 'created_by' && !itemVal && item.userId) itemVal = item.userId;
+        if (field === 'userId' && !itemVal && item.created_by) itemVal = item.created_by;
+        if (op === '==') {
+          if (typeof itemVal === 'string' && typeof value === 'string') {
+            return itemVal.trim().toLowerCase() === value.trim().toLowerCase();
+          }
+          return itemVal === value;
+        }
+        if (op === '>=') return itemVal >= value;
+        return true;
+      });
+    }
+  });
+  return items;
+};
+
+const triggerDbListeners = (colPath) => {
+  const list = [...(dbListeners[colPath] || [])];
+  list.forEach(({ refOrQuery, callback }) => {
+    const isRegistered = dbListeners[colPath].some(l => l.callback === callback);
+    if (!isRegistered) return;
+
+    const store = loadMockStore();
+    const colData = store[colPath];
+    if (refOrQuery.colRef) {
+      const items = getFilteredItems(store, refOrQuery);
+      callback({
+        forEach: (cb) => items.forEach(item => cb({ id: item.id, data: () => item })),
+        size: items.length,
+        empty: items.length === 0
+      });
+    } else {
+      if (refOrQuery.docId) {
+        let docData = null;
+        if (Array.isArray(colData)) {
+          docData = colData.find(item => item.id === refOrQuery.docId) || colData[refOrQuery.docId] || null;
+        } else if (colData && typeof colData === 'object') {
+          docData = colData[refOrQuery.docId] || null;
+        }
+        callback({
+          exists: () => docData !== null,
+          data: () => docData
+        });
+      } else if (Array.isArray(colData)) {
+        callback({
+          forEach: (cb) => colData.forEach(item => cb({ id: item.id, data: () => item })),
+          size: colData.length,
+          empty: colData.length === 0
+        });
+      } else if (colData && typeof colData === 'object') {
+        callback({
+          forEach: (cb) => Object.keys(colData).forEach(id => cb({ id, data: () => ({ id, ...colData[id] }) })),
+          size: Object.keys(colData).length,
+          empty: Object.keys(colData).length === 0
+        });
+      }
+    }
+  });
+};
 
 export const collection = (dbInstance, path) => {
   if (isMockMode) return { path };
@@ -626,89 +707,6 @@ export const onSnapshot = (refOrQuery, callback) => {
     };
   }
   return fbOnSnapshot(refOrQuery, callback);
-};
-
-const getFilteredItems = (store, queryInstance) => {
-  const colPath = queryInstance.colRef.path;
-  const data = store[colPath];
-  let items = [];
-
-  if (Array.isArray(data)) {
-    items = [...data];
-  } else if (typeof data === 'object' && data !== null) {
-    items = Object.keys(data).map(id => ({ id, email: id, ...data[id] }));
-  }
-  const nowMs = Date.now();
-  items = items.filter(item => !item.expires_at || new Date(item.expires_at).getTime() >= nowMs);
-
-  const constraints = queryInstance.constraints || [];
-  constraints.forEach(c => {
-    if (c.type === 'where' || c.field) {
-      const field = c.field;
-      const op = c.op;
-      const value = c.value;
-      items = items.filter(item => {
-        let itemVal = item[field];
-        if (field === 'created_by' && !itemVal && item.userId) itemVal = item.userId;
-        if (field === 'userId' && !itemVal && item.created_by) itemVal = item.created_by;
-        if (op === '==') {
-          if (typeof itemVal === 'string' && typeof value === 'string') {
-            return itemVal.trim().toLowerCase() === value.trim().toLowerCase();
-          }
-          return itemVal === value;
-        }
-        if (op === '>=') return itemVal >= value;
-        return true;
-      });
-    }
-  });
-  return items;
-};
-
-const triggerDbListeners = (colPath) => {
-  // Clone the list to prevent index mutation errors if a callback calls unsub() synchronously
-  const list = [...(dbListeners[colPath] || [])];
-  list.forEach(({ refOrQuery, callback }) => {
-    // Only fire if the listener is still registered
-    const isRegistered = dbListeners[colPath].some(l => l.callback === callback);
-    if (!isRegistered) return;
-
-    const store = loadMockStore();
-    const colData = store[colPath];
-    if (refOrQuery.colRef) {
-      const items = getFilteredItems(store, refOrQuery);
-      callback({
-        forEach: (cb) => items.forEach(item => cb({ id: item.id, data: () => item })),
-        size: items.length,
-        empty: items.length === 0
-      });
-    } else {
-      if (refOrQuery.docId) {
-        let docData = null;
-        if (Array.isArray(colData)) {
-          docData = colData.find(item => item.id === refOrQuery.docId) || colData[refOrQuery.docId] || null;
-        } else if (colData && typeof colData === 'object') {
-          docData = colData[refOrQuery.docId] || null;
-        }
-        callback({
-          exists: () => docData !== null,
-          data: () => docData
-        });
-      } else if (Array.isArray(colData)) {
-        callback({
-          forEach: (cb) => colData.forEach(item => cb({ id: item.id, data: () => item })),
-          size: colData.length,
-          empty: colData.length === 0
-        });
-      } else if (colData && typeof colData === 'object') {
-        callback({
-          forEach: (cb) => Object.keys(colData).forEach(id => cb({ id, data: () => ({ id, ...colData[id] }) })),
-          size: Object.keys(colData).length,
-          empty: Object.keys(colData).length === 0
-        });
-      }
-    }
-  });
 };
 
 // ----------------------------------------------------

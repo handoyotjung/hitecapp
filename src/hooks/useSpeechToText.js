@@ -34,7 +34,7 @@ export function useSpeechToText() {
 
       recognition.onend = () => {
         setIsRecording(false);
-        // If ID returned empty and not aborted by <300ms quick release, try EN once
+        // If ID returned empty and not aborted, try EN once
         if (!recognitionRef.current.finalText && lang === 'id-ID' && !recognitionRef.current.aborted) {
           tryLang('en-US');
         }
@@ -47,7 +47,6 @@ export function useSpeechToText() {
         if (lang === 'en-US') {
           text = correctEnglish(text);
         } else {
-          // If in ID mode but looks like English words or after correction, keep clean
           text = text.trim();
           if (text && text.length > 0) {
             text = text.charAt(0).toUpperCase() + text.slice(1);
@@ -57,7 +56,12 @@ export function useSpeechToText() {
       };
 
       recognition.onerror = (event) => {
-        if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        setIsRecording(false);
+        if (event.error === 'not-allowed') {
+          alert('Microphone permission denied. Please allow microphone access in your browser settings to use voice features.');
+        } else if (event.error === 'audio-capture') {
+          alert('No microphone found. Please ensure a microphone is connected.');
+        } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
           console.warn("Speech recognition error:", event.error);
         }
       };
@@ -72,21 +76,33 @@ export function useSpeechToText() {
 
   const start = () => {
     if (!SpeechRecognition) return;
+    
+    // Toggle behavior for quick taps on mobile
+    if (isRecording) {
+      recognitionRef.current.aborted = false;
+      recognitionRef.current.recognition?.stop();
+      setIsRecording(false);
+      return;
+    }
+
     setTranscript('');
     recognitionRef.current = { recognition: null, finalText: '', startTime: Date.now(), aborted: false };
     tryLang('id-ID');
   };
 
-  const stop = () => {
+  const stop = (force = false) => {
+    if (!isRecording && !force) return;
     const duration = Date.now() - (recognitionRef.current.startTime || 0);
-    if (duration < 300) {
-      recognitionRef.current.aborted = true;
-      recognitionRef.current.recognition?.abort();
-      setIsRecording(false);
-      setTranscript('');
+    
+    // If it was a quick tap (< 400ms), assume user wants tap-to-toggle instead of hold-to-talk.
+    // So we ignore the pointerUp stop event and let it keep recording.
+    if (!force && duration < 400) {
       return;
     }
+    
+    recognitionRef.current.aborted = false;
     recognitionRef.current.recognition?.stop();
+    setIsRecording(false);
   };
 
   return { isRecording, transcript, detectedLang, start, stop, supported: !!SpeechRecognition };

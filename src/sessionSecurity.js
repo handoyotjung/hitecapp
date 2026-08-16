@@ -41,6 +41,37 @@ async function firestorePatch(url, fields) {
   } catch (e) {}
 }
 
+async function firestorePost(token, fields) {
+  if (IS_MOCK_MODE) return;
+  try {
+    let url = `${FIRESTORE_SESSIONS_BASE}?documentId=${token}`;
+    if (FIRESTORE_API_KEY) {
+      url += `&key=${FIRESTORE_API_KEY}`;
+    }
+    const headers = { 'Content-Type': 'application/json' };
+    if (auth.currentUser) {
+      const idToken = await auth.currentUser.getIdToken().catch(() => null);
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+        url = url.replace(/&key=[^&]*/, '').replace(/\?key=[^&]*/, '');
+      }
+    }
+    fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ fields })
+    }).then(async res => {
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.error('Firestore session create (POST) failed:', res.status, text);
+        if (res.status === 409 || text.includes('ALREADY_EXISTS')) {
+          firestorePatch(sessionDocUrl(token, '', false), fields);
+        }
+      }
+    }).catch(e => console.error('Firestore network error:', e));
+  } catch (e) {}
+}
+
 // Configuration flag for demo/mock environments
 export const suppressCloudSyncWarning = true;
 
@@ -407,7 +438,7 @@ export const apiLogin = async ({ email, password, device_id, device_name, view_m
       login_at: { stringValue: now.toISOString() },
       status: { stringValue: 'ACTIVE' }
     };
-    firestorePatch(sessionDocUrl(newToken, '', false), docFields);
+    firestorePost(newToken, docFields);
   } catch (e) {
     console.error('Error preparing session write:', e);
   }
@@ -722,7 +753,7 @@ export const syncLocalSessionsToCloud = () => {
   const sessions = loadSessionsTable();
   sessions.forEach(session => {
     if (session.status === 'ACTIVE' && session.token) {
-      firestorePatch(sessionDocUrl(session.token, '', false), {
+      firestorePost(session.token, {
         token: { stringValue: session.token },
         user_id: { stringValue: session.user_id },
         role: { stringValue: session.role || 'user' },

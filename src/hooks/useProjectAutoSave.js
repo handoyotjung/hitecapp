@@ -11,6 +11,10 @@ export function useProjectAutoSave(projectId) {
 
   useEffect(() => {
     setLastSavedAt(Date.now());
+    return () => {
+      clearTimeout(timeoutRef.current);
+      setIsDebouncing(false);
+    };
   }, [projectId]);
 
   const { mutate, isPending, isError } = useMutation({
@@ -81,6 +85,11 @@ export function useProjectAutoSave(projectId) {
     }
   });
 
+  const cancelAutosave = () => {
+    clearTimeout(timeoutRef.current);
+    setIsDebouncing(false);
+  };
+
   // Debounced autosave (700ms by default, or immediate if options.immediate is set)
   const autosave = (payload, options = {}) => {
     clearTimeout(timeoutRef.current);
@@ -107,11 +116,9 @@ export function useProjectAutoSave(projectId) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isPending, isDebouncing]);
 
-
-
-
   return {
     autosave,
+    cancelAutosave,
     isSaving: isPending || isDebouncing,
     isError,
     lastSavedAt

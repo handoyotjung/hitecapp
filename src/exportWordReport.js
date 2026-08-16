@@ -254,7 +254,7 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
           })
         );
 
-        const captionText = photo.caption || photo.comments_text || photo.comments || "";
+        const captionText = photo.caption || photo.title || photo.asset_title || photo.comments_text || photo.comments || "";
         if (captionText && captionText.trim() !== "") {
           docChildren.push(
             new Paragraph({
@@ -299,7 +299,7 @@ export async function handleExportWord(project, queue = [], selectedPhotos = [],
         );
       }
 
-      const filenameText = photo.title || photo.asset_title || photo.filename || 'IMG.jpg';
+      const filenameText = photo.caption || photo.title || photo.asset_title || photo.filename || 'IMG.jpg';
       const dateText = photo.date || new Date().toISOString().split('T')[0];
       const standardsText = photo.standards || photo.standard || '-';
       const locationText = photo.location || project.location || 'Site';

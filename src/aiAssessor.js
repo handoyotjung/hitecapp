@@ -643,25 +643,27 @@ export async function aiFeedbackSynthesize(history = [], userEmail = '', userPla
     }
 
     // Check errors / crash / broken
-    if (l.includes('error') || l.includes('ga bisa') || l.includes('ngga bisa') || l.includes('gak bisa') || l.includes('pecah') || l.includes('crash') || l.includes('bug')) {
+    if (l.includes('error') || l.includes('ga bisa') || l.includes('ngga bisa') || l.includes('gak bisa') || l.includes('tidak bisa') || l.includes('gabisa') || l.includes('pecah') || l.includes('crash') || l.includes('bug')) {
       negativeCount++;
       let screen = 'General Workflow';
-      if (l.includes('export') || l.includes('word') || l.includes('laporan')) screen = 'Export Report / Word';
+      if (l.includes('delete') || l.includes('hapus') || l.includes('remove')) screen = 'Delete Project';
+      else if (l.includes('export') || l.includes('word') || l.includes('laporan')) screen = 'Export Report / Word';
       else if (l.includes('upload') || l.includes('foto')) screen = 'Upload Zone';
       else if (l.includes('canvas') || l.includes('anotasi')) screen = 'Annotated Canvas';
 
       const enDesc = translateIdToEnglishIssue(t);
+      const isDeleteIssue = screen === 'Delete Project';
       issues.push({
-        title: "Functional friction reported on " + screen,
+        title: isDeleteIssue ? "Cannot delete project" : "Functional friction reported on " + screen,
         description: enDesc,
         original_quote: t.trim(),
         screen: screen,
-        severity: "high"
+        severity: isDeleteIssue ? "critical" : "high"
       });
     }
 
     // Check confusion / cumbersome workflow
-    if (l.includes('ribet') || l.includes('bingung') || l.includes('susah') || l.includes('pusing') || l.includes('confus') || l.includes('complicated')) {
+    if (l.includes('ribet') || l.includes('bingung') || l.includes('susah') || l.includes('pusing') || l.includes('confus') || l.includes('complicated') || l.includes('butuh') && l.includes('perbaikan') || l.includes('perlu diperbaik') || l.includes('harus diperbaik')) {
       negativeCount++;
       const enDesc = translateIdToEnglishIssue(t);
       issues.push({
@@ -915,6 +917,17 @@ export async function learnComment(user, project, photo) {
   const recommendationText = photo.rekomendasi || (Array.isArray(photo.recommendations_json) ? photo.recommendations_json.join('\n') : '') || '';
   const aiSuggestedRec = photo.aiSuggestedRec || '';
   const manualOverride = Boolean(photo.manualOverride || recommendationText !== aiSuggestedRec);
+
+  // Skip recording if running under automated QA testing or test user account
+  const isQaTest = (typeof window !== 'undefined' && (
+    window.navigator?.webdriver === true ||
+    window.__HITEC_QA_TEST__ === true ||
+    window.sessionStorage?.getItem('is_qa_test') === 'true'
+  )) || /test|qa|puppeteer/i.test(user?.email || '') || /test|qa/i.test(project?.name || '');
+
+  if (isQaTest) {
+    return;
+  }
 
   // 1. Save to Logs (`comment_logs`)
   const logEntry = {

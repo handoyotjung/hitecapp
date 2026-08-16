@@ -19,7 +19,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { UpgradeModal } from './UpgradeModal';
 import { FeedbackModal } from './FeedbackModal';
 import { HelpModal } from './HelpModal';
-import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, generateRecommendation, getAISuggestions, learnComment } from '../aiAssessor';
+import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, getAISuggestions, learnComment } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
 import { handleExportWord, getBestPhotoBase64 } from '../exportWordReport';
 import PublishBar from './PublishBar';
@@ -241,7 +241,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [aiSuggestedRecText, setAiSuggestedRecText] = useState('');
 
-  const { autosave, isSaving, isError, lastSavedAt } = useProjectAutoSave(selectedProject?.id);
+  const { autosave, cancelAutosave, isSaving, isError, lastSavedAt } = useProjectAutoSave(selectedProject?.id);
+  const photoDocTimeoutRef = useRef(null);
 
   const updatePhotoFieldAndAutosave = (fieldUpdates) => {
     if (projectPhotos.length === 0 || editorIndex === null || !projectPhotos[editorIndex]) return;
@@ -255,13 +256,17 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (currentPhoto.id) {
       // Always include project_id and expires_at so the photo stays bound to its project
       const expiresIso = new Date(Date.now() + retentionMs).toISOString();
-      updateDoc(doc(db, 'photos', currentPhoto.id), {
+      const payload = {
         ...fieldUpdates,
         project_id: currentPhoto.project_id || selectedProject?.id || '',
         company_id: currentPhoto.company_id || user?.companyId || 'co_hitec',
         expires_at: expiresIso,
         lastModified: new Date().toISOString()
-      }).catch(() => {});
+      };
+      clearTimeout(photoDocTimeoutRef.current);
+      photoDocTimeoutRef.current = setTimeout(() => {
+        updateDoc(doc(db, 'photos', currentPhoto.id), payload).catch(() => {});
+      }, 1500);
     }
     autosave({
       photos: updatedPhotos,
@@ -333,66 +338,31 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   };
 
   // Gemini AI bilingual spelling correction and suggestion helper (Bahasa Indonesia & English)
-  const generateGeminiSuggestions = (input) => {
-    const raw = (input || '').trim();
-    if (!raw) {
-      return [
-        { tag: 'ID Baku', text: 'Inspeksi dan verifikasi instalasi sistem proteksi kebakaran lantai 1 selesai dengan baik.' },
-        { tag: 'EN Report', text: 'Inspection and verification of 1st-floor fire safety installation completed successfully.' },
-        { tag: 'Summary', text: 'Dokumentasi progres pekerjaan instalasi dan kelayakan sistem.' }
-      ];
+  const generateGeminiSuggestions = async (observation, language = 'EN', grade = 'F2') => {
+    try {
+      const callGenerateAI = httpsCallable(functions, 'generateAISuggestions');
+      const res = await callGenerateAI({ observation, language, grade });
+      return res.data; // { suggestion, recommendation }
+    } catch (error) {
+      console.error("Error calling generateAISuggestions:", error);
+      return { suggestion: observation || '', recommendation: '' };
     }
-
-    // Indonesian spelling correction dictionary & grammar cleanup
-    let correctedID = raw
-      .replace(/\bsulah\b/gi, 'sudah')
-      .replace(/\bkarna\b/gi, 'karena')
-      .replace(/\bpoto\b/gi, 'foto')
-      .replace(/\bijin\b/gi, 'izin')
-      .replace(/\btdk\b/gi, 'tidak')
-      .replace(/\byg\b/gi, 'yang')
-      .replace(/\bdgn\b/gi, 'dengan')
-      .replace(/\bskrg\b/gi, 'sekarang')
-      .replace(/\bdr\b/gi, 'dari')
-      .replace(/\butk\b/gi, 'untuk')
-      .replace(/\bkl\b/gi, 'kalau');
-
-    correctedID = correctedID.charAt(0).toUpperCase() + correctedID.slice(1);
-    if (!/[.!]$/.test(correctedID)) correctedID += '.';
-
-    // Professional English technical report phrasing
-    let enReport = raw;
-    if (/pipa|kran|keran/i.test(raw)) {
-      enReport = 'Installation and testing of water piping and faucet systems completed.';
-    } else if (/apar|pemadam|kebakaran|fire/i.test(raw)) {
-      enReport = 'Inspection and compliance verification of fire protection equipment.';
-    } else if (/selesai|done|sudah/i.test(raw)) {
-      enReport = `Completed work verification: ${raw.replace(/[.]$/, '')}.`;
-    } else {
-      enReport = `Technical field report: ${correctedID}`;
-    }
-
-    const polishedID = `Laporan Inspeksi: ${correctedID}`;
-
-    return [
-      { tag: 'ID Baku (Corrected)', text: correctedID },
-      { tag: 'EN Technical Report', text: enReport },
-      { tag: 'ID Formal Polish', text: polishedID }
-    ];
   };
 
-  const geminiSuggestionsMemo = useMemo(() => generateGeminiSuggestions(caption), [caption]);
-
-  const runGeminiCorrection = () => {
+  const runGeminiCorrection = async () => {
     setAiProcessing(true);
-    setTimeout(() => {
-      const suggestions = generateGeminiSuggestions(caption);
-      if (suggestions && suggestions[0]) {
-        setCaption(suggestions[0].text);
+    try {
+      const res = await generateGeminiSuggestions(caption, commentsLang || 'EN', photoGrade || 'F2');
+      if (res && res.suggestion) {
+        setCaption(res.suggestion);
       }
+    } catch (err) {
+      console.error('Error running gemini correction:', err);
+    } finally {
       setAiProcessing(false);
-    }, 400);
+    }
   };
+
 
   const [exportingPPTX, setExportingPPTX] = useState(false);
   const [exportingXLSX, setExportingXLSX] = useState(false);
@@ -433,6 +403,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Drag and Drop row reordering
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const [dragOverItemIndex, setDragOverItemIndex] = useState(null);
+  const touchTargetIndexRef = useRef(null);
 
   const handleDropQueueItem = (toIndex) => {
     if (draggedItemIndex === null || draggedItemIndex === toIndex) {
@@ -452,10 +423,10 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     });
 
     // 2. Reorder projectPhotos array so that its ordering stays in sync with the updated queue
+    const newQueueItem = queue[fromIndex];
+    const targetQueueItem = queue[toIndex];
     let reorderedPhotos = [...projectPhotos];
     setProjectPhotos(prevPhotos => {
-      const newQueueItem = queue[fromIndex];
-      const targetQueueItem = queue[toIndex];
       if (!newQueueItem || !targetQueueItem) return prevPhotos;
 
       const newPhotos = [...prevPhotos];
@@ -644,25 +615,25 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     }
 
     // 2. Background Firestore sync
-    // 2. Background Firestore sync
     // Query 1: by company_id (catches projects created after migration)
     const q1 = query(collection(db, 'projects'), where('company_id', '==', user.companyId || 'co_hitec'));
     // Query 2: by created_by email (catches old projects and projects without company_id)
     const q2 = query(collection(db, 'projects'), where('created_by', '==', (user.email || '').trim().toLowerCase()));
 
-    const mergeAndSetProjects = (snapshotProjs) => {
-      setProjects(prev => {
-        // Merge by id — deduplicate, newer snapshot wins
-        const map = new Map(prev.map(p => [p.id, p]));
-        snapshotProjs.forEach(p => map.set(p.id, p));
-        const merged = Array.from(map.values());
-        saveProjectsToCache(user, merged);
-        setLoadingProjects(false);
-        setSelectedProject(sp => {
-          if (sp && merged.some(p => p.id === sp.id)) return merged.find(p => p.id === sp.id);
-          return merged.length > 0 ? merged[0] : null;
-        });
-        return merged;
+    let projs1 = [];
+    let projs2 = [];
+
+    const combineProjects = () => {
+      const map = new Map();
+      projs1.forEach(p => map.set(p.id, p));
+      projs2.forEach(p => map.set(p.id, p));
+      const merged = Array.from(map.values());
+      setProjects(merged);
+      saveProjectsToCache(user, merged);
+      setLoadingProjects(false);
+      setSelectedProject(sp => {
+        if (sp && merged.some(p => p.id === sp.id)) return merged.find(p => p.id === sp.id);
+        return null;
       });
     };
 
@@ -684,8 +655,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       return projs;
     };
 
-    const unsub1 = onSnapshot(q1, (snapshot) => mergeAndSetProjects(parseSnapshot(snapshot)));
-    const unsub2 = onSnapshot(q2, (snapshot) => mergeAndSetProjects(parseSnapshot(snapshot)));
+    const unsub1 = onSnapshot(q1, (snapshot) => {
+      projs1 = parseSnapshot(snapshot);
+      combineProjects();
+    });
+    const unsub2 = onSnapshot(q2, (snapshot) => {
+      projs2 = parseSnapshot(snapshot);
+      combineProjects();
+    });
 
     return () => { unsub1(); unsub2(); };
   }, [user]);
@@ -816,10 +793,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setProjectPhotos([]);
       return;
     }
-    // Instant load cached photo list from selected project
-    if (Array.isArray(selectedProject.photos) && selectedProject.photos.length > 0) {
-      setProjectPhotos(selectedProject.photos);
-    }
+    // Always load photos from Firestore query only, never from project.photos cache
+    setProjectPhotos([]);
     const q = query(
       collection(db, 'photos'),
       where('project_id', '==', selectedProject.id),
@@ -1041,23 +1016,25 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   // Auto-generate AI Recommendation when in Auto mode upon comment or grade changes
   useEffect(() => {
     if (projectPhotos.length === 0 || !projectPhotos[editorIndex]) return;
-    const currentLang = recommendationsLang || 'EN';
-    const suggestions = getAISuggestions(commentsText, photoGrade, commentsLang || 'EN') || [];
-    setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
+    
+    const timeoutId = setTimeout(() => {
+      const currentLang = recommendationsLang || 'EN';
+      const suggestions = getAISuggestions(commentsText, photoGrade, commentsLang || 'EN') || [];
+      setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
 
-    if (recMode === 'Auto') {
-      let isMounted = true;
-      generateRecommendation(commentsText, photoGrade, currentLang).then(recText => {
-        if (isMounted && recText !== undefined && recText !== null) {
-          const lines = (typeof recText === 'string' ? recText : '').split('\n').filter(Boolean);
-          setRecommendations(lines);
-          setAiSuggestedRecText(recText);
-        }
-      }).catch(err => {
-        console.error("generateRecommendation auto error:", err);
-      });
-      return () => { isMounted = false; };
-    }
+      if (recMode === 'Auto') {
+        (async () => {
+          const res = await generateGeminiSuggestions(commentsText, currentLang || 'EN', photoGrade || 'F2');
+          if (res && res.recommendation) {
+            const lines = res.recommendation.split('\n').filter(Boolean);
+            setRecommendations(lines);
+            setAiSuggestedRecText(res.recommendation);
+          }
+        })();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timeoutId);
   }, [commentsText, photoGrade, recMode, recommendationsLang, commentsLang, editorIndex]);
 
 
@@ -1133,14 +1110,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
   const handleDeleteProject = async () => {
     if (!selectedProject) return;
+    const deletedId = selectedProject.id;
     const confirmed = confirm(`Are you sure you want to delete the project "${selectedProject.name}" and all its photos?`);
     if (!confirmed) return;
     try {
-      await deleteDoc(doc(db, 'projects', selectedProject.id));
-      const photosSnap = await getDocs(query(collection(db, 'photos'), where('project_id', '==', selectedProject.id)));
+      if (cancelAutosave) cancelAutosave();
+      await deleteDoc(doc(db, 'projects', deletedId));
+      const photosSnap = await getDocs(query(collection(db, 'photos'), where('project_id', '==', deletedId)));
       for (const photoDoc of photosSnap.docs) {
         await deleteDoc(doc(db, 'photos', photoDoc.id));
       }
+      setProjects(prev => {
+        const next = prev.filter(p => p.id !== deletedId);
+        saveProjectsToCache(user, next);
+        return next;
+      });
       setSelectedProject(null);
     } catch (err) {
       console.error("Error deleting project:", err);
@@ -1650,13 +1634,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (!projectPhotos[editorIndex]) return;
     setAiGeneratingRec(true);
     try {
-      const recText = await generateRecommendation(commentsText, photoGrade, recommendationsLang);
-      if (recText) {
-        const lines = recText.split('\n').filter(Boolean);
+      const res = await generateGeminiSuggestions(commentsText, recommendationsLang || 'EN', photoGrade || 'F2');
+      if (res && res.recommendation) {
+        const lines = res.recommendation.split('\n').filter(Boolean);
         setRecommendations(lines);
-        setAiSuggestedRecText(recText);
+        setAiSuggestedRecText(res.recommendation);
         setRecMode('Auto');
-        updatePhotoFieldAndAutosave({ recommendations_json: lines, recommendations: lines, aiSuggestedRec: recText });
+        updatePhotoFieldAndAutosave({ recommendations_json: lines, recommendations: lines, aiSuggestedRec: res.recommendation });
       } else {
         const res = await aiGenerateRecommendation(
           projectPhotos[editorIndex],
@@ -2191,7 +2175,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                   <option value="">Loading projects...</option>
                 ) : projects.length === 0 ? (
                   <option value="">No projects. Create one above ↑</option>
-                ) : null}
+                ) : (
+                  <option value="">Select a project...</option>
+                )}
                 {!loadingProjects && projects.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -2422,7 +2408,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         <div
                           data-grip="true"
                           style={{ pointerEvents: isViewMode ? 'none' : 'auto' }}
-                          className="text-slate-400 hover:text-white transition-colors p-2 cursor-grab active:cursor-grabbing ml-1 touch-none select-none"
+                          className="drag-handle grip-handle text-slate-400 hover:text-white transition-colors p-2 cursor-grab active:cursor-grabbing ml-1 touch-none select-none"
                           title="Hold and drag to reorder"
                           draggable={true}
                           onDragStart={(e) => { e.stopPropagation(); setDraggedItemIndex(index); }}
@@ -2430,6 +2416,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           onDragEnd={() => { setDraggedItemIndex(null); setDragOverItemIndex(null); }}
                           onTouchStart={(e) => {
                             e.stopPropagation();
+                            touchTargetIndexRef.current = null;
                             setDraggedItemIndex(index);
                           }}
                           onTouchMove={(e) => {
@@ -2437,19 +2424,22 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             e.stopPropagation();
                             const touch = e.touches[0];
                             const els = document.elementsFromPoint(touch.clientX, touch.clientY);
-                            const rowEl = els.find(el => el.dataset && el.dataset.queueIndex !== undefined);
+                            const rowEl = els.find(el => el && el.dataset && el.dataset.queueIndex !== undefined);
                             if (rowEl) {
                               const targetIndex = parseInt(rowEl.dataset.queueIndex, 10);
-                              if (!isNaN(targetIndex) && targetIndex !== dragOverItemIndex) {
+                              if (!isNaN(targetIndex) && targetIndex !== touchTargetIndexRef.current) {
+                                touchTargetIndexRef.current = targetIndex;
                                 setDragOverItemIndex(targetIndex);
                               }
                             }
                           }}
                           onTouchEnd={(e) => {
                             e.stopPropagation();
-                            if (dragOverItemIndex !== null && dragOverItemIndex !== draggedItemIndex) {
-                              handleDropQueueItem(dragOverItemIndex);
+                            const targetIdx = touchTargetIndexRef.current !== null ? touchTargetIndexRef.current : dragOverItemIndex;
+                            if (targetIdx !== null && targetIdx !== index) {
+                              handleDropQueueItem(targetIdx);
                             }
+                            touchTargetIndexRef.current = null;
                             setDraggedItemIndex(null);
                             setDragOverItemIndex(null);
                           }}
@@ -2473,6 +2463,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             isLocked={!hasProject}
             isSaving={isSaving}
             isViewMode={isViewMode}
+            setIsViewMode={setIsViewMode}
             onToggleViewMode={() => setIsViewMode(v => !v)}
           />
           </div>
@@ -2554,8 +2545,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setPhotoTitle(val);
-                                updatePhotoFieldAndAutosave({ caption: val, title: val, asset_title: val });
                               }}
+                              onBlur={() => updatePhotoFieldAndAutosave({ caption: photoTitle, title: photoTitle, asset_title: photoTitle })}
                               placeholder="Add or edit caption..."
                               className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1 text-xs text-white font-medium placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
                             />
@@ -2730,24 +2721,29 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                           </div>
 
                           <div className="flex items-center gap-1.5">
-                            {cardASpeech.supported && (
-                              <button
-                                type="button"
-                                onPointerDown={(e) => { e.stopPropagation(); cardASpeech.start(); }}
-                                onPointerUp={(e) => { e.stopPropagation(); cardASpeech.stop(); }}
-                                onPointerLeave={(e) => { e.stopPropagation(); cardASpeech.stop(); }}
-                                style={{ touchAction: 'manipulation' }}
-                                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all shrink-0 ${
-                                  cardASpeech.isRecording
-                                    ? 'bg-red-500 text-white scale-105 shadow-lg shadow-red-500/30'
-                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                            <button
+                              type="button"
+                              onPointerDown={(e) => {
+                                if (!cardASpeech.supported) {
+                                  alert("Speech-to-text is not supported on this browser. Please use your keyboard's built-in dictation microphone instead.");
+                                  return;
+                                }
+                                e.stopPropagation();
+                                cardASpeech.start();
+                              }}
+                              onPointerUp={(e) => { e.stopPropagation(); cardASpeech.stop(); }}
+                              onPointerLeave={(e) => { e.stopPropagation(); cardASpeech.stop(); }}
+                              style={{ touchAction: 'manipulation' }}
+                              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all shrink-0 ${
+                                cardASpeech.isRecording
+                                  ? 'bg-red-500 text-white scale-105 shadow-lg shadow-red-500/30'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
                                 }`}
-                                title="Press and hold to talk"
-                              >
-                                <MicIcon className={`w-3.5 h-3.5 ${cardASpeech.isRecording ? 'text-white animate-pulse' : 'text-slate-400'}`} />
-                                <span>{cardASpeech.isRecording ? `Listening... ${cardASpeech.detectedLang === 'id-ID' ? 'ID' : 'EN'}` : 'Hold to Talk'}</span>
-                              </button>
-                            )}
+                              title="Press and hold to talk"
+                            >
+                              <MicIcon className={`w-3.5 h-3.5 ${cardASpeech.isRecording ? 'text-white animate-pulse' : 'text-slate-400'}`} />
+                              <span>{cardASpeech.isRecording ? `Listening... ${cardASpeech.detectedLang === 'id-ID' ? 'ID' : 'EN'}` : 'Hold to Talk'}</span>
+                            </button>
 
                             <button
                               type="button"
@@ -2783,10 +2779,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                               newText = lines.slice(0, 3).join('\n');
                               setCommentsText(newText);
                             }
-                            updatePhotoFieldAndAutosave({ comments_text: newText, comments: newText });
-                            e.target.style.height = 'auto';
-                            e.target.style.height = `${e.target.scrollHeight}px`;
                           }}
+                          onBlur={() => updatePhotoFieldAndAutosave({ comments_text: commentsText, comments: commentsText })}
                           placeholder={commentsLang === 'ID' ? 'Tulis komentar observasi...' : 'Write observation comments...'}
                           className="comments-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-y leading-relaxed overflow-y-auto"
                         />
@@ -3153,7 +3147,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         onClose={() => setShowFeedbackModal(false)}
         user={user}
         isPro={isPro}
-        lang="EN"
+        lang={navigator.language?.startsWith('id') ? 'ID' : 'EN'}
       />
     </div>
   );

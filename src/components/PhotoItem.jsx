@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic as MicIcon } from 'lucide-react';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 
-export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
+export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto, disabled }) {
   const [caption, setCaption] = useState(photo.caption || '');
   const [isEditing, setIsEditing] = useState(false);
   const { isRecording, transcript, detectedLang, start, stop, supported } = useSpeechToText();
@@ -39,6 +39,10 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
   }, [isRecording, transcript]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleMicPointerDown = (e) => {
+    if (!supported) {
+      alert("Speech-to-text is not supported on this browser. Please use your keyboard's built-in dictation microphone instead.");
+      return;
+    }
     e.stopPropagation();
     setIsEditing(true);
     start();
@@ -87,6 +91,7 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
             src={photo.thumbnail || photo.thumbnailUrl || photo.previewUrl || photo.url} 
             alt="thumbnail" 
             onClick={onSelectPhoto}
+            onError={(e) => { e.target.style.display = 'none'; }}
             className={`w-12 h-12 rounded-lg object-cover shrink-0 border border-slate-800 ${onSelectPhoto ? 'cursor-pointer hover:opacity-80' : ''}`} 
           />
           <div className="min-w-0 flex-1">
@@ -98,27 +103,27 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
             </p>
             {!isEditing && (
               <p 
-                onClick={() => setIsEditing(true)} 
-                title="Click to expand 5-row caption editor"
-                className={`text-xs cursor-pointer truncate mt-0.5 hover:underline ${caption ? 'text-emerald-400' : 'text-yellow-400'}`}
+                onClick={() => { if (!disabled) setIsEditing(true); }} 
+                title={disabled ? "" : "Click to expand 5-row caption editor"}
+                className={`text-xs truncate mt-0.5 ${!disabled ? 'cursor-pointer hover:underline' : ''} ${caption ? 'text-emerald-400' : 'text-yellow-400'}`}
               >
-                {caption || 'No caption (click to expand editor)'}
+                {caption || (disabled ? 'No caption' : 'No caption (click to expand editor)')}
               </p>
             )}
           </div>
         </div>
 
         {/* Mic Button: exact same dimensions (w-12 h-12) as photo thumbnail, right across in same line */}
-        {supported && (
-          <button 
+        {!disabled && (
+          <button
             type="button"
             onPointerDown={handleMicPointerDown}
             onPointerUp={handleMicPointerUp}
             onPointerLeave={handleMicPointerUp}
             style={{ touchAction: 'manipulation' }}
             className={`w-12 h-12 rounded-lg flex flex-col items-center justify-center transition-all shrink-0 border ${
-              isRecording 
-                ? 'bg-red-500 border-red-400 scale-105 shadow-lg shadow-red-500/30 text-white' 
+              isRecording
+                ? 'bg-red-500 border-red-400 scale-105 shadow-lg shadow-red-500/30 text-white'
                 : 'bg-[#1F2937] hover:bg-slate-700 border-slate-700 text-emerald-400'
             }`}
             title="Hold to talk"
@@ -133,6 +138,7 @@ export default function PhotoItem({ photo, onUpdateCaption, onSelectPhoto }) {
       {(isEditing || isRecording) && (
         <div className="relative w-full mt-1">
           <textarea 
+            disabled={disabled}
             rows={5}
             value={caption}
             onChange={handleChange}

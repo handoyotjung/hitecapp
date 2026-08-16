@@ -1,7 +1,7 @@
 import React from 'react';
-import { Save, CheckCircle2, FileDown, Presentation, FileText } from 'lucide-react';
+import { Save, CheckCircle2, FileDown, Presentation, FileText, ArrowLeft } from 'lucide-react';
 
-export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport, isLocked = false, isViewMode = false, onToggleViewMode }) {
+export default function PublishBar({ confirmCount = 0, isConfirmed = false, onExport, isLocked = false, isViewMode = false, onToggleViewMode, setIsViewMode }) {
   const isSaved = Boolean(isConfirmed);
 
   return (
@@ -12,31 +12,43 @@ export default function PublishBar({ confirmCount = 0, isConfirmed = false, onEx
       {/* Arranged side-by-side in a single row */}
       <div className="grid grid-cols-4 gap-1.5 w-full items-center">
         {/* 1. Manual Save / AutoSave Trigger Button */}
-        <button
-          type="button"
-          onClick={isViewMode ? onToggleViewMode : () => { if (!isLocked) onExport('confirm'); if (onToggleViewMode) onToggleViewMode(); }}
-          disabled={isLocked}
-          className={`h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
-            isLocked
-              ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
-              : isSaved
-                ? 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold border border-emerald-500/40'
-                : 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold'
-          }`}
-          title={isLocked ? "Select or create a project first" : "Click to manually save all photo list updates & project changes"}
-        >
-          {isSaved ? (
-            <>
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
-              <span className="truncate">{confirmCount > 0 ? `Saved (${confirmCount})` : 'Saved'}</span>
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 shrink-0" />
-              <span className="truncate">{confirmCount > 0 ? `Save (${confirmCount})` : (isViewMode ? 'Edit' : 'Save')}</span>
-            </>
-          )}
-        </button>
+        {isViewMode ? (
+          <button
+            type="button"
+            onClick={() => setIsViewMode && setIsViewMode(false)}
+            className="h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate bg-slate-800 hover:bg-slate-700 text-slate-300 shadow-md active:scale-95 cursor-pointer"
+            title="Exit view mode"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" />
+            <span className="truncate">Edit</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { if (!isLocked) onExport('confirm'); if (onToggleViewMode) onToggleViewMode(); }}
+            disabled={isLocked}
+            className={`h-[38px] px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all truncate ${
+              isLocked
+                ? 'bg-[#1F1F1F] text-gray-500 cursor-not-allowed border border-transparent shadow-none'
+                : isSaved
+                  ? 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold border border-emerald-500/40'
+                  : 'bg-[#107C41] hover:bg-[#0C5E31] text-white shadow-md shadow-[#107C41]/25 active:scale-95 cursor-pointer font-bold'
+            }`}
+            title={isLocked ? "Select or create a project first" : "Click to manually save all photo list updates & project changes"}
+          >
+            {isSaved ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
+                <span className="truncate">{confirmCount > 0 ? `Saved (${confirmCount})` : 'Saved'}</span>
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 shrink-0" />
+                <span className="truncate">{confirmCount > 0 ? `Save (${confirmCount})` : 'Save'}</span>
+              </>
+            )}
+          </button>
+        )}
 
         {/* 2. PDF Button */}
         <button

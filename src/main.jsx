@@ -9,8 +9,8 @@ if (suppressCloudSyncWarning) {
   document.documentElement.setAttribute('data-demo-mode', 'true');
 }
 
-// Initialize non-intrusive field debugger
 registerDebugAudit();
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

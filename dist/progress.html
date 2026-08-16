@@ -582,6 +582,11 @@
                 const comments = data.comments || {};
                 const submittedAt = data.submittedAt || data.timestamp || '';
 
+                // Skip QA test submissions from production feed
+                if (data.isTest === true || /test|qa|puppeteer/i.test(name) || /test|qa|puppeteer/i.test(project)) {
+                  return;
+                }
+
                 if (avgScore > 0) {
                   grandRatingSum += Number(avgScore);
                   grandRatingCount++;

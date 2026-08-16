@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Stage, Layer, Image as KonvaImage, Line, Arrow, Rect } from 'react-konva';
+import { Stage, Layer, Image as KonvaImage, Line, Arrow, Rect, Text as KonvaText } from 'react-konva';
 import useImage from 'use-image';
-import { Edit2, MoveUpRight, Square, Trash2, Download, Check } from 'lucide-react';
+import { Edit2, MoveUpRight, Square, Type, RotateCcw, Trash2, Download, Check } from 'lucide-react';
 
 function CanvasBackgroundImage({ src, stageWidth, stageHeight }) {
   const [image] = useImage(src, 'Anonymous');
@@ -44,10 +44,12 @@ export default function AnnotatedImageCanvas({
   stageHeight = 240,
   photoCounter = ''
 }) {
-  const [tool, setTool] = useState('select'); // 'doodle', 'arrow', 'rect', 'select'
+  const [tool, setTool] = useState('select'); // 'doodle', 'arrow', 'rect', 'text', 'select'
   const [lines, setLines] = useState([]);
   const [arrows, setArrows] = useState([]);
   const [rects, setRects] = useState([]);
+  const [texts, setTexts] = useState([]);
+  const [history, setHistory] = useState([]);
   const [color, setColor] = useState('#FF0000');
   const [strokeWidth, setStrokeWidth] = useState(3);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -84,17 +86,25 @@ export default function AnnotatedImageCanvas({
 
   const photoKey = photo?.id || photo?.filename;
 
+  // Save current state snapshot to undo history
+  const pushHistory = (newLines = lines, newArrows = arrows, newRects = rects, newTexts = texts) => {
+    setHistory(prev => [...prev, { lines: newLines, arrows: newArrows, rects: newRects, texts: newTexts }]);
+  };
+
   // Load annotations from current photo when switching photos
   useEffect(() => {
     if (photo && photo.annotations) {
       setLines(photo.annotations.lines || []);
       setArrows(photo.annotations.arrows || []);
       setRects(photo.annotations.rects || []);
+      setTexts(photo.annotations.texts || []);
     } else {
       setLines([]);
       setArrows([]);
       setRects([]);
+      setTexts([]);
     }
+    setHistory([]);
   }, [photoKey]);
 
   const getPointerPos = (e) => {
@@ -108,7 +118,18 @@ export default function AnnotatedImageCanvas({
     const pos = getPointerPos(e);
     if (!pos) return;
 
+    if (tool === 'text') {
+      const val = window.prompt("Enter label text (e.g., Zone 1, Ex d IIC, Temp Class T4):", "Zone 1");
+      if (val && val.trim()) {
+        const newTexts = [...texts, { x: pos.x, y: pos.y, text: val.trim(), color, fontSize: Math.max(14, strokeWidth * 4) }];
+        pushHistory(lines, arrows, rects, texts);
+        setTexts(newTexts);
+      }
+      return;
+    }
+
     isDrawing.current = true;
+    pushHistory(lines, arrows, rects, texts);
 
     if (tool === 'doodle') {
       setLines([...lines, { points: [pos.x, pos.y], color, strokeWidth }]);
@@ -121,7 +142,7 @@ export default function AnnotatedImageCanvas({
 
   // 2. HANDLE MOUSE / TOUCH MOVE
   const handleMouseMove = (e) => {
-    if (!isDrawing.current || tool === 'select') return;
+    if (!isDrawing.current || tool === 'select' || tool === 'text') return;
     const pos = getPointerPos(e);
     if (!pos) return;
 
@@ -146,18 +167,31 @@ export default function AnnotatedImageCanvas({
     isDrawing.current = false;
   };
 
-  // 4. CLEAR BUTTON
+  // 4. UNDO BUTTON
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const previous = history[history.length - 1];
+    setHistory(prev => prev.slice(0, -1));
+    setLines(previous.lines || []);
+    setArrows(previous.arrows || []);
+    setRects(previous.rects || []);
+    setTexts(previous.texts || []);
+  };
+
+  // 5. CLEAR BUTTON
   const handleClear = () => {
+    pushHistory(lines, arrows, rects, texts);
     setLines([]);
     setArrows([]);
     setRects([]);
+    setTexts([]);
   };
 
-  // 5. SAVE IMAGE BUTTON
+  // 6. SAVE IMAGE BUTTON
   const handleSaveImage = () => {
     if (!stageRef.current || !photo) return;
     const dataURL = stageRef.current.toDataURL({ pixelRatio: 2 });
-    const annotationsObj = { lines, arrows, rects };
+    const annotationsObj = { lines, arrows, rects, texts };
 
     if (onSaveAnnotatedImage) {
       onSaveAnnotatedImage(photo, dataURL, annotationsObj);
@@ -225,6 +259,33 @@ export default function AnnotatedImageCanvas({
             <span>Rect</span>
           </button>
 
+          {/* Text Tool */}
+          <button
+            type="button"
+            onClick={() => setTool(tool === 'text' ? 'select' : 'text')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${
+              tool === 'text'
+                ? 'bg-[#1E3A8A] border-blue-500 text-white shadow-sm'
+                : 'bg-[#374151] border-slate-600 text-slate-300 hover:text-white'
+            }`}
+            title="Add Text Label (e.g. Zone 1, Ex d)"
+          >
+            <Type className="h-3.5 w-3.5" />
+            <span>Text</span>
+          </button>
+
+          {/* Undo */}
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={history.length === 0}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-[#374151] border-slate-600 text-amber-400 hover:text-amber-300 hover:bg-slate-700 disabled:opacity-40 disabled:hover:text-amber-400 disabled:cursor-not-allowed text-xs font-bold transition-all"
+            title="Undo last annotation"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span>Undo</span>
+          </button>
+
           {/* Clear */}
           <button
             type="button"
@@ -259,7 +320,7 @@ export default function AnnotatedImageCanvas({
           </div>
         </div>
 
-        {/* Right: Save Image button (was Refresh) */}
+        {/* Right: Save Image button */}
         <button
           type="button"
           onClick={handleSaveImage}
@@ -287,7 +348,7 @@ export default function AnnotatedImageCanvas({
           tool !== 'select' ? 'cursor-crosshair' : 'cursor-default'
         }`}
       >
-        {/* Photo counter overlay positioned absolutely in the top-right corner of actual image container, vertically aligned right underneath the Save Image button */}
+        {/* Photo counter overlay */}
         {photoCounter && (
           <div className="absolute top-3 right-3 z-20 rounded-full bg-slate-950/85 border border-slate-800/90 px-3 py-1 text-[11px] font-bold text-slate-300 backdrop-blur shadow-md pointer-events-none">
             {photoCounter}
@@ -353,6 +414,23 @@ export default function AnnotatedImageCanvas({
                 height={rect.height}
                 stroke={rect.color}
                 strokeWidth={rect.strokeWidth}
+              />
+            ))}
+
+            {/* Text Labels */}
+            {texts.map((t, i) => (
+              <KonvaText
+                key={`text-${i}`}
+                x={t.x}
+                y={t.y}
+                text={t.text}
+                fontSize={t.fontSize || 16}
+                fill={t.color || '#FF0000'}
+                fontStyle="bold"
+                shadowColor="#000000"
+                shadowBlur={4}
+                shadowOffsetX={1}
+                shadowOffsetY={1}
               />
             ))}
           </Layer>

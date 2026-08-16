@@ -694,6 +694,16 @@
       });
       payload.averageRating = count > 0 ? parseFloat((sum / count).toFixed(2)) : 0;
 
+      const isQaTest = (typeof window !== 'undefined' && (
+        window.navigator?.webdriver === true ||
+        window.__HITEC_QA_TEST__ === true ||
+        window.sessionStorage?.getItem('is_qa_test') === 'true'
+      )) || /test|qa|puppeteer/i.test(name) || /test|qa/i.test(project);
+
+      if (isQaTest) {
+        payload.isTest = true;
+      }
+
       try {
         if (db) {
           await db.collection("client_surveys").add(payload);
