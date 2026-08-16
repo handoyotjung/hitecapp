@@ -1059,8 +1059,16 @@
       initAdminTabFromUrl();
       initLiveSurveyWidget();
 
-      // 5-second real-time auto polling for feedback and report downloads submitted from any device or incognito mode
+      // Real-time Firestore listener for active assessor sessions
+      try {
+        db.collection('sessions').onSnapshot(() => {
+          renderOnlineSessions();
+        }, err => console.warn('Sessions snapshot note:', err));
+      } catch (e) {}
+
+      // 5-second real-time auto polling for sessions, feedback, and usage metrics across all devices
       setInterval(() => {
+        renderOnlineSessions();
         syncReportDownloads();
         syncFirestoreFeedback();
         renderDailyUsageDashboard();
@@ -1624,8 +1632,12 @@
         return true;
       });
 
-      // Combine online sessions + offline project users
-      const combinedList = [...displaySessionsList, ...offlineProjectUsers];
+      // Combine online sessions + offline project users and sort from newest to oldest
+      const combinedList = [...displaySessionsList, ...offlineProjectUsers].sort((a, b) => {
+        const timeA = new Date(a.login_at || a.lastModified || a.created_at || 0).getTime();
+        const timeB = new Date(b.login_at || b.lastModified || b.created_at || 0).getTime();
+        return timeB - timeA; // Newest first
+      });
 
       if (countEl) {
         const onlineCount = displaySessionsList.length;
