@@ -2068,13 +2068,73 @@
             ${item.lastActivity}
           </td>
           <td class="py-3.5 pl-2 text-right">
-            <button onclick="adminResetUserQuota('${item.email}')" class="rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 hover:text-white px-2.5 py-1 text-[10px] font-bold text-indigo-300 transition-colors" title="Reset today's usage quota to 0 for ${item.email}">
+            <button onclick="adminResetUserQuota('${item.email}')" class="rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 hover:text-white px-2.5 py-1 text-[10px] font-bold text-indigo-300 transition-colors cursor-pointer" title="Reset today's usage quota to 0 for ${item.email}">
               Reset Quota
             </button>
           </td>
         `;
         tbody.appendChild(tr);
       });
+    }
+
+    async function adminResetAllDailyUsage() {
+      if (!confirm("⚠️ Are you sure you want to reset all report usage quotas and generated report analytics for all accounts today?\n\nThis will reset daily quota counters to 0 and purge test report generation records.")) return;
+      try {
+        const store = loadStore();
+        store.daily_usage_overrides = {};
+        store.report_downloads = [];
+        saveStore(store);
+        localStorage.removeItem('hitec_report_downloads');
+        localStorage.setItem('hitec_report_downloads', '[]');
+        localStorage.setItem('hitec_report_downloads_cleared', 'true');
+
+        // Purge Firestore report_downloads if any
+        try {
+          const snap = await db.collection('report_downloads').get();
+          if (!snap.empty) {
+            const deletePromises = [];
+            snap.forEach(doc => deletePromises.push(doc.ref.delete()));
+            await Promise.all(deletePromises);
+          }
+        } catch (fe) {
+          console.warn("Firestore report_downloads clean note:", fe);
+        }
+
+        renderDailyUsageDashboard();
+        renderReportHistogram();
+        alert("✓ Successfully reset all daily quotas and report analytics to 0! Ready for real users.");
+      } catch (err) {
+        console.error("Reset daily usage error:", err);
+        alert("Reset failed: " + err.message);
+      }
+    }
+
+    function adminResetUserQuota(email) {
+      if (!email) return;
+      const cleanEmail = email.toLowerCase().trim();
+      if (!confirm(`Reset today's downloaded reports quota to 0 for ${cleanEmail}?`)) return;
+      try {
+        const store = loadStore();
+        store.daily_usage_overrides = store.daily_usage_overrides || {};
+        store.daily_usage_overrides[cleanEmail] = 0;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (Array.isArray(store.report_downloads)) {
+          store.report_downloads = store.report_downloads.filter(d => {
+            const matchUser = (d.user_email || d.user_id || d.userId || '').toLowerCase() === cleanEmail;
+            const matchDate = d.download_date === todayStr || d.created_at?.startsWith(todayStr);
+            return !(matchUser && matchDate);
+          });
+        }
+
+        saveStore(store);
+        renderDailyUsageDashboard();
+        renderReportHistogram();
+        alert(`✓ Daily quota for ${cleanEmail} has been reset to 0 for today.`);
+      } catch (err) {
+        console.error("Reset user quota error:", err);
+        alert("Reset failed: " + err.message);
+      }
     }
 
     function renderReportHistogram() {
@@ -2129,28 +2189,11 @@
         return !adminEmails.has(email);
       });
 
-      // Seed historical mock data for user accounts if fewer than 10 records exist
-      if (downloads.length < 10) {
-        const mockAccounts = [
-          'demo@hitec.id',
-          'budi.santoso@safety-id.co.id',
-          'dummy@hitec.id'
-        ];
-        const mockTypes = ['pdf', 'ppt', 'doc'];
-        
-        for (let i = 0; i < 90; i++) {
-          const dateStr = getPastDateStr(i);
-          const countForDay = Math.floor(Math.sin(i * 0.7 + 1) * 3) + 4;
-          for (let c = 0; c < countForDay; c++) {
-            downloads.push({
-              id: `seed_${i}_${c}`,
-              user_email: mockAccounts[c % mockAccounts.length],
-              report_type: mockTypes[(i + c) % mockTypes.length],
-              download_date: dateStr,
-              download_timestamp: new Date(dateStr).getTime()
-            });
-          }
-        }
+      const isCleared = localStorage.getItem('hitec_report_downloads_cleared') === 'true';
+
+      // Seed historical mock data only if not cleared and list is empty
+      if (downloads.length === 0 && !isCleared) {
+        // No auto-seed when clean slate is desired
       }
 
       // Filter by format if selected
