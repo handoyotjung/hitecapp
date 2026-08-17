@@ -285,7 +285,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     setAiDraftRec('');
   };
 
-  const { autosave, cancelAutosave, isSaving, isError, lastSavedAt } = useProjectAutoSave(selectedProject?.id);
+  const { autosave, cancelAutosave, retrySave, isSaving, isError, lastSavedAt } = useProjectAutoSave(selectedProject?.id);
   const photoDocTimeoutRef = useRef(null);
 
   // E2E Test Harness listener for synthetic draft injection
@@ -2118,7 +2118,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
             {/* Top Control Bar: Autosave text + Expand/Collapse Details right in the same line */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/80 bg-slate-950/90 shrink-0 w-full min-w-0">
               <div className="flex items-center min-w-0">
-                <AutoSaveIndicator isSaving={isSaving} isError={isError} lastSavedAt={lastSavedAt} />
+                <AutoSaveIndicator isSaving={isSaving} isError={isError} lastSavedAt={lastSavedAt} onRetry={retrySave} />
               </div>
               {(isMobileMode || isMobileViewport) && (
                 <button

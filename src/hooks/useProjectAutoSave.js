@@ -4,24 +4,25 @@ import { db, doc, setDoc, updateDoc } from '../firebase';
 
 
 export function useProjectAutoSave(projectId) {
-
   const timeoutRef = useRef(null);
+  const lastPayloadRef = useRef({});
   const [lastSavedAt, setLastSavedAt] = useState(() => Date.now());
   const [isDebouncing, setIsDebouncing] = useState(false);
 
   useEffect(() => {
     setLastSavedAt(Date.now());
+    lastPayloadRef.current = {};
     return () => {
       clearTimeout(timeoutRef.current);
+      lastPayloadRef.current = {};
       setIsDebouncing(false);
     };
   }, [projectId]);
 
-  const { mutate, isPending, isError } = useMutation({
+  const { mutate, isPending, isError, reset } = useMutation({
     mutationFn: async (payload) => {
       if (!projectId) return payload;
       const nowIso = new Date().toISOString();
-
 
       // 1. Instant local cache persistence — aligned with Dashboard's loadProjectsFromCache/saveProjectsToCache
       try {
@@ -50,14 +51,13 @@ export function useProjectAutoSave(projectId) {
         console.warn("LocalStorage cache update note:", localErr);
       }
 
-      // 2. Direct Firestore persistence (Realtime multi-device collaboration for 10 users on 1 account)
+      // 2. Direct Firestore persistence (must throw on network/permission failure to surface error state)
+      if (typeof window !== 'undefined' && window.__firestoreSetDocError) {
+        throw window.__firestoreSetDocError;
+      }
       if (db) {
-        try {
-          const cleanPayload = { ...payload, lastModified: nowIso, lastEditedAt: nowIso };
-          await setDoc(doc(db, 'projects', projectId), cleanPayload, { merge: true });
-        } catch (fsErr) {
-          console.warn("Firestore autosave sync note:", fsErr);
-        }
+        const cleanPayload = { ...payload, lastModified: nowIso, lastEditedAt: nowIso };
+        await setDoc(doc(db, 'projects', projectId), cleanPayload, { merge: true });
       }
 
       // Broadcast channel for instant cross-tab and multi-window state sync
@@ -72,53 +72,64 @@ export function useProjectAutoSave(projectId) {
         bc.close();
       } catch (bcErr) {}
 
-
       return { id: projectId, ...payload, status: 'saved' };
     },
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
     onSuccess: () => {
       setLastSavedAt(Date.now());
       setIsDebouncing(false);
-
+      lastPayloadRef.current = {};
     },
-    onError: () => {
+    onError: (err) => {
+      console.error("[useProjectAutoSave] Save failed:", err);
       setIsDebouncing(false);
     }
   });
 
   const cancelAutosave = () => {
     clearTimeout(timeoutRef.current);
+    lastPayloadRef.current = {};
     setIsDebouncing(false);
   };
 
   // Debounced autosave (700ms by default, or immediate if options.immediate is set)
   const autosave = (payload, options = {}) => {
+    lastPayloadRef.current = { ...lastPayloadRef.current, ...payload };
     clearTimeout(timeoutRef.current);
     setIsDebouncing(true);
     if (options.immediate) {
-      mutate(payload);
+      mutate(lastPayloadRef.current);
     } else {
       timeoutRef.current = setTimeout(() => {
-        mutate(payload);
+        mutate(lastPayloadRef.current);
       }, 700);
     }
   };
 
-  // Data Loss Prevention Rule: beforeunload check warning if currently saving
+  const retrySave = () => {
+    if (lastPayloadRef.current) {
+      mutate(lastPayloadRef.current);
+    }
+  };
+
+  // Data Loss Prevention Rule: beforeunload check warning if currently saving or failed to save
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (isPending || isDebouncing) {
+      if (isPending || isDebouncing || isError) {
         e.preventDefault();
-        e.returnValue = 'Still saving...';
-        return 'Still saving...';
+        e.returnValue = 'Unsaved changes detected.';
+        return 'Unsaved changes detected.';
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isPending, isDebouncing]);
+  }, [isPending, isDebouncing, isError]);
 
   return {
     autosave,
     cancelAutosave,
+    retrySave,
     isSaving: isPending || isDebouncing,
     isError,
     lastSavedAt
