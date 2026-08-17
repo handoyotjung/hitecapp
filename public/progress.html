@@ -268,38 +268,88 @@
       </div>
 
       <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 md:p-6 backdrop-blur-md shadow-xl space-y-4">
-        <div class="border-b border-slate-800/80 pb-3">
+        <div class="border-b border-slate-800/80 pb-3 space-y-1.5">
           <p class="text-xs text-slate-300 leading-relaxed">
             Standardized anatomy, component hierarchy, and verified DOM selectors read directly from source files (<code class="text-sky-300">Dashboard.jsx</code>, <code class="text-sky-300">UploadZone.jsx</code>, <code class="text-sky-300">Header.jsx</code>). All selectors below have been verified against current codebase source lines.
           </p>
+          <div class="rounded-lg bg-sky-950/30 border border-sky-800/40 px-3 py-1.5 text-[11px] text-sky-300 flex items-center gap-2">
+            <span class="font-bold uppercase tracking-wider text-sky-400">Account Tier Scope:</span>
+            <span>Only <strong>Zone 1 (Top Navigation Bar)</strong> branches by account role (<code class="text-sky-200">user.role</code>). <strong>Zones 2–5 are 100% structurally identical</strong> across all account tiers.</span>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 gap-3.5">
-          <!-- Zone 1: Top Navigation Bar -->
-          <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-2.5">
+          <!-- Zone 1: Top Navigation Bar (Tier Branching) -->
+          <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-3">
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div class="flex items-center gap-2 font-bold text-white text-xs uppercase tracking-wide">
                 <span class="px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/30 text-sky-400 text-[10px]">Zone 1</span>
-                <span>Top Navigation Bar (<code class="text-sky-300">Header.jsx</code>)</span>
+                <span>Top Navigation Bar (<code class="text-sky-300">Header.jsx</code>) · Role-Based Variants</span>
               </div>
               <span class="text-[11px] text-slate-500 font-mono">Sticky Header &bull; z-30</span>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
-              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
-                <div class="font-bold text-slate-200">1. Brand Logo</div>
-                <div class="text-[11px] text-slate-400">Brand icon <code class="text-slate-300">header img[src*="logo-icon.png"]</code> with fallback to <code class="text-slate-300">logo-hs-white.png</code>.</div>
+
+            <!-- Tier Sub-Split: Admin vs User/Basic -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Admin Variant -->
+              <div class="p-3 rounded-xl bg-slate-900/60 border border-emerald-500/30 space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <div class="font-extrabold text-emerald-400 text-xs flex items-center gap-1.5">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                    <span>ADMIN VIEW (<code class="text-emerald-300 text-[10px]">Header.jsx:61 isAdmin</code>)</span>
+                  </div>
+                  <span class="text-[10px] text-slate-400 font-mono">role: admin / super_admin</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-1">
+                    <div class="font-bold text-slate-200">1. Brand Logo</div>
+                    <div class="text-[11px] text-slate-400"><code class="text-slate-300">Header.jsx:68</code>: Brand icon with fallback to <code class="text-slate-300">logo-hs-white.png</code>.</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/60 border border-emerald-500/20 space-y-1">
+                    <div class="font-bold text-emerald-300">2. Unlimited Admin Badge</div>
+                    <div class="text-[11px] text-slate-400"><code class="text-slate-300">Header.jsx:94</code>: Glowing pill <code class="text-emerald-400 text-[10px]">UNLIMITED ADMIN ACCESS</code>.</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-1">
+                    <div class="font-bold text-slate-200">3. Admin Panel Link</div>
+                    <div class="text-[11px] text-slate-400"><code class="text-slate-300">Header.jsx:137</code>: <code class="text-slate-300 text-[10px]">a[href="/admin.html"]</code> opening quota & billing drawer.</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-1">
+                    <div class="font-bold text-slate-200">4. User Menu (Pro)</div>
+                    <div class="text-[11px] text-slate-400"><code class="text-slate-300">Header.jsx:7-30</code>: <code class="text-slate-300">{email}</code> + <code class="text-emerald-400 font-bold text-[10px]">PRO</code> badge + Logout.</div>
+                  </div>
+                </div>
               </div>
-              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
-                <div class="font-bold text-emerald-300">2. Unlimited Admin Badge</div>
-                <div class="text-[11px] text-slate-400">Admin pill <code class="text-emerald-400 font-mono text-[10px]">div:has-text("UNLIMITED ADMIN ACCESS")</code> for admin accounts.</div>
-              </div>
-              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
-                <div class="font-bold text-slate-200">3. Admin Panel Link</div>
-                <div class="text-[11px] text-slate-400">Drawer trigger <code class="text-slate-300 font-mono text-[10px]">button:has-text("Admin Panel")</code> in header navigation.</div>
-              </div>
-              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
-                <div class="font-bold text-slate-200">4. User Profile & Logout</div>
-                <div class="text-[11px] text-slate-400"><code class="text-slate-300 font-mono text-[10px]">UserMenu</code> component with <code class="text-slate-300 font-mono text-[10px]">button[title="Logout"]</code>.</div>
+
+              <!-- User / Basic Variant -->
+              <div class="p-3 rounded-xl bg-slate-900/60 border border-sky-500/30 space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <div class="font-extrabold text-sky-400 text-xs flex items-center gap-1.5">
+                    <span class="h-2 w-2 rounded-full bg-sky-400"></span>
+                    <span>USER / BASIC VIEW (<code class="text-sky-300 text-[10px]">Header.jsx:78 !isAdmin</code>)</span>
+                  </div>
+                  <span class="text-[10px] text-slate-400 font-mono">role: user &bull; limit: 300</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-1">
+                    <div class="font-bold text-slate-200">1. Brand Logo</div>
+                    <div class="text-[11px] text-slate-400"><code class="text-slate-300">Header.jsx:68</code>: Brand icon with fallback to <code class="text-slate-300">logo-hs-white.png</code>.</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/60 border border-sky-500/20 space-y-1">
+                    <div class="font-bold text-sky-300">2. Monthly Usage Meter</div>
+                    <div class="text-[11px] text-slate-400"><code class="text-slate-300">Header.jsx:78-92</code>: <code class="text-slate-300 text-[10px]">MONTHLY USAGE</code> progress bar + quota counter (e.g. <code class="text-slate-300 text-[10px]">0/300 REPORTS</code>).</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-1">
+                    <div class="font-bold text-slate-200">3. Help Dropdown</div>
+                    <div class="text-[11px] text-slate-400"><code class="text-slate-300">Header.jsx:105-133</code>: <code class="text-slate-300 text-[10px]">button:has-text("Help")</code> menu with <code class="text-slate-300 text-[10px]">Send Feedback</code> & <code class="text-slate-300 text-[10px]">User Guide</code>.</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-1">
+                    <div class="font-bold text-slate-200">4. User Menu (Basic / Pro)</div>
+                    <div class="text-[11px] text-slate-400"><code class="text-slate-300">Header.jsx:7-30</code>: <code class="text-slate-300">{email}</code> + <code class="text-slate-400 font-bold text-[10px]">BASIC</code> (or <code class="text-emerald-400 font-bold text-[10px]">PRO</code> if <code class="text-slate-300 text-[10px]">isPro</code>) + Logout.</div>
+                  </div>
+                </div>
+                <div class="text-[10px] text-slate-400 italic bg-slate-950/40 p-1.5 rounded border border-slate-800/60">
+                  <span class="text-sky-300 font-semibold">Note:</span> Non-admin PRO accounts (<code class="text-slate-300 font-mono">dailyPhotoLimit &gt; 100</code>) render the User view (Monthly Usage Meter + Help Dropdown) with a green <strong class="text-emerald-400">PRO</strong> badge instead of Basic.
+                </div>
               </div>
             </div>
           </div>
