@@ -10,7 +10,7 @@ import {
   FolderPlus, Folder, Loader2, ArrowRight, ArrowLeft,
   Upload, FileText, CheckCircle2, AlertCircle, Trash2, 
   ChevronLeft, ChevronRight, Save, Download, FileSpreadsheet,
-  LogOut, Shield, ShieldAlert, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare, Mic as MicIcon
+  LogOut, Shield, ShieldAlert, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare, Mic as MicIcon, Bot
 } from 'lucide-react';
 import UploadZone from './UploadZone';
 import Header from './Header';
@@ -241,8 +241,62 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [aiSuggestedRecText, setAiSuggestedRecText] = useState('');
 
+  // AI Assistance Mode for Recommendations (Manual | Suggestions | AI Agent)
+  const [aiRecMode, setAiRecMode] = useState(() => {
+    try {
+      return localStorage.getItem('hitec_ai_recommendation_mode') || 'suggestions';
+    } catch {
+      return 'suggestions';
+    }
+  });
+  const [aiDraftRec, setAiDraftRec] = useState('');
+  const [aiDraftGenerating, setAiDraftGenerating] = useState(false);
+
+  const handleSetAiRecMode = (mode) => {
+    if (mode === 'agent') return; // Guardrail: agent mode is disabled stub
+    setAiRecMode(mode);
+    try {
+      localStorage.setItem('hitec_ai_recommendation_mode', mode);
+    } catch (e) {
+      console.warn('Could not save aiRecMode to localStorage:', e);
+    }
+    if (mode === 'manual') {
+      setAiDraftRec('');
+    }
+  };
+
+  const handleAcceptDraft = () => {
+    if (!aiDraftRec) return;
+    const lines = aiDraftRec.split('\n').map(l => l.trim()).filter(Boolean);
+    const cappedLines = lines.length <= 3 ? lines : lines.slice(0, 3);
+    setRecommendations(cappedLines);
+    setAiSuggestedRecText(aiDraftRec);
+    if (recMode === 'Auto') setRecMode('Manual');
+    updatePhotoFieldAndAutosave({
+      recommendations_json: cappedLines,
+      recommendations: cappedLines,
+      aiSuggestedRec: aiDraftRec
+    });
+    setAiDraftRec('');
+  };
+
+  const handleDismissDraft = () => {
+    setAiDraftRec('');
+  };
+
   const { autosave, cancelAutosave, isSaving, isError, lastSavedAt } = useProjectAutoSave(selectedProject?.id);
   const photoDocTimeoutRef = useRef(null);
+
+  // E2E Test Harness listener for synthetic draft injection
+  useEffect(() => {
+    const handleTestDraftEvent = (e) => {
+      if (e.detail && typeof e.detail === 'string') {
+        setAiDraftRec(e.detail);
+      }
+    };
+    window.addEventListener('set_test_draft', handleTestDraftEvent);
+    return () => window.removeEventListener('set_test_draft', handleTestDraftEvent);
+  }, []);
 
   const updatePhotoFieldAndAutosave = (fieldUpdates) => {
     if (projectPhotos.length === 0 || editorIndex === null || !projectPhotos[editorIndex]) return;
@@ -302,6 +356,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   };
 
   const cardASpeech = useSpeechToText();
+  const cardBSpeech = useSpeechToText();
 
   useEffect(() => {
     if (cardASpeech.transcript && !cardASpeech.isRecording) {
@@ -309,6 +364,15 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       updatePhotoFieldAndAutosave({ comments_text: cardASpeech.transcript });
     }
   }, [cardASpeech.transcript, cardASpeech.isRecording]);
+
+  useEffect(() => {
+    if (cardBSpeech.transcript && !cardBSpeech.isRecording) {
+      const lines = cardBSpeech.transcript.split('\n').filter(Boolean);
+      const capped = lines.length <= 3 ? lines : lines.slice(0, 3);
+      setRecommendations(capped);
+      updatePhotoFieldAndAutosave({ recommendations_json: capped, recommendations: capped });
+    }
+  }, [cardBSpeech.transcript, cardBSpeech.isRecording]);
 
   const handleUpdateCaptionFromVoice = (photoIdOrFilename, newCaption) => {
     if (!photoIdOrFilename || newCaption === undefined || newCaption === null) return;
@@ -1658,16 +1722,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   };
 
   const handleGenerateRecommendation = async () => {
-    if (!projectPhotos[editorIndex]) return;
+    if (!projectPhotos[editorIndex] || aiRecMode === 'manual') return;
     setAiGeneratingRec(true);
+    setAiDraftGenerating(true);
     try {
       const res = await generateGeminiSuggestions(commentsText, recommendationsLang || 'EN', photoGrade || 'F2');
       if (res && res.recommendation) {
-        const lines = res.recommendation.split('\n').filter(Boolean);
-        setRecommendations(lines);
-        setAiSuggestedRecText(res.recommendation);
-        setRecMode('Auto');
-        updatePhotoFieldAndAutosave({ recommendations_json: lines, recommendations: lines, aiSuggestedRec: res.recommendation });
+        setAiDraftRec(res.recommendation);
       } else {
         const res = await aiGenerateRecommendation(
           projectPhotos[editorIndex],
@@ -1675,16 +1736,14 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
           recommendationsLang
         );
         if (res && res.recommendations) {
-          setRecommendations(res.recommendations);
-          setAiSuggestedRecText(res.recommendations.join('\n'));
-          setRecMode('Auto');
-          updatePhotoFieldAndAutosave({ recommendations_json: res.recommendations, recommendations: res.recommendations, aiSuggestedRec: res.recommendations.join('\n') });
+          setAiDraftRec(Array.isArray(res.recommendations) ? res.recommendations.join('\n') : String(res.recommendations));
         }
       }
     } catch (err) {
       console.error("AI Recommendation error:", err);
     } finally {
       setAiGeneratingRec(false);
+      setAiDraftGenerating(false);
     }
   };
 
@@ -2844,63 +2903,152 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                         )}
                       </div>
 
-                      {/* CARD B: ASSESSOR RECOMMENDATION - AI Fire Safety Assessor */}
-                      <div className="shrink-0 flex flex-col rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-2 shadow-sm overflow-hidden">
-                        <div className="flex items-center justify-between flex-wrap gap-1.5 mb-1 shrink-0">
+                      {/* CARD B: ASSESSOR RECOMMENDATION - Matching Comments Pattern */}
+                      <div className="shrink-0 flex flex-col rounded-2xl border border-slate-800 bg-slate-900/60 p-2 shadow-sm overflow-hidden space-y-2">
+                        <div className="flex items-center justify-between mb-1 shrink-0">
+                          {/* Left side: Label + AI Assist Button (on right side of RECOMMENDATION text) */}
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-bold text-white uppercase tracking-wide">
-                              {commentsLang === 'ID' ? 'REKOMENDASI AI' : 'AI RECOMMENDATION'}
+                              {commentsLang === 'ID' ? 'REKOMENDASI' : 'RECOMMENDATION'}
                             </label>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border flex items-center gap-1 shadow-sm ${
-                              recMode === 'Auto' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                            }`}>
-                              <span className={`h-1.5 w-1.5 rounded-full ${recMode === 'Auto' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                              <span>{recMode === 'Auto' ? 'Auto' : 'Manual Override'}</span>
-                            </span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={aiRecMode === 'suggestions'}
+                              id="rec-ai-assist-toggle"
+                              onClick={() => handleSetAiRecMode(aiRecMode === 'suggestions' ? 'manual' : 'suggestions')}
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors flex items-center gap-1 shadow-sm ${
+                                aiRecMode === 'suggestions'
+                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                  : 'bg-slate-800 border-slate-700 text-slate-400'
+                              }`}
+                              title="Toggle AI-assisted draft recommendations"
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              <span>AI Assist: {aiRecMode === 'suggestions' ? 'ON' : 'OFF'}</span>
+                            </button>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRecommendations([]);
-                              updatePhotoFieldAndAutosave({ recommendations_json: [] });
-                            }}
-                            title="Clear"
-                            className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm shrink-0"
-                          >
-                            <X className="h-3 w-3" />
-                            <span>Clear</span>
-                          </button>
+                          {/* Right side: Hold to Talk + Clear button like COMMENT section */}
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onPointerDown={(e) => {
+                                if (!cardBSpeech.supported) {
+                                  alert("Speech-to-text is not supported on this browser. Please use your keyboard's built-in dictation microphone instead.");
+                                  return;
+                                }
+                                e.stopPropagation();
+                                cardBSpeech.start();
+                              }}
+                              onPointerUp={(e) => { e.stopPropagation(); cardBSpeech.stop(); }}
+                              onPointerLeave={(e) => { e.stopPropagation(); cardBSpeech.stop(); }}
+                              style={{ touchAction: 'manipulation' }}
+                              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all shrink-0 ${
+                                cardBSpeech.isRecording
+                                  ? 'bg-red-500 text-white scale-105 shadow-lg shadow-red-500/30'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                                }`}
+                              title="Press and hold to talk"
+                            >
+                              <MicIcon className={`w-3.5 h-3.5 ${cardBSpeech.isRecording ? 'text-white animate-pulse' : 'text-slate-400'}`} />
+                              <span>{cardBSpeech.isRecording ? `Listening... ${cardBSpeech.detectedLang === 'id-ID' ? 'ID' : 'EN'}` : 'Hold to Talk'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRecommendations([]);
+                                updatePhotoFieldAndAutosave({ recommendations_json: [], recommendations: [] });
+                              }}
+                              title="Clear"
+                              className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm shrink-0"
+                            >
+                              <X className="h-3 w-3" />
+                              <span>Clear</span>
+                            </button>
+                          </div>
                         </div>
 
-                        <textarea
-                          rows={2}
-                          style={{ height: 'auto', minHeight: '44px' }}
-                          value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onKeyUp={(e) => e.stopPropagation()}
-                          onInput={(e) => {
-                            e.target.style.height = 'auto';
-                            e.target.style.height = `${e.target.scrollHeight}px`;
-                          }}
-                          onChange={(e) => {
-                            const lines = e.target.value.split('\n');
-                            let newRecs;
-                            if (lines.length <= 3) {
-                              newRecs = lines;
-                              setRecommendations(lines);
-                            } else {
-                              newRecs = lines.slice(0, 3);
+                        {/* PENDING DRAFT CONTAINER (Suggestions Mode: Draft-then-Approve Guardrail) */}
+                        {aiRecMode === 'suggestions' && (aiDraftRec || aiDraftGenerating) && (
+                          <div 
+                            id="ai-draft-container"
+                            className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-2.5 space-y-2 shadow-md"
+                          >
+                            <div className="flex items-center justify-between flex-wrap gap-1">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                                {aiDraftGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-emerald-400" />}
+                                <span>{aiDraftGenerating ? 'Drafting ATEX Recommendation...' : 'AI Suggested Draft (Unsaved)'}</span>
+                              </div>
+                              {!aiDraftGenerating && (
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    id="accept-draft-btn"
+                                    onClick={handleAcceptDraft}
+                                    className="flex items-center gap-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-2.5 py-1 text-[11px] font-extrabold transition-all shadow-sm"
+                                    title="Accept and write this recommendation into the report"
+                                  >
+                                    <Check className="h-3 w-3 stroke-[3]" />
+                                    <span>Accept</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    id="dismiss-draft-btn"
+                                    onClick={handleDismissDraft}
+                                    className="flex items-center gap-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 text-[11px] font-bold transition-all"
+                                    title="Dismiss draft without saving"
+                                  >
+                                    <X className="h-3 w-3" />
+                                    <span>Dismiss</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {!aiDraftGenerating && (
+                              <textarea
+                                rows={2}
+                                id="ai-draft-textarea"
+                                value={aiDraftRec}
+                                onChange={(e) => setAiDraftRec(e.target.value)}
+                                className="w-full rounded-lg border border-emerald-500/30 bg-slate-950/80 px-2.5 py-1.5 text-xs text-emerald-200 font-medium outline-none focus:border-emerald-400 transition-colors resize-y leading-relaxed"
+                                placeholder="Editable draft recommendation..."
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {/* ACTIVE RECOMMENDATION TEXTAREA (Report State) */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400">
+                            <span>{aiRecMode === 'manual' ? '✍️ Manual Entry (Direct Save)' : '📋 Active Report Recommendation'}</span>
+                            <span className="text-[10px] text-slate-500">Max 3 lines</span>
+                          </div>
+                          <textarea
+                            id="main-recommendation-textarea"
+                            rows={2}
+                            style={{ height: 'auto', minHeight: '44px' }}
+                            value={Array.isArray(recommendations) ? recommendations.join('\n') : (recommendations || '')}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onKeyUp={(e) => e.stopPropagation()}
+                            onInput={(e) => {
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${e.target.scrollHeight}px`;
+                            }}
+                            onChange={(e) => {
+                              const lines = e.target.value.split('\n');
+                              let newRecs = lines.length <= 3 ? lines : lines.slice(0, 3);
                               setRecommendations(newRecs);
-                            }
-                            if (recMode === 'Auto') setRecMode('Manual');
-                            updatePhotoFieldAndAutosave({ recommendations_json: newRecs });
-                            e.target.style.height = 'auto';
-                            e.target.style.height = `${e.target.scrollHeight}px`;
-                          }}
-                          placeholder={commentsLang === 'ID' ? 'Rekomendasi tindakan mitigasi...' : 'Mitigation recommendation actions...'}
-                          className="ai-recommendation-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-y leading-relaxed overflow-y-auto"
-                        />
+                              updatePhotoFieldAndAutosave({ recommendations_json: newRecs });
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${e.target.scrollHeight}px`;
+                            }}
+                            placeholder={commentsLang === 'ID' ? 'Rekomendasi tindakan mitigasi...' : 'Mitigation recommendation actions...'}
+                            className="ai-recommendation-textarea w-full rounded-xl border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs text-white font-medium outline-none focus:border-emerald-500 placeholder-slate-600 transition-colors resize-y leading-relaxed overflow-y-auto"
+                          />
+                        </div>
                       </div>
                     </div>
                   </>
@@ -2915,30 +3063,26 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               className="right-publish-bar w-full border-t border-slate-800 bg-[#020617] shrink-0 px-3 flex items-center justify-between gap-2 z-50 sticky bottom-0 left-0 right-0 shadow-2xl overflow-hidden"
               style={{ position: 'sticky', bottom: 0, height: '63px', minHeight: '63px', maxHeight: '63px', backgroundColor: '#020617', zIndex: 50, flexShrink: 0 }}
             >
-              {/* Left side: Regenerate & Edit Manually */}
+              {/* Left side: Regenerate Draft & Assistance Mode indicator */}
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
+                  id="footer-generate-btn"
                   onClick={handleGenerateRecommendation}
-                  disabled={aiGeneratingRec}
-                  className="h-[38px] flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-2.5 text-xs font-bold text-white transition-all disabled:opacity-50 shadow-md shrink-0"
-                  title="Regenerate recommendation based on current comment and grade"
+                  disabled={aiGeneratingRec || aiRecMode === 'manual'}
+                  className={`h-[38px] flex items-center gap-1.5 rounded-xl px-2.5 text-xs font-bold text-white transition-all shadow-md shrink-0 ${
+                    aiRecMode === 'manual' 
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50' 
+                      : 'bg-emerald-600 hover:bg-emerald-500'
+                  }`}
+                  title={aiRecMode === 'manual' ? 'Manual mode is active — switch to Suggestions to draft AI recommendations' : 'Generate AI recommendation draft'}
                 >
                   {aiGeneratingRec ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <Sparkles className="h-4 w-4 shrink-0" />}
-                  <span>{commentsLang === 'ID' ? 'Regenerate' : 'Regenerate'}</span>
+                  <span>{commentsLang === 'ID' ? 'Draft AI' : 'Draft Rec'}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setRecMode(prev => prev === 'Auto' ? 'Manual' : 'Auto')}
-                  className={`h-[38px] flex items-center gap-1.5 rounded-xl border px-2.5 text-xs font-bold transition-all shadow-md shrink-0 ${
-                    recMode === 'Manual'
-                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500 hover:text-white'
-                      : 'border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700 hover:text-white'
-                  }`}
-                  title="Toggle between Auto-fill and Manual Override mode"
-                >
-                  <span>{recMode === 'Manual' ? 'Edit Manually (Active)' : 'Edit Manually'}</span>
-                </button>
+                <div className="text-[11px] text-slate-400 font-semibold px-2 py-1 rounded-lg bg-slate-900 border border-slate-800">
+                  Mode: <span className={aiRecMode === 'manual' ? 'text-amber-400' : 'text-emerald-400'}>{aiRecMode === 'manual' ? 'Manual' : 'Suggestions'}</span>
+                </div>
               </div>
 
               {/* Right side: Bahasa / English & Save Report (#1) */}

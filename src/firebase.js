@@ -65,8 +65,10 @@ import {
   httpsCallable as fbHttpsCallable 
 } from "firebase/functions";
 
-// Check if we are running in mock/demo mode because no real Firebase key is provided
-export const isMockMode = !import.meta.env.VITE_FIREBASE_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY === "mock-api-key-hitecmedia";
+// Check if we are running in mock/demo mode (strictly build-time env flag, zero public URL parameter exposure)
+export const isMockMode = !import.meta.env.VITE_FIREBASE_API_KEY || 
+  import.meta.env.VITE_FIREBASE_API_KEY === "mock-api-key-hitecmedia" ||
+  import.meta.env.VITE_ENABLE_TEST_MOCK === "true";
 
 let auth, db, storage, functions;
 
