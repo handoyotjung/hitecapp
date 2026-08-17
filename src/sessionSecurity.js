@@ -8,8 +8,9 @@ const STORE_KEY = 'hitecmedia_mock_db';
 const SESSIONS_TABLE_KEY = 'hitec_user_sessions_v1';
 const FIRESTORE_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY || '';
 const PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'hitecapp-safety';
+const DATABASE_ID = import.meta.env.VITE_FIREBASE_DATABASE_ID || '(default)';
 const IS_MOCK_MODE = !FIRESTORE_API_KEY || FIRESTORE_API_KEY === 'mock-api-key-hitecmedia';
-const FIRESTORE_SESSIONS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/sessions`;
+const FIRESTORE_SESSIONS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents/sessions`;
 
 function sessionDocUrl(token, extraParams = '', useKey = true) {
   const key = (useKey && FIRESTORE_API_KEY) ? `?key=${FIRESTORE_API_KEY}` : '';

@@ -72,9 +72,16 @@
       }
     ]
   },
-  "firestore": {
-    "rules": "firestore.rules"
-  },
+  "firestore": [
+    {
+      "database": "(default)",
+      "rules": "firestore.rules"
+    },
+    {
+      "database": "staging",
+      "rules": "firestore.rules"
+    }
+  ],
   "functions": {
     "source": "functions"
   },

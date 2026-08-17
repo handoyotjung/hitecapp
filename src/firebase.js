@@ -153,7 +153,8 @@ if (!isMockMode) {
   };
   const firebaseApp = initializeApp(firebaseConfig);
   auth = getAuth(firebaseApp);
-  db = getFirestore(firebaseApp);
+  const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || '(default)';
+  db = getFirestore(firebaseApp, databaseId);
   storage = getStorage(firebaseApp);
   functions = getFunctions(firebaseApp, 'asia-southeast2');
 } else {
