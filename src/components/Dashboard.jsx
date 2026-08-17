@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { 
+import {
   db, auth, storage, functions,
   collection, query, where, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, limit, orderBy,
   ref, uploadBytesResumable, getDownloadURL,
   httpsCallable, isMockMode
 } from '../firebase';
 import { UploadWorkerPool, withExponentialBackoff } from './UploadWorkerPool';
-import { 
+import {
   FolderPlus, Folder, Loader2, ArrowRight, ArrowLeft,
-  Upload, FileText, CheckCircle2, AlertCircle, Trash2, 
+  Upload, FileText, CheckCircle2, AlertCircle, Trash2,
   ChevronLeft, ChevronRight, Save, Download, FileSpreadsheet,
   LogOut, Shield, ShieldAlert, User, Sparkles, Image as ImageIcon, Check, RefreshCw, Edit2, GripVertical, X, MessageSquare, Mic as MicIcon, Bot
 } from 'lucide-react';
@@ -21,7 +21,8 @@ import { FeedbackModal } from './FeedbackModal';
 import { HelpModal } from './HelpModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, getAISuggestions, learnComment } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
-import { handleExportWord, getBestPhotoBase64 } from '../exportWordReport';
+import { useExportWord, useExportPDF, useExportPPTX } from '@/hooks/useReportExporter';
+import { createTwoColTable, getImageSize, createLightRow, createLightBullet } from '@/hooks/useReportExporter';
 import PublishBar from './PublishBar';
 import { compressImage } from '../imageCompressor';
 import { shareFile } from '../utils/shareFile';
@@ -438,6 +439,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [confirmedExports, setConfirmedExports] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const [alertPopup, setAlertPopup] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
   const [companyName, setCompanyName] = useState(() => localStorage.getItem('hitec_company_name') || '');
   const [cityName, setCityName] = useState(() => localStorage.getItem('hitec_city_name') || '');
   const [fieldValidationErrors, setFieldValidationErrors] = useState({ company: false, city: false });
@@ -1894,29 +1896,21 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const onExportWordClick = async () => {
     if (!selectedProject) return;
     setExportError(null);
-    setExportingDOCX(true);
     try {
-      const filename = getExportFileName('docx');
-      const projectPayload = {
-        ...selectedProject,
-        photos: projectPhotos.length > 0 ? projectPhotos : (selectedProject?.photos || []),
-        company_name: companyName,
-        city_name: cityName
-      };
-      const result = await handleExportWord(projectPayload, queue, selectedPhotos, filename, isMobileMode ? 'Mobile' : 'Desktop', true);
-      
+      const result = await useExportWord(selectedProject, queue, selectedPhotos)(
+        null, isMobileMode ? 'Mobile' : 'Desktop'
+      );
+
       // Track successful Word/DOC report download for daily usage and admin analytics
       trackReportDownload('doc');
 
       if (result && result.blob) {
         const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        await shareFile(result.blob, result.filename || filename, mime);
+        await shareFile(result.blob, result.filename || 'Hitec_Report', mime);
       }
     } catch (err) {
       console.error("Error exporting Word report:", err);
       setExportError(`Word export failed: ${err.message || 'Error'}`);
-    } finally {
-      setExportingDOCX(false);
     }
   };
 
@@ -2329,7 +2323,18 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               <div className="flex items-center justify-center">
                 {queue.length > 0 && (
                   <button 
-                    onClick={handleRemove}
+                    onClick={() => {
+                      const count = allDoneSelected ? projectPhotos.length : selectedPhotos.length;
+                      if (count === 0) return;
+                      setConfirmModal({
+                        title: count === 1 ? "Remove Photo" : "Remove Photos",
+                        message: count === 1
+                          ? "Remove this photo from the project queue? This will delete the photo record and cannot be undone."
+                          : `Remove ${count} selected photos from the project queue? This will delete the photo records and cannot be undone.`,
+                        confirmLabel: "Remove",
+                        onConfirm: handleRemove
+                      });
+                    }}
                     disabled={isViewMode || (!allDoneSelected && selectedPhotos.length === 0)}
                     className="flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-400 bg-rose-950/30 hover:bg-rose-950/50 border border-rose-900/50 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40 disabled:hover:text-rose-500 disabled:hover:bg-rose-950/30 disabled:cursor-not-allowed"
                   >
@@ -2834,8 +2839,20 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             <button
                               type="button"
                               onClick={() => {
-                                setCommentsText('');
-                                updatePhotoFieldAndAutosave({ comments_text: '', comments: '' });
+                                if (!commentsText || !commentsText.trim()) return;
+                                setConfirmModal({
+                                  title: "Clear Comments",
+                                  message: "Clear observation comments for this photo? This will erase your typed observations and cannot be undone.",
+                                  confirmLabel: "Clear Comments",
+                                  onConfirm: () => {
+                                    setCommentsText('');
+                                    updatePhotoFieldAndAutosave({ comments_text: '', comments: '' });
+                                    const ta = document.querySelector('.comments-textarea');
+                                    if (ta) {
+                                      ta.style.height = 'auto';
+                                    }
+                                  }
+                                });
                               }}
                               title="Clear"
                               className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm shrink-0"
@@ -2958,8 +2975,16 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                             <button
                               type="button"
                               onClick={() => {
-                                setRecommendations([]);
-                                updatePhotoFieldAndAutosave({ recommendations_json: [], recommendations: [] });
+                                if (!recommendations || recommendations.length === 0) return;
+                                setConfirmModal({
+                                  title: "Clear Recommendation",
+                                  message: "Clear recommendation for this photo? This will erase the current recommendation text and cannot be undone.",
+                                  confirmLabel: "Clear Recommendation",
+                                  onConfirm: () => {
+                                    setRecommendations([]);
+                                    updatePhotoFieldAndAutosave({ recommendations_json: [], recommendations: [] });
+                                  }
+                                });
                               }}
                               title="Clear"
                               className="flex items-center gap-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-0.5 text-[10px] font-bold transition-colors shadow-sm shrink-0"
@@ -3320,6 +3345,52 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         isPro={isPro}
         lang={navigator.language?.startsWith('id') ? 'ID' : 'EN'}
       />
+      {/* Confirmation Modal for Destructive Actions (Remove / Clear) */}
+      {confirmModal && (
+        <div 
+          id="destructive-confirm-modal"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white leading-tight">{confirmModal.title}</h3>
+                <span className="text-[10px] text-rose-400 font-semibold uppercase tracking-wider">Destructive Action</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {confirmModal.message}
+            </p>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                id="confirm-modal-cancel-btn"
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                id="confirm-modal-action-btn"
+                onClick={() => {
+                  const action = confirmModal.onConfirm;
+                  setConfirmModal(null);
+                  if (action) action();
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-lg shadow-rose-600/30 transition-all active:scale-95"
+              >
+                {confirmModal.confirmLabel || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
