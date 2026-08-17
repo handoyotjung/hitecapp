@@ -112,22 +112,22 @@ export default function Header({ isSaving, isError }) {
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${dropOpen ? 'rotate-180' : ''}`} />
             </button>
             {dropOpen && (
-              <div className="absolute right-0 mt-1.5 w-40 sm:w-48 rounded-xl border border-slate-700 bg-slate-900 shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-1.5 min-w-[170px] w-max rounded-xl border border-slate-700 bg-slate-900 shadow-2xl z-50 overflow-hidden py-1">
                 <button
                   type="button"
                   onClick={() => { setDropOpen(false); onOpenFeedback(); }}
-                  className="flex items-center gap-2 sm:gap-2.5 w-full px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs sm:text-sm text-slate-200 hover:bg-slate-800 hover:text-white transition-colors text-left whitespace-nowrap"
                 >
                   <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span className="truncate">Send Feedback</span>
+                  <span className="whitespace-nowrap font-medium">Send Feedback</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { setDropOpen(false); onOpenHelp(); }}
-                  className="flex items-center gap-2 sm:gap-2.5 w-full px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs sm:text-sm text-slate-200 hover:bg-slate-800 hover:text-white transition-colors text-left whitespace-nowrap"
                 >
                   <BookOpen className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span className="truncate">User Guide</span>
+                  <span className="whitespace-nowrap font-medium">User Guide</span>
                 </button>
               </div>
             )}
