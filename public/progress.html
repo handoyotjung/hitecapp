@@ -255,6 +255,187 @@
       </div>
     </section>
 
+    <!-- UI Component Map & Canonical Architecture Reference Section -->
+    <section class="animate-fade-in-up animate-delay-3.5" id="ui-component-map-section">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-sky-400"></span>
+          UI Reference · Desktop Photo Editor Component Map
+        </h2>
+        <span class="inline-flex items-center rounded-full bg-sky-500/10 border border-sky-500/30 px-3 py-1 text-xs font-bold text-sky-400">
+          CANONICAL ARCHITECTURE &bull; SOURCE-VERIFIED
+        </span>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 md:p-6 backdrop-blur-md shadow-xl space-y-4">
+        <div class="border-b border-slate-800/80 pb-3">
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Standardized anatomy, component hierarchy, and verified DOM selectors read directly from source files (<code class="text-sky-300">Dashboard.jsx</code>, <code class="text-sky-300">UploadZone.jsx</code>, <code class="text-sky-300">Header.jsx</code>). All selectors below have been verified against current codebase source lines.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3.5">
+          <!-- Zone 1: Top Navigation Bar -->
+          <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-2.5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2 font-bold text-white text-xs uppercase tracking-wide">
+                <span class="px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/30 text-sky-400 text-[10px]">Zone 1</span>
+                <span>Top Navigation Bar (<code class="text-sky-300">Header.jsx</code>)</span>
+              </div>
+              <span class="text-[11px] text-slate-500 font-mono">Sticky Header &bull; z-30</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">1. Brand Logo</div>
+                <div class="text-[11px] text-slate-400">Brand icon <code class="text-slate-300">header img[src*="logo-icon.png"]</code> with fallback to <code class="text-slate-300">logo-hs-white.png</code>.</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-emerald-300">2. Unlimited Admin Badge</div>
+                <div class="text-[11px] text-slate-400">Admin pill <code class="text-emerald-400 font-mono text-[10px]">div:has-text("UNLIMITED ADMIN ACCESS")</code> for admin accounts.</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">3. Admin Panel Link</div>
+                <div class="text-[11px] text-slate-400">Drawer trigger <code class="text-slate-300 font-mono text-[10px]">button:has-text("Admin Panel")</code> in header navigation.</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">4. User Profile & Logout</div>
+                <div class="text-[11px] text-slate-400"><code class="text-slate-300 font-mono text-[10px]">UserMenu</code> component with <code class="text-slate-300 font-mono text-[10px]">button[title="Logout"]</code>.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Zone 2: Left Panel (Workspace & Queue Ingestion) -->
+          <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-2.5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2 font-bold text-white text-xs uppercase tracking-wide">
+                <span class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px]">Zone 2</span>
+                <span>Left Panel · Workspace & Ingestion Queue (<code class="text-amber-300">UploadZone.jsx</code> &bull; <code class="text-amber-300">Dashboard.jsx</code>)</span>
+              </div>
+              <span class="text-[11px] text-slate-500 font-mono">Width: 50% &bull; Left Column</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">Project Meta Inputs</div>
+                <div class="text-[11px] text-slate-400">Inputs: Company/City text fields, <code class="text-slate-300 font-mono text-[10px]">input[placeholder="New project name..."]</code>, <code class="text-slate-300 font-mono text-[10px]">button:has-text("Create")</code>, and project <code class="text-slate-300 font-mono text-[10px]">select</code>.</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">Media Ingestion Buttons</div>
+                <div class="text-[11px] text-slate-400"><code class="text-slate-300 font-mono text-[10px]">button:has-text("Select Folder")</code> (folder upload) and <code class="text-slate-300 font-mono text-[10px]">button:has-text("Use Camera")</code> (device capture).</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">Photo Queue & Voice Caption</div>
+                <div class="text-[11px] text-slate-400"><code class="text-slate-300 font-mono text-[10px]">.photo-list-container</code>, select-all checkbox, <code class="text-rose-400 font-mono text-[10px]">button:has-text("Remove")</code>, draggable rows, and <code class="text-slate-300 font-mono text-[10px]">PhotoItem</code> mic.</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1 sm:col-span-2 lg:col-span-3">
+                <div class="font-bold text-emerald-400">Left Column Sticky Footer (Export Bar)</div>
+                <div class="text-[11px] text-slate-400"><code class="text-emerald-300 font-mono text-[10px]">.left-publish-bar</code> action bar: <code class="text-emerald-300 font-mono text-[10px]">button:has-text("Save")</code> (Green commit), <code class="text-slate-300 font-mono text-[10px]">button:has-text("PDF")</code>, <code class="text-slate-300 font-mono text-[10px]">button:has-text("PPT")</code>, and <code class="text-slate-300 font-mono text-[10px]">button:has-text("DOC")</code>.</div>
+              </div>
+            </div>
+          </div>
+          <!-- Zone 3: Right Panel (Photo Canvas & Annotation Toolbar) -->
+          <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-2.5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2 font-bold text-white text-xs uppercase tracking-wide">
+                <span class="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[10px]">Zone 3</span>
+                <span>Right Panel · Photo Canvas & Annotations (<code class="text-purple-300">AnnotatedImageCanvas.jsx</code> &bull; <code class="text-purple-300">Dashboard.jsx</code>)</span>
+              </div>
+              <span class="text-[11px] text-slate-500 font-mono">Width: 50% &bull; Right Column Top</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">Annotation Toolbar</div>
+                <div class="text-[11px] text-slate-400"><code class="text-slate-300 font-mono text-[10px]">AnnotatedImageCanvas.jsx</code>: buttons for <code class="text-slate-300">Doodle</code>, <code class="text-slate-300">Arrow</code>, <code class="text-slate-300">Rect</code>, <code class="text-slate-300">Text</code>, <code class="text-slate-300">Undo</code>, <code class="text-slate-300">Clear</code>, color (<code class="text-slate-300">input[type="color"]</code>), width slider (<code class="text-slate-300">input[type="range"]</code>), and <code class="text-emerald-400">Save Image</code>.</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">Main Canvas & Navigation</div>
+                <div class="text-[11px] text-slate-400"><code class="text-slate-300 font-mono text-[10px]">Dashboard.jsx:2587</code> &bull; Konva canvas renderer with navigation buttons <code class="text-slate-300 font-mono text-[10px]">button[title="Previous photo"]</code> (<code class="text-slate-300">ChevronLeft</code>) & <code class="text-slate-300 font-mono text-[10px]">button[title="Next photo"]</code> (<code class="text-slate-300">ChevronRight</code>).</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">Photo Meta & Grade Chips</div>
+                <div class="text-[11px] text-slate-400"><code class="text-slate-300 font-mono text-[10px]">Dashboard.jsx:2626</code>: <code class="text-slate-300 font-mono text-[10px]">input[placeholder="Add or edit caption..."]</code>, <code class="text-slate-300 font-mono text-[10px]">input[type="date"]</code>, <code class="text-slate-300 font-mono text-[10px]">input[placeholder="Site"]</code>, Grades (<code class="text-slate-300 font-mono text-[10px]">F1-F4</code>), and Status radios (<code class="text-slate-300 font-mono text-[10px]">Open/Close</code>).</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Zone 4: Right Panel (Card A & Card B Assessor Editors) -->
+          <div class="rounded-xl border border-emerald-500/30 bg-slate-950/80 p-4 space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2 font-bold text-white text-xs uppercase tracking-wide">
+                <span class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px]">Zone 4</span>
+                <span>Right Panel · Cards A & B Assessor Editors (<code class="text-emerald-300">Dashboard.jsx</code>)</span>
+              </div>
+              <span class="text-[11px] text-emerald-400 font-mono font-bold">Safety-Critical Assessor Scope</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <!-- Card A: COMMENTS -->
+              <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <div class="font-extrabold text-white flex items-center gap-1.5">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                    <span>CARD A: COMMENTS</span>
+                  </div>
+                  <span class="text-[10px] text-slate-400 font-mono">Observation Log</span>
+                </div>
+                <ul class="space-y-1.5 text-[11px] text-slate-300">
+                  <li><strong>Header Left:</strong> <code class="text-slate-200">COMMENTS</code> label + <code class="text-emerald-400 font-mono">button:has-text("AI Assist: ON/OFF")</code>.</li>
+                  <li><strong>Header Right:</strong> <code class="text-slate-200">button:has-text("Hold to Talk")</code> (cardASpeech hook) + red <code class="text-rose-400">button[title="Clear"]</code>.</li>
+                  <li><strong>Active Field:</strong> <code class="text-slate-300 font-mono">textarea.comments-textarea</code> (Max 3 lines auto-resizing observation text).</li>
+                  <li><strong>Suggestion Pills:</strong> Clickable pill buttons in suggestion drawer (<code class="text-slate-300 font-mono">aiSuggestions.map(...)</code>).</li>
+                </ul>
+              </div>
+
+              <!-- Card B: RECOMMENDATION -->
+              <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <div class="font-extrabold text-white flex items-center gap-1.5">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                    <span>CARD B: RECOMMENDATION</span>
+                  </div>
+                  <span class="text-[10px] text-slate-400 font-mono">Mitigation Actions</span>
+                </div>
+                <ul class="space-y-1.5 text-[11px] text-slate-300">
+                  <li><strong>Header Left:</strong> <code class="text-slate-200">RECOMMENDATION</code> label + <code class="text-emerald-400 font-mono">#rec-ai-assist-toggle</code> switch (<code class="text-emerald-300 font-mono text-[10px]">role="switch"</code>).</li>
+                  <li><strong>Header Right:</strong> <code class="text-slate-200">button:has-text("Hold to Talk")</code> (cardBSpeech hook) + red <code class="text-rose-400">button[title="Clear"]</code>.</li>
+                  <li><strong>Draft Guardrail:</strong> <code class="text-emerald-400 font-mono">#ai-draft-container</code> containing <code class="text-slate-300 font-mono">#ai-draft-textarea</code>, <code class="text-emerald-400 font-mono">#accept-draft-btn</code>, and <code class="text-slate-400 font-mono">#dismiss-draft-btn</code>.</li>
+                  <li><strong>Active Field:</strong> <code class="text-slate-300 font-mono">#main-recommendation-textarea</code> (<code class="text-slate-300 font-mono">.ai-recommendation-textarea</code>).</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Zone 5: Right Column Sticky Footer (Publish Bar) -->
+          <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-2.5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2 font-bold text-white text-xs uppercase tracking-wide">
+                <span class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px]">Zone 5</span>
+                <span>Right Column Sticky Footer · Publish Bar (<code class="text-emerald-300">.right-publish-bar</code>)</span>
+              </div>
+              <span class="text-[11px] text-slate-500 font-mono">Height: 63px &bull; Sticky Bottom</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-emerald-400">1. Draft AI Trigger</div>
+                <div class="text-[11px] text-slate-400"><code class="text-emerald-400 font-mono text-[10px]">#footer-generate-btn</code> initiates Gemini draft recommendation generation.</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">2. Mode Status Badge</div>
+                <div class="text-[11px] text-slate-400">Displays active assistance state (<code class="text-slate-300 font-mono text-[10px]">Mode: Suggestions / Manual</code>).</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-slate-200">3. Language Switcher</div>
+                <div class="text-[11px] text-slate-400">Bilingual switches (<code class="text-slate-300 font-mono text-[10px]">button:has-text("Bahasa")</code> / <code class="text-slate-300 font-mono text-[10px]">button:has-text("English")</code>).</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/70 space-y-1">
+                <div class="font-bold text-emerald-400">4. Save Report Button</div>
+                <div class="text-[11px] text-slate-400"><code class="text-emerald-400 font-mono text-[10px]">button:has-text("Save Report")</code> primary action persisting report data.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Recent Activity Feed -->
     <section class="animate-fade-in-up animate-delay-4">
       <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
