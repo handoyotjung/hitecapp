@@ -1,14 +1,35 @@
 {
-  "login": true,
-  "projectCreated": true,
-  "photoUploaded": true,
-  "editorOpened": true,
-  "footerAligned": true,
-  "footerTopDiff": 0,
-  "commentsBlankByDefault": true,
-  "captionCommentsDecoupled": true,
-  "autoHeightWorks": true,
-  "errors": [],
-  "passed": 8,
-  "failed": 0
+  "timestamp": "2026-08-19T14:25:39.404Z",
+  "mode": "sync",
+  "desktop": {
+    "passed": 0,
+    "failed": 0,
+    "errors": [],
+    "checks": {}
+  },
+  "mobile": {
+    "passed": 0,
+    "failed": 0,
+    "errors": [],
+    "checks": {}
+  },
+  "crossDeviceSync": {
+    "passed": 4,
+    "failed": 2,
+    "errors": [
+      "Context 2 caption mismatch (expected: \"QA_Sync_Init_539775\", got: \"null\")",
+      "Context 1 did NOT reflect Context 2 caption update within 30s timeout"
+    ],
+    "checks": {
+      "realFirestore": true,
+      "projectDiscoveredAcrossDevices": true,
+      "initialCaptionSynced": null,
+      "realtimeSyncNoReload": false
+    },
+    "userAccount": {
+      "email": "demo@hitec.id",
+      "role": "user"
+    },
+    "runtimeFirebaseProjectId": "hitecapp-safety"
+  }
 }

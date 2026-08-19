@@ -142,6 +142,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__OPEN_HELP_MODAL__ = () => setShowHelpModal(true);
+    }
+  }, []);
   const [connectivityModal, setConnectivityModal] = useState(null);
   const [mobileShareModal, setMobileShareModal] = useState(null);
   const [isCompressing, setIsCompressing] = useState(false);

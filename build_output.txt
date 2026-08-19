@@ -1,13 +1,29 @@
-
-> hitecdashboard@0.0.0 build
+﻿
+> hitecmedia@0.1.0 build
 > vite build
 
-[36mvite v8.2.1 [32mbuilding client environment for production...[36m[39m
-[2Ktransforming...✓ 1796 modules transformed.
+vite v5.4.21 building for production...
+transforming...
+✓ 2134 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                   0.81 kB │ gzip:  0.52 kB
-dist/assets/index-B9f2RY0s.css    2.57 kB │ gzip:  0.98 kB
-dist/assets/index-Z4_3W5WO.js   196.60 kB │ gzip: 62.17 kB
-
-[32m✓ built in 469ms[39m
+dist/index.html                                      6.36 kB │ gzip:   2.55 kB
+dist/assets/style.BII0s-_Z.css                      52.69 kB │ gzip:   9.56 kB
+dist/assets/__vite-browser-external.BIHI7g3E.js      0.09 kB │ gzip:   0.11 kB │ map:      0.21 kB
+dist/assets/purify.es.D1xBkTLe.js                   29.05 kB │ gzip:  10.96 kB │ map:    159.06 kB
+dist/assets/index.es.CG1V__CD.js                   151.16 kB │ gzip:  51.62 kB │ map:    637.92 kB
+dist/assets/html2canvas.esm.CiaFdv3w.js            201.78 kB │ gzip:  48.10 kB │ map:    602.32 kB
+dist/assets/index.CscIUFJG.js                    3,337.83 kB │ gzip: 972.79 kB │ map: 10,678.58 kB
+node.exe : 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: 
+https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 26.94s

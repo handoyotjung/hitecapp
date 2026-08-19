@@ -1,0 +1,231 @@
+{
+  "metadata": {
+    "timestamp": "2026-08-17T19:54:00Z",
+    "environment": "production (default database)",
+    "purpose": "Pre-deletion backup of 3 test projects before real user onboarding",
+    "target_project_ids": [
+      "proj_qa2281s61",
+      "proj_rpl9md29j",
+      "proj_ru3e02izy"
+    ],
+    "target_photo_ids": [
+      "proj_qa2281s61_atex_failure_test_1786970383445_2026-08-17-001_jpeg",
+      "proj_rpl9md29j_atex_compliance_1786953048762_2026-08-17-001_jpeg",
+      "proj_ru3e02izy_atex_audit_1786966225640_2026-08-17-001_jpeg"
+    ]
+  },
+  "projects": {
+    "proj_qa2281s61": {
+      "created_at": "2026-08-17T12:39:43.933Z",
+      "city_name": "Jakarta Plant",
+      "id": "proj_qa2281s61",
+      "photos": [],
+      "retention_days": 7,
+      "expires_at": "2026-08-24T12:39:43.933Z",
+      "name": "ATEX Failure Test 1786970383445",
+      "company": "PT Safety Indonesia UtamaPT Safety Disconnected 1786970391977",
+      "lastModified": "2026-08-17T12:39:59.379Z",
+      "userId": "gPbeRVGV1tamjgbMP9pCNqxvTsf1",
+      "company_name": "PT Safety Indonesia UtamaPT Safety Disconnected 1786970391977",
+      "newSnapshotsAddedAt": 1786970386950,
+      "created_by": "demo@hitec.id",
+      "snapshotCompletedAt": 1786970390854,
+      "company_id": "co_hitec",
+      "lastEditedAt": "2026-08-17T12:39:59.379Z"
+    },
+    "proj_rpl9md29j": {
+      "created_at": "2026-08-17T07:50:49.252Z",
+      "lastEditedPhotoId": "proj_rpl9md29j_atex_compliance_1786953048762_2026-08-17-001_jpeg",
+      "city_name": "Jakarta Plant",
+      "id": "proj_rpl9md29j",
+      "photos": [
+        {
+          "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_rpl9md29j%2F2026-08-17%2Fatex_compliance_1786953048762_2026-08-17-001.jpeg?alt=media&token=54a75d12-1e5c-4926-97f6-0b3a25942bdd",
+          "base64": "https://firebasestorage.googleapis.com/v0/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_rpl9md29j%2F2026-08-17%2Fatex_compliance_1786953048762_2026-08-17-001.jpeg?alt=media&token=54a75d12-1e5c-4926-97f6-0b3a25942bdd",
+          "id": "proj_rpl9md29j_atex_compliance_1786953048762_2026-08-17-001_jpeg",
+          "url": "https://firebasestorage.googleapis.com/v0/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_rpl9md29j%2F2026-08-17%2Fatex_compliance_1786953048762_2026-08-17-001.jpeg?alt=media&token=54a75d12-1e5c-4926-97f6-0b3a25942bdd",
+          "comments": "Tamper seal and safety locking mechanism compromised, requiring immediate integrity verification.\nDischarge hose elastomeric deterioration observed, increasing flow impedance.",
+          "assessment_grade": "F2",
+          "expires_at": "2026-08-24T12:37:54.672Z",
+          "caption": "",
+          "filename": "atex_compliance_1786953048762_2026-08-17-001.jpeg",
+          "grade": "F2",
+          "comments_text": "Tamper seal and safety locking mechanism compromised, requiring immediate integrity verification.\nDischarge hose elastomeric deterioration observed, increasing flow impedance.",
+          "date": "",
+          "size_kb": 18.912109375,
+          "recommendations_json": [],
+          "latest_status": "done",
+          "location": ""
+        }
+      ],
+      "retention_days": 7,
+      "comments": "Tamper seal and safety locking mechanism compromised, requiring immediate integrity verification.\nDischarge hose elastomeric deterioration observed, increasing flow impedance.",
+      "expires_at": "2026-08-24T12:37:54.672Z",
+      "comments_text": "Tamper seal and safety locking mechanism compromised, requiring immediate integrity verification.\nDischarge hose elastomeric deterioration observed, increasing flow impedance.",
+      "name": "ATEX Compliance 1786953048762",
+      "lastModified": "2026-08-17T12:37:54.672Z",
+      "userId": "gPbeRVGV1tamjgbMP9pCNqxvTsf1",
+      "company_name": "PT Safety Indonesia Utama",
+      "newSnapshotsAddedAt": 1786953052268,
+      "created_by": "demo@hitec.id",
+      "snapshotCompletedAt": 1786953055648,
+      "company_id": "co_hitec",
+      "lastEditedAt": "2026-08-17T11:12:05.461Z"
+    },
+    "proj_ru3e02izy": {
+      "created_at": "2026-08-17T11:30:26.040Z",
+      "lastEditedPhotoId": "proj_ru3e02izy_atex_audit_1786966225640_2026-08-17-001_jpeg",
+      "city_name": "Jakarta Plant",
+      "id": "proj_ru3e02izy",
+      "photos": [
+        {
+          "created_at": "2026-08-17T11:30:32.665Z",
+          "city_name": "Jakarta Plant",
+          "gcs_path": "projects/proj_ru3e02izy/2026-08-17/atex_audit_1786966225640_2026-08-17-001.jpeg",
+          "original_filename": "Trading.jpeg",
+          "id": "proj_ru3e02izy_atex_audit_1786966225640_2026-08-17-001_jpeg",
+          "url": "https://firebasestorage.googleapis.com/v0/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_ru3e02izy%2F2026-08-17%2Fatex_audit_1786966225640_2026-08-17-001.jpeg?alt=media&token=b279cbb3-08d9-49ad-8879-584674ae5898",
+          "project_id": "proj_ru3e02izy",
+          "comments": "",
+          "upload_date": "2026-08-17",
+          "caption": "",
+          "filename": "atex_audit_1786966225640_2026-08-17-001.jpeg",
+          "status": "done",
+          "comments_text": "",
+          "uploaded_by": "demo@hitec.id",
+          "size_kb": 18.912109375,
+          "upload_timestamp": 1786966232665,
+          "recommendations_json": [
+            "Verify compliance against ATEX/IEC standard for grade F2. enclosure packing immediately"
+          ],
+          "company_id": "co_hitec"
+        }
+      ],
+      "retention_days": 7,
+      "comments": "Important observation regarding cable gland integrity",
+      "expires_at": "2026-08-24T11:30:26.040Z",
+      "comments_text": "Important observation regarding cable gland integrity",
+      "name": "ATEX Audit 1786966225640",
+      "lastModified": "2026-08-17T11:30:39.170Z",
+      "userId": "gPbeRVGV1tamjgbMP9pCNqxvTsf1",
+      "company_name": "PT Safety Indonesia Utama",
+      "newSnapshotsAddedAt": 1786966229064,
+      "recommendations_json": [
+        "Verify compliance against ATEX/IEC standard for grade F2. enclosure packing immediately"
+      ],
+      "created_by": "demo@hitec.id",
+      "snapshotCompletedAt": 1786966232697,
+      "company_id": "co_hitec",
+      "lastEditedAt": "2026-08-17T11:30:39.170Z"
+    }
+  },
+  "photos": {
+    "proj_qa2281s61_atex_failure_test_1786970383445_2026-08-17-001_jpeg": {
+      "created_at": "2026-08-17T12:39:50.800Z",
+      "city_name": "Jakarta Plant",
+      "gcs_path": "projects/proj_qa2281s61/2026-08-17/atex_failure_test_1786970383445_2026-08-17-001.jpeg",
+      "original_filename": "Trading.jpeg",
+      "comments_lang": "EN",
+      "comments": "",
+      "recommendations_lang": "EN",
+      "expires_at": "2026-08-24T12:40:01.389Z",
+      "caption": "",
+      "status": "done",
+      "asset_title": "",
+      "size_kb": 18.912109375,
+      "lastModified": "2026-08-17T12:40:01.389Z",
+      "upload_timestamp": 1786970390800,
+      "location": "",
+      "company_id": "co_hitec",
+      "id": "proj_qa2281s61_atex_failure_test_1786970383445_2026-08-17-001_jpeg",
+      "url": "https://firebasestorage.googleapis.com/v0/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_qa2281s61%2F2026-08-17%2Fatex_failure_test_1786970383445_2026-08-17-001.jpeg?alt=media&token=5c186f2c-6575-4bd6-b3f1-527af57d96de",
+      "project_id": "proj_qa2281s61",
+      "assessment_grade": "F2",
+      "upload_date": "2026-08-17",
+      "grade": "F2",
+      "filename": "atex_failure_test_1786970383445_2026-08-17-001.jpeg",
+      "comments_text": "",
+      "uploaded_by": "demo@hitec.id",
+      "date": "",
+      "recommendations_json": [],
+      "title": "",
+      "latest_status": "done"
+    },
+    "proj_rpl9md29j_atex_compliance_1786953048762_2026-08-17-001_jpeg": {
+      "created_at": "2026-08-17T07:50:55.610Z",
+      "city_name": "Jakarta Plant",
+      "gcs_path": "projects/proj_rpl9md29j/2026-08-17/atex_compliance_1786953048762_2026-08-17-001.jpeg",
+      "original_filename": "Trading.jpeg",
+      "comments_lang": "EN",
+      "recommendations_lang": "EN",
+      "comments": "Tamper seal and safety locking mechanism compromised, requiring immediate integrity verification.\nDischarge hose elastomeric deterioration observed, increasing flow impedance.",
+      "expires_at": "2026-08-24T12:37:54.672Z",
+      "caption": "",
+      "status": "done",
+      "asset_title": "",
+      "size_kb": 18.912109375,
+      "lastModified": "2026-08-17T12:37:54.672Z",
+      "upload_timestamp": 1786953055610,
+      "location": "",
+      "company_id": "default_company",
+      "id": "proj_rpl9md29j_atex_compliance_1786953048762_2026-08-17-001_jpeg",
+      "url": "https://firebasestorage.googleapis.com/v0/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_rpl9md29j%2F2026-08-17%2Fatex_compliance_1786953048762_2026-08-17-001.jpeg?alt=media&token=54a75d12-1e5c-4926-97f6-0b3a25942bdd",
+      "project_id": "proj_rpl9md29j",
+      "assessment_grade": "F2",
+      "upload_date": "2026-08-17",
+      "grade": "F2",
+      "filename": "atex_compliance_1786953048762_2026-08-17-001.jpeg",
+      "comments_text": "Tamper seal and safety locking mechanism compromised, requiring immediate integrity verification.\nDischarge hose elastomeric deterioration observed, increasing flow impedance.",
+      "uploaded_by": "demo@hitec.id",
+      "date": "",
+      "recommendations_json": [],
+      "title": "",
+      "latest_status": "done"
+    },
+    "proj_ru3e02izy_atex_audit_1786966225640_2026-08-17-001_jpeg": {
+      "created_at": "2026-08-17T11:30:32.665Z",
+      "city_name": "Jakarta Plant",
+      "gcs_path": "projects/proj_ru3e02izy/2026-08-17/atex_audit_1786966225640_2026-08-17-001.jpeg",
+      "original_filename": "Trading.jpeg",
+      "id": "proj_ru3e02izy_atex_audit_1786966225640_2026-08-17-001_jpeg",
+      "url": "https://firebasestorage.googleapis.com/v0/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_ru3e02izy%2F2026-08-17%2Fatex_audit_1786966225640_2026-08-17-001.jpeg?alt=media&token=b279cbb3-08d9-49ad-8879-584674ae5898",
+      "project_id": "proj_ru3e02izy",
+      "upload_date": "2026-08-17",
+      "expires_at": "2026-08-24T11:30:38.465Z",
+      "caption": "",
+      "filename": "atex_audit_1786966225640_2026-08-17-001.jpeg",
+      "status": "done",
+      "uploaded_by": "demo@hitec.id",
+      "size_kb": 18.912109375,
+      "lastModified": "2026-08-17T11:30:38.465Z",
+      "upload_timestamp": 1786966232665,
+      "recommendations_json": [
+        "Verify compliance against ATEX/IEC standard for grade F2. enclosure packing immediately"
+      ],
+      "company_id": "co_hitec"
+    }
+  },
+  "storage_blobs": [
+    {
+      "name": "projects/proj_qa2281s61/2026-08-17/atex_failure_test_1786970383445_2026-08-17-001.jpeg",
+      "size_bytes": 19366,
+      "content_type": "image/jpeg",
+      "time_created": "2026-08-17 12:39:50.770000+00:00",
+      "media_link": "https://storage.googleapis.com/download/storage/v1/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_qa2281s61%2F2026-08-17%2Fatex_failure_test_1786970383445_2026-08-17-001.jpeg?generation=1786970390754436&alt=media"
+    },
+    {
+      "name": "projects/proj_rpl9md29j/2026-08-17/atex_compliance_1786953048762_2026-08-17-001.jpeg",
+      "size_bytes": 19366,
+      "content_type": "image/jpeg",
+      "time_created": "2026-08-17 07:50:55.386000+00:00",
+      "media_link": "https://storage.googleapis.com/download/storage/v1/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_rpl9md29j%2F2026-08-17%2Fatex_compliance_1786953048762_2026-08-17-001.jpeg?generation=1786953055382842&alt=media"
+    },
+    {
+      "name": "projects/proj_ru3e02izy/2026-08-17/atex_audit_1786966225640_2026-08-17-001.jpeg",
+      "size_bytes": 19366,
+      "content_type": "image/jpeg",
+      "time_created": "2026-08-17 11:30:32.436000+00:00",
+      "media_link": "https://storage.googleapis.com/download/storage/v1/b/hitecapp-safety.firebasestorage.app/o/projects%2Fproj_ru3e02izy%2F2026-08-17%2Fatex_audit_1786966225640_2026-08-17-001.jpeg?generation=1786966232432663&alt=media"
+    }
+  ]
+}

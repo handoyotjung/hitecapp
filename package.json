@@ -10,7 +10,11 @@
     "db:backup": "node .agent/scripts/db_backup_restore.cjs backup",
     "db:restore": "node .agent/scripts/db_backup_restore.cjs restore",
     "verify:deploy": "node .agent/scripts/verify_deployment.cjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:ui": "node .agent/scripts/verify_ui.cjs --mode=all",
+    "test:ui:desktop": "node .agent/scripts/verify_ui.cjs --mode=desktop",
+    "test:ui:mobile": "node .agent/scripts/verify_ui.cjs --mode=mobile",
+    "test:ui:sync": "node .agent/scripts/verify_ui.cjs --mode=sync"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",

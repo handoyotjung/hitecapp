@@ -1,0 +1,3 @@
+Static preview server running on port 5188
+✅ Saved Top View: C:\Antigravity IDE\HitecApp\Safety\.agent\test-screenshots\user_guide_modal_top.png
+✅ Saved Bottom View: C:\Antigravity IDE\HitecApp\Safety\.agent\test-screenshots\user_guide_modal_bottom.png

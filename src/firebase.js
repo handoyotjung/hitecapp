@@ -141,6 +141,11 @@ const withStoreMutex = (fn) => {
   return _writeMutexQueue;
 };
 
+if (typeof window !== 'undefined') {
+  window.__HITEC_MOCK_MODE__ = isMockMode;
+  window.__FIREBASE_PROJECT_ID__ = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'mock';
+}
+
 if (!isMockMode) {
   // Real Firebase Initialization
   const firebaseConfig = {

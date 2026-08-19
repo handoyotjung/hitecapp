@@ -1,0 +1,40 @@
+
+🧪 HitecApp Tri-Mode QA Suite (Desktop, Mobile & Cross-Device Sync)
+==================================================================
+  Target Base URL : http://localhost:5175
+  Assessor Account: demo@hitec.id (Role: user)
+  Execution Mode  : SYNC
+==================================================================
+
+
+🔄 Running Suite C: Cross-Device Sync (Incognito Desktop <-> Incognito Mobile)...
+  👤 Shared Assessor Account: demo@hitec.id (Role: user)
+--------------------------------------------------
+  1. Context 1 (Desktop): Initializing and checking database mode...
+  🔥 Active Runtime Firebase Project ID: hitecapp-safety
+  ✅ [Sync] Real Firestore backend verified (Project: hitecapp-safety)
+  2. Context 1 (Desktop): Creating project "[QA_SANDBOX_AUTOMATION]_Sync_539775"...
+  3. Context 1 (Desktop): Uploading photo and setting initial caption...
+  ✅ [Sync] Context 1 set initial caption: "QA_Sync_Init_539775"
+  4. Context 2 (Mobile): Logging into SAME assessor account (demo@hitec.id) in isolated context...
+  5. Context 2 (Mobile): Polling for project "[QA_SANDBOX_AUTOMATION]_Sync_539775" visibility in real-time...
+  ✅ [Sync] Project "[QA_SANDBOX_AUTOMATION]_Sync_539775" appeared on Context 2 (Mobile) within 0s
+  6. Context 2 (Mobile): Checking caption matches Context 1...
+  ❌ [Sync] Context 2 caption mismatch (expected: "QA_Sync_Init_539775", got: "null")
+  7. Context 2 (Mobile): Updating caption to "QA_Sync_MobileEdit_539775"...
+  8. Context 1 (Desktop): Verifying real-time onSnapshot update without manual reload...
+  ❌ [Sync] Context 1 did NOT reflect Context 2 caption update within 30s timeout
+  9. Teardown: Deleting sandboxed test project from Firestore...
+  ✅ [Sync] Sandboxed test project deleted cleanly
+
+==================================================================
+⚠️  QA SUITES COMPLETED WITH 2 FAILURES
+==================================================================
+  🖥️  Suite A (Desktop QA)        : 0 Passed | 0 Failed
+  📱 Suite B (Mobile QA)         : 0 Passed | 0 Failed
+  🔄 Suite C (Cross-Device Sync) : 4 Passed | 2 Failed
+------------------------------------------------------------------
+  TOTAL: 4 Passed / 2 Failed
+  Screenshots Directory: C:\Antigravity IDE\HitecApp\Safety\.agent\test-screenshots
+  Consolidated JSON Report: C:\Antigravity IDE\HitecApp\Safety\.agent\test-screenshots\report.json
+

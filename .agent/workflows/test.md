@@ -1,5 +1,5 @@
 ---
-description: Run automated UI tests on localhost using Chrome (Puppeteer). Verifies login, project creation, photo upload, two-column editor, footer alignment, caption/comments decoupling, and textarea auto-height.
+description: Run automated Tri-Mode UI tests (Desktop QA, Mobile QA, and Cross-Device Real-Time Sync) on localhost using Chrome (Puppeteer).
 ---
 
 ## Automated Test Workflow
@@ -12,25 +12,22 @@ description: Run automated UI tests on localhost using Chrome (Puppeteer). Verif
 
 2. **Run the automated Puppeteer test script** against `http://localhost:5173`:
    ```
-   node .agent/scripts/verify_ui.cjs
+   node .agent/scripts/verify_ui.cjs --mode=all
    ```
-   This will open a **visible Chrome window** and automatically:
-   - Log in with mock credentials
-   - Force **Desktop view mode** via localStorage
-   - Fill Company / City fields and create a test project
-   - Upload a test photo and wait for upload to complete
-   - Verify the two-column editor opens
-   - Measure left/right **footer vertical alignment** (must be ≤ 2px diff)
-   - Check **COMMENTS textarea is blank** by default
-   - Test that **Caption and Comments are decoupled** (changes don't cross-bind)
-   - Verify **COMMENTS textarea auto-resizes** when content grows
+   *(Or target individual suites: `node .agent/scripts/verify_ui.cjs --mode=desktop`, `--mode=mobile`, or `--mode=sync`)*
 
-3. **Report the results.** Read the console output and `report.json`, then present a summary table showing ✅/❌ for each check. Screenshots are saved to `.agent/test-screenshots/`.
+   This executes:
+   - **🖥️ Suite A (Desktop QA - 1440x900)**: Login, sandboxed project creation, photo upload, 2-column editor verification, footer vertical alignment ($\le 2\text{px}$), caption/comments decoupling, and multiline textarea auto-height.
+   - **📱 Suite B (Mobile QA - 390x844)**: Mobile login, zero horizontal overflow check, mobile responsive card stream, header collapse toggle, and inline photo card editing.
+   - **🔄 Suite C (Cross-Device Sync)**: Dual incognito contexts (Desktop + Mobile) sharing the same sandboxed account (`[QA_SANDBOX_AUTOMATION]`). Verifies real Firestore presence (fails if Mock Mode), asserts new project appears on mobile list within timeout, verifies initial caption match, edits on mobile, and asserts desktop `onSnapshot` listener receives the edit in real time without manual reload.
+
+3. **Report the results.** Read the console output matrix and `report.json`, then present a summary table showing ✅/❌ for each checkpoint. Screenshots are saved to `.agent/test-screenshots/` (segregated into `desktop/`, `mobile/`, and `sync/`).
 
 4. **If any checks fail**, diagnose and fix the issue, then re-run `/test` to confirm.
 
 ### Notes
-- The 404 errors in console are expected (dev mode has no `/api/project` endpoint) — they do **not** affect test validity.
+- Target base URL: `http://localhost:5173`
 - Script path: `.agent/scripts/verify_ui.cjs`
-- Screenshots path: `.agent/test-screenshots/`
+- Screenshots path: `.agent/test-screenshots/{desktop,mobile,sync}/`
+- Report path: `.agent/test-screenshots/report.json`
 - Exit code 0 = all passed, exit code 1 = one or more failed.

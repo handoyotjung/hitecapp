@@ -53,6 +53,24 @@ export function HelpModal({ open, onClose }) {
           </section>
 
           <section>
+            <h3 className="text-white font-bold text-base mb-2">📋 Grades & ATEX Tags</h3>
+            <ul className="space-y-1.5 list-none">
+              <li>🏷️ Tap a photo to set its <span className="text-white font-medium">Grade</span> and <span className="text-white font-medium">ATEX tag</span></li>
+              <li>⚠️ Required before a project can be marked complete</li>
+              <li>⚡ Grades and tags sync automatically like captions</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-white font-bold text-base mb-2">💬 Comments vs. Captions</h3>
+            <ul className="space-y-1.5 list-none">
+              <li>🏷️ <span className="text-white font-medium">Caption</span> = short label shown under the photo</li>
+              <li>📝 <span className="text-white font-medium">Comments/Remarks</span> = longer notes, separate from the caption</li>
+              <li>🔒 Editing one never overwrites the other</li>
+            </ul>
+          </section>
+
+          <section>
             <h3 className="text-white font-bold text-base mb-2">🗣️ Speech-to-Text Feedback</h3>
             <ul className="space-y-1.5 list-none">
               <li>🎤 Tap the <span className="text-white font-medium">Mic</span> button in the Feedback modal</li>
@@ -71,11 +89,38 @@ export function HelpModal({ open, onClose }) {
           </section>
 
           <section>
+            <h3 className="text-white font-bold text-base mb-2">🤖 AI Assessor Recommendations</h3>
+            <ul className="space-y-1.5 list-none">
+              <li>✍️ <span className="text-white font-medium">Manual</span> — you write all recommendations yourself</li>
+              <li>💡 <span className="text-white font-medium">Suggestions</span> — AI drafts a recommendation, you review and edit before saving</li>
+              <li>⏳ AI agent mode is not yet available</li>
+            </ul>
+          </section>
+
+          <section>
             <h3 className="text-white font-bold text-base mb-2">🔄 Switching Projects</h3>
             <ul className="space-y-1.5 list-none">
               <li>📂 Use the dropdown to switch projects</li>
               <li>🔓 View Mode resets automatically on switch</li>
               <li>💾 Work is autosaved before switching</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-white font-bold text-base mb-2">🔄 Multi-Device Sync</h3>
+            <ul className="space-y-1.5 list-none">
+              <li>📱 Your account can be used on multiple devices at once</li>
+              <li>⚡ Projects and edits sync automatically across devices</li>
+              <li>🔄 If a project doesn't appear on another device, wait a few seconds and refresh</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-white font-bold text-base mb-2">🔒 Session & Login</h3>
+            <ul className="space-y-1.5 list-none">
+              <li>⏱️ You'll be logged out automatically after a period of inactivity</li>
+              <li>💾 Unsaved edits are autosaved before a session expires, so work isn't lost</li>
+              <li>🔑 Just log back in to continue where you left off</li>
             </ul>
           </section>
 
