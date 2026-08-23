@@ -43,3 +43,8 @@ create_accounts.py
 create_admin.py
 update_passwords.py
 gen_ppt.py
+
+# Graphify Knowledge Graph
+graphify-out/graph.html
+graphify-out/cache/
+.graphify/
