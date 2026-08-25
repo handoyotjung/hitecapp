@@ -52,12 +52,14 @@ export function useProjectAutoSave(projectId) {
       }
 
       // 2. Direct Firestore persistence (must throw on network/permission failure to surface error state)
-      if (typeof window !== 'undefined' && window.__firestoreSetDocError) {
-        throw window.__firestoreSetDocError;
-      }
-      if (db) {
-        const cleanPayload = { ...payload, lastModified: nowIso, lastEditedAt: nowIso };
-        await setDoc(doc(db, 'projects', projectId), cleanPayload, { merge: true });
+      try {
+        if (db) {
+          const cleanPayload = { ...payload, lastModified: nowIso, lastEditedAt: nowIso };
+          await setDoc(doc(db, 'projects', projectId), cleanPayload, { merge: true });
+        }
+      } catch (firestoreErr) {
+        console.error("[useProjectAutoSave] Firestore save error:", firestoreErr);
+        throw firestoreErr;
       }
 
       // Broadcast channel for instant cross-tab and multi-window state sync
@@ -108,7 +110,8 @@ export function useProjectAutoSave(projectId) {
   };
 
   const retrySave = () => {
-    if (lastPayloadRef.current) {
+    // Guard: only retry if there's actual payload data (not the initial empty object)
+    if (lastPayloadRef.current && Object.keys(lastPayloadRef.current).length > 0) {
       mutate(lastPayloadRef.current);
     }
   };
