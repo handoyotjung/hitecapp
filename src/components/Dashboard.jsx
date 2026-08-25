@@ -436,7 +436,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
 
   const [exportingPPTX, setExportingPPTX] = useState(false);
   const [exportingXLSX, setExportingXLSX] = useState(false);
-  const [exportingDOCX, setExportingDOCX] = useState(false);
   const [exportError, setExportError] = useState(null);
 
   // Custom testing selection states
@@ -1736,6 +1735,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       const res = await generateGeminiSuggestions(commentsText, recommendationsLang || 'EN', photoGrade || 'F2');
       if (res && res.recommendation) {
         setAiDraftRec(res.recommendation);
+        setAiRecMode('Auto');  // Set mode to automatic after successful Gemini suggestion
       } else {
         const res = await aiGenerateRecommendation(
           projectPhotos[editorIndex],
