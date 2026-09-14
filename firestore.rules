@@ -50,6 +50,19 @@ service cloud.firestore {
         (isAuthenticated() && request.auth.token.email == resource.data.uploaded_by);
       allow create: if isWhitelisted() ||
         (isAuthenticated() && request.auth.token.email == request.resource.data.uploaded_by);
+
+      // Audit Events Subcollection (Append-Only ML & Accountability Audit Trail)
+      match /audit_events/{eventId} {
+        allow read: if isWhitelisted();
+        allow create: if isAuthenticated() && isWhitelisted()
+          && request.auth.token.email == request.resource.data.userEmail;
+        allow update, delete: if false; // Strict database-level immutability
+      }
+    }
+
+    // Collection Group Query Support for Audit Events in Admin Dashboard
+    match /{path=**}/audit_events/{eventId} {
+      allow read: if isWhitelisted();
     }
 
     // Plan rules

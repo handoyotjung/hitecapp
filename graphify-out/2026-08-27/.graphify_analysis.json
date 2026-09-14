@@ -1,0 +1,1032 @@
+{
+  "communities": {
+    "0": [
+      "src_aiassessor",
+      "src_aiassessor_aifeedbackchatstep",
+      "src_aiassessor_aifeedbacksynthesize",
+      "src_aiassessor_aigeneraterecommendation",
+      "src_aiassessor_aigrammarcheck",
+      "src_aiassessor_aiobservationassessor",
+      "src_aiassessor_aitranslateandgrammarcheck",
+      "src_aiassessor_default_ai_recommendation_rules",
+      "src_aiassessor_extractkeywords",
+      "src_aiassessor_generaterecommendation",
+      "src_aiassessor_getaisuggestions",
+      "src_aiassessor_getstoredcommentstraining",
+      "src_aiassessor_getstoredrules",
+      "src_aiassessor_learncomment",
+      "src_aiassessor_translateidtoenglishissue",
+      "src_aiorientation",
+      "src_aiorientation_company_profile",
+      "src_aiorientation_getaiorientationprompt",
+      "src_components_annotatedimagecanvas",
+      "src_components_annotatedimagecanvas_annotatedimagecanvas",
+      "src_components_annotatedimagecanvas_canvasbackgroundimage",
+      "src_components_autosaveindicator",
+      "src_components_autosaveindicator_autosaveindicator",
+      "src_components_dashboard",
+      "src_components_dashboard_dashboard",
+      "src_components_dashboard_getlocaltodaystr",
+      "src_components_dashboard_getprojectscachekey",
+      "src_components_dashboard_loadprojectsfromcache",
+      "src_components_dashboard_saveprojectstocache",
+      "src_components_feedbackmodal",
+      "src_components_feedbackmodal_feedbackmodal",
+      "src_components_header",
+      "src_components_header_header",
+      "src_components_header_usermenu",
+      "src_components_helpmodal",
+      "src_components_helpmodal_helpmodal",
+      "src_components_photoitem",
+      "src_components_photoitem_photoitem",
+      "src_components_publishbar",
+      "src_components_publishbar_publishbar",
+      "src_components_upgrademodal",
+      "src_components_upgrademodal_upgrademodal",
+      "src_components_uploadworkerpool",
+      "src_components_uploadworkerpool_uploadworkerpool",
+      "src_components_uploadworkerpool_uploadworkerpool_add",
+      "src_components_uploadworkerpool_uploadworkerpool_checkdrain",
+      "src_components_uploadworkerpool_uploadworkerpool_constructor",
+      "src_components_uploadworkerpool_uploadworkerpool_drain",
+      "src_components_uploadworkerpool_uploadworkerpool_tick",
+      "src_components_uploadworkerpool_withexponentialbackoff",
+      "src_components_uploadzone",
+      "src_components_uploadzone_uploadzone",
+      "src_firebase_getdownloadurl",
+      "src_firebase_ref",
+      "src_hooks_usespeechtotext",
+      "src_hooks_usespeechtotext_usespeechtotext",
+      "src_imagecompressor",
+      "src_imagecompressor_compressimage",
+      "src_utils_sharefile",
+      "src_utils_sharefile_sharefile",
+      "test_synthesis",
+      "test_synthesis_test",
+      "test_synthesis_testhistory"
+    ],
+    "1": [
+      "CLAUDE",
+      "agent_agents",
+      "build_output",
+      "claude_pm_memory",
+      "claude_skills_frontend_slides_skill",
+      "claude_skills_frontend_slides_skill_core_principles",
+      "claude_skills_frontend_slides_skill_frontend_slides",
+      "concept_anti",
+      "concept_atex_directive_1999_92_ec",
+      "concept_atex_directive_2014_34_eu",
+      "concept_cody",
+      "concept_dak",
+      "concept_gem",
+      "concept_hitecapp_safety",
+      "concept_iec_60079",
+      "concept_ohan",
+      "concept_pt_safety_indonesia_utama",
+      "concept_spark",
+      "log_safety_260814",
+      "log_safety_260815",
+      "log_safety_260816",
+      "log_safety_260817",
+      "log_safety_260819",
+      "log_safety_260819_1_executive_summary",
+      "log_safety_260819_2_key_code_architecture_changes",
+      "log_safety_260819_3_build_deployment_verification",
+      "log_safety_260819_4_next_planned_objectives",
+      "log_safety_260819_a_tri_mode_automated_qa_suite_agent_scripts_verify_ui_cjs",
+      "log_safety_260819_b_in_app_user_guide_modal_src_components_helpmodal_jsx",
+      "log_safety_260819_c_status_board_pipeline_sync_public_progress_html",
+      "log_safety_260819_hitecapp_safety_session_log_2026_08_19_safety_260819_md",
+      "log_safety_260825_ohan_gcp_setup",
+      "log_safety_260825_ohan_gcp_setup_1_project_separation_architecture_mapping",
+      "log_safety_260825_ohan_gcp_setup_2_configuration_record_for_ohanid",
+      "log_safety_260825_ohan_gcp_setup_3_financial_promotional_credit_analysis",
+      "log_safety_260825_ohan_gcp_setup_4_implemented_production_setup_gemini_3_7_flash_on_vs_code_claude_code_ui",
+      "log_safety_260825_ohan_gcp_setup_clean_team_billing_matrix",
+      "log_safety_260825_ohan_gcp_setup_credit_status",
+      "log_safety_260825_ohan_gcp_setup_critical_billing_distinction_1st_party_vs_3rd_party_marketplace",
+      "log_safety_260825_ohan_gcp_setup_executive_architecture_billing_summary_project_ohanid_vertex_ai_setup",
+      "mcp_bridge_requirements",
+      "preview_log",
+      "public_admin",
+      "public_progress",
+      "public_survey"
+    ],
+    "2": [
+      "autoprefixer",
+      "jsdom",
+      "package",
+      "package_devdependencies",
+      "package_devdependencies_autoprefixer",
+      "package_devdependencies_jsdom",
+      "package_devdependencies_pngjs",
+      "package_devdependencies_postcss",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_testing_library_dom",
+      "package_devdependencies_testing_library_react",
+      "package_devdependencies_types_react",
+      "package_devdependencies_types_react_dom",
+      "package_devdependencies_vite",
+      "package_devdependencies_vitejs_plugin_react",
+      "package_devdependencies_vitest",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_db_backup",
+      "package_scripts_db_restore",
+      "package_scripts_dev",
+      "package_scripts_preview",
+      "package_scripts_test",
+      "package_scripts_test_ui",
+      "package_scripts_test_ui_desktop",
+      "package_scripts_test_ui_mobile",
+      "package_scripts_test_ui_sync",
+      "package_scripts_verify_deploy",
+      "package_type",
+      "package_version",
+      "pngjs",
+      "postcss",
+      "tailwindcss",
+      "testing_library_dom",
+      "testing_library_react",
+      "types_react",
+      "types_react_dom",
+      "vite",
+      "vitejs_plugin_react",
+      "vitest"
+    ],
+    "3": [
+      "src_app",
+      "src_app_app",
+      "src_app_session_expiry_ms",
+      "src_app_session_schema_version",
+      "src_components_login",
+      "src_components_login_login",
+      "src_components_securitypage",
+      "src_components_securitypage_securitypage",
+      "src_firebase_getdoc",
+      "src_firebase_onauthstatechanged",
+      "src_firebase_signinwithemailandpassword",
+      "src_firebase_signout",
+      "src_main",
+      "src_main_queryclient",
+      "src_sessionsecurity",
+      "src_sessionsecurity_apiadminforcelogout",
+      "src_sessionsecurity_apilogin",
+      "src_sessionsecurity_apilogout",
+      "src_sessionsecurity_apilogoutotherdevices",
+      "src_sessionsecurity_apilogoutspecificsession",
+      "src_sessionsecurity_firestorepatch",
+      "src_sessionsecurity_firestorepost",
+      "src_sessionsecurity_generateuuid",
+      "src_sessionsecurity_getactivesessions",
+      "src_sessionsecurity_getclientdeviceid",
+      "src_sessionsecurity_getclientdevicename",
+      "src_sessionsecurity_getsanitizedmockdb",
+      "src_sessionsecurity_loadsessionstable",
+      "src_sessionsecurity_loadstore",
+      "src_sessionsecurity_registerdebugaudit",
+      "src_sessionsecurity_runsessioncleanupjob",
+      "src_sessionsecurity_savesessionstable",
+      "src_sessionsecurity_savestore",
+      "src_sessionsecurity_sessiondocurl",
+      "src_sessionsecurity_shouldshowcloudsyncwarning",
+      "src_sessionsecurity_suppresscloudsyncwarning",
+      "src_sessionsecurity_synclocalsessionstocloud",
+      "src_sessionsecurity_test",
+      "src_sessionsecurity_updatesessionactiveproject",
+      "src_sessionsecurity_validatesession",
+      "tests_cloud_sync_banner_test",
+      "tests_diagnostic_audit_test"
+    ],
+    "4": [
+      "callablerequest",
+      "cloudevent",
+      "functions_main",
+      "functions_main_api_admin_accounts",
+      "functions_main_api_admin_sessions",
+      "functions_main_api_feedback",
+      "functions_main_cleanup_exports",
+      "functions_main_exportpdf",
+      "functions_main_exportpptx",
+      "functions_main_exportxlsx",
+      "functions_main_generate_pdf_report",
+      "functions_main_generateaisuggestions",
+      "functions_main_get_company_plan_limits",
+      "functions_main_getsigneduploadurl",
+      "functions_main_initialize",
+      "functions_main_onphotoupload",
+      "functions_main_rationale_101",
+      "functions_main_rationale_123",
+      "functions_main_rationale_162",
+      "functions_main_rationale_255",
+      "functions_main_rationale_36",
+      "functions_main_rationale_378",
+      "functions_main_rationale_660",
+      "functions_main_rationale_665",
+      "functions_main_rationale_670",
+      "functions_main_rationale_692",
+      "functions_main_rationale_732",
+      "functions_main_rationale_76",
+      "functions_main_rationale_772",
+      "functions_main_rationale_820",
+      "functions_main_sync_auth_user",
+      "functions_main_validateupload",
+      "init",
+      "on_call",
+      "on_object_finalized",
+      "on_request",
+      "on_schedule",
+      "request",
+      "response",
+      "scheduledevent",
+      "storageobjectdata"
+    ],
+    "5": [
+      "src_firebase",
+      "src_firebase_adddoc",
+      "src_firebase_authlisteners",
+      "src_firebase_broadcastdbmutation",
+      "src_firebase_collection",
+      "src_firebase_dblisteners",
+      "src_firebase_deletedoc",
+      "src_firebase_doc",
+      "src_firebase_fixooxmldrawingsext",
+      "src_firebase_getdocs",
+      "src_firebase_getfiltereditems",
+      "src_firebase_googleauthprovider",
+      "src_firebase_googleauthprovider_constructor",
+      "src_firebase_handleexportexcel",
+      "src_firebase_handleexportpdf",
+      "src_firebase_httpscallable",
+      "src_firebase_ismockmode",
+      "src_firebase_limit",
+      "src_firebase_loadmockstore",
+      "src_firebase_mockstore",
+      "src_firebase_onsnapshot",
+      "src_firebase_orderby",
+      "src_firebase_query",
+      "src_firebase_savemockstore",
+      "src_firebase_setdoc",
+      "src_firebase_signinwithpopup",
+      "src_firebase_triggerdblisteners",
+      "src_firebase_updatedoc",
+      "src_firebase_uploadbytesresumable",
+      "src_firebase_where",
+      "src_firebase_withstoremutex",
+      "src_firebase_writemutexqueue",
+      "src_hooks_useprojectautosave",
+      "src_hooks_useprojectautosave_useprojectautosave",
+      "src_hooks_usesessionguard",
+      "src_hooks_usesessionguard_firestorelogoutothersessions",
+      "src_hooks_usesessionguard_firestoresavesession",
+      "src_hooks_usesessionguard_firestoresyncproject",
+      "src_hooks_usesessionguard_firestoretrackreportdownload",
+      "src_hooks_usesessionguard_usesessionguard"
+    ],
+    "6": [
+      "docx",
+      "exceljs",
+      "file_saver",
+      "firebase",
+      "jspdf",
+      "jspdf_autotable",
+      "jszip",
+      "konva",
+      "lucide_react",
+      "package_dependencies",
+      "package_dependencies_docx",
+      "package_dependencies_exceljs",
+      "package_dependencies_file_saver",
+      "package_dependencies_firebase",
+      "package_dependencies_jspdf",
+      "package_dependencies_jspdf_autotable",
+      "package_dependencies_jszip",
+      "package_dependencies_konva",
+      "package_dependencies_lucide_react",
+      "package_dependencies_pptxgenjs",
+      "package_dependencies_puppeteer",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_react_konva",
+      "package_dependencies_tanstack_react_query",
+      "package_dependencies_use_image",
+      "package_dependencies_xlsx",
+      "pptxgenjs",
+      "puppeteer",
+      "react",
+      "react_dom",
+      "react_konva",
+      "tanstack_react_query",
+      "use_image",
+      "xlsx"
+    ],
+    "7": [
+      "claude_zen_bin_claude_zen",
+      "claude_zen_bin_claude_zen__entry",
+      "claude_zen_bin_claude_zen_anthropic_auth_token",
+      "claude_zen_bin_claude_zen_anthropic_base_url",
+      "claude_zen_bin_claude_zen_anthropic_default_haiku_model",
+      "claude_zen_bin_claude_zen_anthropic_default_opus_model",
+      "claude_zen_bin_claude_zen_anthropic_default_sonnet_model",
+      "claude_zen_bin_claude_zen_anthropic_model",
+      "claude_zen_bin_claude_zen_anthropic_small_fast_model",
+      "claude_zen_bin_claude_zen_claude_code_disable_nonessential_traffic",
+      "claude_zen_bin_claude_zen_claude_code_max_context_tokens",
+      "claude_zen_bin_claude_zen_enable_tool_search",
+      "claude_zen_bin_claude_zen_free_models",
+      "claude_zen_bin_claude_zen_key",
+      "claude_zen_bin_claude_zen_model_alive",
+      "claude_zen_bin_claude_zen_proxy_up",
+      "claude_zen_bin_claude_zen_resolve_model",
+      "claude_zen_bin_claude_zen_start_proxy",
+      "claude_zen_bin_claude_zen_status",
+      "claude_zen_bin_claude_zen_usage",
+      "claude_zen_bin_claude_zen_zen_model"
+    ],
+    "8": [
+      "src_exportwordreport",
+      "src_exportwordreport_base64tobytes",
+      "src_exportwordreport_createlightbullet",
+      "src_exportwordreport_createlightrow",
+      "src_exportwordreport_createtwocoltable",
+      "src_exportwordreport_ensurephotobase64",
+      "src_exportwordreport_getbestphotobase64",
+      "src_exportwordreport_getimagesize",
+      "src_exportwordreport_handleexportword",
+      "src_hooks_usereportexporter",
+      "src_hooks_usereportexporter_createlightbullet",
+      "src_hooks_usereportexporter_createlightrow",
+      "src_hooks_usereportexporter_createtwocoltable",
+      "src_hooks_usereportexporter_extractphotosforexport",
+      "src_hooks_usereportexporter_getimagesize",
+      "src_hooks_usereportexporter_rationale_319",
+      "src_hooks_usereportexporter_rationale_348",
+      "src_hooks_usereportexporter_useexportpdf",
+      "src_hooks_usereportexporter_useexportpptx",
+      "src_hooks_usereportexporter_useexportword"
+    ],
+    "9": [
+      "claude_zen_zen_proxy",
+      "claude_zen_zen_proxy_demandsreasoning",
+      "claude_zen_zen_proxy_fail",
+      "claude_zen_zen_proxy_fillreasoningstubs",
+      "claude_zen_zen_proxy_port",
+      "claude_zen_zen_proxy_readbody",
+      "claude_zen_zen_proxy_reasoningbykey",
+      "claude_zen_zen_proxy_recallreasoning",
+      "claude_zen_zen_proxy_relaystream",
+      "claude_zen_zen_proxy_remember",
+      "claude_zen_zen_proxy_rememberreasoning",
+      "claude_zen_zen_proxy_send",
+      "claude_zen_zen_proxy_server",
+      "claude_zen_zen_proxy_sse",
+      "claude_zen_zen_proxy_stop",
+      "claude_zen_zen_proxy_textkey",
+      "claude_zen_zen_proxy_textof",
+      "claude_zen_zen_proxy_toanthropic",
+      "claude_zen_zen_proxy_toopenai"
+    ],
+    "10": [
+      "env_var_bigquery_location",
+      "env_var_bigquery_project",
+      "env_var_dataplex_project",
+      "env_var_dataproc_project",
+      "env_var_dataproc_region",
+      "env_var_drive_project",
+      "env_var_google_cloud_project",
+      "env_var_serverless_spark_location",
+      "env_var_serverless_spark_project",
+      "env_var_spanner_project",
+      "mcp",
+      "mcp_command_npx",
+      "mcp_mcp_server_gcp_bigquery",
+      "mcp_mcp_server_gcp_cloud_sql_admin",
+      "mcp_mcp_server_gcp_dataplex",
+      "mcp_mcp_server_gcp_dataproc",
+      "mcp_mcp_server_gcp_serverless_spark",
+      "mcp_mcp_server_gcp_spanner",
+      "mcp_mcp_server_google_drive"
+    ],
+    "11": [
+      "agent_scripts_verify_ui",
+      "agent_scripts_verify_ui_findbtn",
+      "agent_scripts_verify_ui_fs",
+      "agent_scripts_verify_ui_img_path",
+      "agent_scripts_verify_ui_path",
+      "agent_scripts_verify_ui_puppeteer",
+      "agent_scripts_verify_ui_runcrossdevicesyncsuite",
+      "agent_scripts_verify_ui_rundesktopsuite",
+      "agent_scripts_verify_ui_runmobilesuite",
+      "agent_scripts_verify_ui_screenshots_base",
+      "agent_scripts_verify_ui_screenshots_desktop",
+      "agent_scripts_verify_ui_screenshots_mobile",
+      "agent_scripts_verify_ui_screenshots_sync",
+      "agent_scripts_verify_ui_test_user",
+      "agent_scripts_verify_ui_wait"
+    ],
+    "12": [
+      "image_TECO_Motor_Nameplate",
+      "image_TECO_Motor_Overview",
+      "log_safety_260827",
+      "log_safety_260827_1_editable_microsoft_word_manual_docx",
+      "log_safety_260827_2_standalone_interactive_mobile_web_guide_public_manual_surveyor_html",
+      "log_safety_260827_4_desktop_assessor_manual_docx_web_guide",
+      "log_safety_260827_5_in_app_user_guide_modal_src_components_helpmodal_jsx",
+      "log_safety_260827_6_production_hotfix_upload_photo_disappearance_bug_live_client_blocker",
+      "log_safety_260827_deployment_verification",
+      "log_safety_260827_hitecapp_safety_session_log_2026_08_27",
+      "log_safety_260827_key_deliverables_code_changes",
+      "log_safety_260827_overview",
+      "public_manual_desktop",
+      "public_manual_surveyor"
+    ],
+    "13": [
+      "mcp_bridge_relay_daemon",
+      "mcp_bridge_relay_daemon_execute_directive",
+      "mcp_bridge_relay_daemon_get_status",
+      "mcp_bridge_relay_daemon_handle_event",
+      "mcp_bridge_relay_daemon_py_tool",
+      "mcp_bridge_relay_daemon_rationale_1",
+      "mcp_bridge_relay_daemon_rationale_158",
+      "mcp_bridge_relay_daemon_rationale_55",
+      "mcp_bridge_relay_daemon_rationale_72",
+      "mcp_bridge_relay_daemon_rationale_84",
+      "mcp_bridge_relay_daemon_rationale_91",
+      "mcp_bridge_relay_daemon_signal_handler",
+      "mcp_bridge_relay_daemon_sse_connection_session"
+    ],
+    "14": [
+      "cody_mcp_bridge",
+      "cody_mcp_bridge_assert_security_gate",
+      "cody_mcp_bridge_execute_cody_directive",
+      "cody_mcp_bridge_get_workspace_status",
+      "cody_mcp_bridge_py_tool",
+      "cody_mcp_bridge_rationale_28",
+      "cody_mcp_bridge_rationale_42",
+      "cody_mcp_bridge_rationale_62",
+      "cody_mcp_bridge_rationale_81",
+      "cody_mcp_bridge_rationale_97",
+      "cody_mcp_bridge_run_graphify_extraction",
+      "cody_mcp_bridge_run_workspace_command"
+    ],
+    "15": [
+      "image_Trading",
+      "log_safety_260824",
+      "log_safety_260824_1_objectives_business_goals",
+      "log_safety_260824_2_key_changes_delivered_files",
+      "log_safety_260824_3_features_functional_specifications",
+      "log_safety_260824_4_verification_status",
+      "log_safety_260824_c_antigravity_ide_hitecapp_hitecsolution",
+      "log_safety_260824_collapsible_3_section_modal_form",
+      "log_safety_260824_export_sync_capabilities",
+      "log_safety_260824_kpi_cards_analytics",
+      "log_safety_260824_project_overview",
+      "log_safety_260824_session_log_2026_08_24_safety_260824"
+    ],
+    "16": [
+      "agent_scripts_db_backup_restore",
+      "agent_scripts_db_backup_restore_admin_html_path",
+      "agent_scripts_db_backup_restore_backup_dir",
+      "agent_scripts_db_backup_restore_backup_manifest",
+      "agent_scripts_db_backup_restore_backupstate",
+      "agent_scripts_db_backup_restore_ensurebackupdir",
+      "agent_scripts_db_backup_restore_fs",
+      "agent_scripts_db_backup_restore_gettimestamp",
+      "agent_scripts_db_backup_restore_path",
+      "agent_scripts_db_backup_restore_restorelateststate",
+      "agent_scripts_db_backup_restore_store_path"
+    ],
+    "17": [
+      "src_emailalertservice",
+      "src_emailalertservice_checkratelimit",
+      "src_emailalertservice_email_config",
+      "src_emailalertservice_getemailalertslog",
+      "src_emailalertservice_saveemailalertslog",
+      "src_emailalertservice_sendaccountinusealert",
+      "src_emailalertservice_sendadminalert",
+      "src_emailalertservice_sendadminforcelogoutalert",
+      "src_emailalertservice_sendselfforcelogoutalert",
+      "src_emailalertservice_sendtestadminemail",
+      "src_emailalertservice_wrapemailtemplate"
+    ],
+    "18": [
+      "log_safety_260820",
+      "log_safety_260820_1_executive_summary",
+      "log_safety_260820_2_key_code_architecture_changes",
+      "log_safety_260820_3_build_deployment_verification",
+      "log_safety_260820_4_next_planned_objectives",
+      "log_safety_260820_a_tri_mode_automated_qa_suite_agent_scripts_verify_ui_cjs",
+      "log_safety_260820_b_in_app_user_guide_modal_src_components_helpmodal_jsx",
+      "log_safety_260820_c_status_board_pipeline_sync_public_progress_html",
+      "log_safety_260820_hitecapp_safety_session_log_2026_08_20_safety_260820_md"
+    ],
+    "19": [
+      "agent_scripts_generate_hitec_slides_pptx",
+      "agent_scripts_generate_hitec_slides_pptx_c",
+      "agent_scripts_generate_hitec_slides_pptx_dirname",
+      "agent_scripts_generate_hitec_slides_pptx_filename",
+      "agent_scripts_generate_hitec_slides_pptx_pres",
+      "agent_scripts_generate_hitec_slides_pptx_publicpath",
+      "agent_scripts_generate_hitec_slides_pptx_targetprofilepath"
+    ],
+    "20": [
+      "agent_scripts_verify_deployment",
+      "agent_scripts_verify_deployment_admin_html_path",
+      "agent_scripts_verify_deployment_env_safety_path",
+      "agent_scripts_verify_deployment_fs",
+      "agent_scripts_verify_deployment_migrations_path",
+      "agent_scripts_verify_deployment_path",
+      "agent_scripts_verify_deployment_seed_path"
+    ],
+    "21": [
+      "anti_agent",
+      "claude_commands_feed_command",
+      "cody_agent",
+      "cody_commands",
+      "fetch_feedback_script",
+      "ohan_user",
+      "update_feedback_status"
+    ],
+    "22": [
+      "diag_projects_result",
+      "diag_projects_result_context",
+      "diag_projects_result_diag_projects_py_execution_result",
+      "diag_projects_result_mock_store_contents_client_side",
+      "diag_projects_result_script_behavior",
+      "diag_projects_result_why_0_projects"
+    ],
+    "23": [
+      "mcp_bridge_main",
+      "mcp_bridge_main_execute_cody_directive",
+      "mcp_bridge_main_get_control_plane_status",
+      "mcp_bridge_main_py_tool",
+      "mcp_bridge_main_rationale_13",
+      "mcp_bridge_main_rationale_8"
+    ],
+    "24": [
+      "src_main_errorboundary",
+      "src_main_errorboundary_componentdidcatch",
+      "src_main_errorboundary_constructor",
+      "src_main_errorboundary_getderivedstatefromerror",
+      "src_main_errorboundary_handlereset",
+      "src_main_errorboundary_render"
+    ],
+    "25": [
+      "agent_scripts_log_cody_activity",
+      "agent_scripts_log_cody_activity_app",
+      "agent_scripts_log_cody_activity_db",
+      "agent_scripts_log_cody_activity_firebaseconfig",
+      "agent_scripts_log_cody_activity_logactivity"
+    ],
+    "26": [
+      "claude_zen_install",
+      "claude_zen_install_die",
+      "claude_zen_install_ok",
+      "claude_zen_install_say",
+      "claude_zen_install_sh__entry"
+    ],
+    "27": [
+      "claude_zen_verify",
+      "claude_zen_verify_info",
+      "claude_zen_verify_no",
+      "claude_zen_verify_ok",
+      "claude_zen_verify_sh__entry"
+    ],
+    "28": [
+      "fetch_feedback",
+      "fetch_feedback_fetch",
+      "fetch_feedback_init",
+      "fetch_feedback_print_report",
+      "fetch_feedback_rationale_1"
+    ],
+    "29": [
+      "src_demosafetyseed",
+      "src_demosafetyseed_safety_demo_project_seed",
+      "src_utils_seedprotection",
+      "src_utils_seedprotection_ensuresafetydemoproject",
+      "src_utils_seedprotection_ensurestaticaccountsexist"
+    ],
+    "30": [
+      "agent_workflows_test",
+      "concept_tri_mode_qa",
+      "flowchart_visualization",
+      "flowchart_visualization_qa_system_architecture"
+    ],
+    "31": [
+      "src_context_authcontext",
+      "src_context_authcontext_authcontext",
+      "src_context_authcontext_authprovider",
+      "src_context_authcontext_useauth"
+    ],
+    "32": [
+      "src_utils_envsafety",
+      "src_utils_envsafety_assertnonproductionoperation",
+      "src_utils_envsafety_isproductionenv",
+      "src_utils_envsafety_safefilteruserprojects"
+    ],
+    "33": [
+      "agent_workflows_deploy_workflow",
+      "db_backup_restore",
+      "verify_deployment"
+    ],
+    "34": [
+      "claude_zen_start",
+      "claude_zen_start_port",
+      "claude_zen_start_sh__entry"
+    ],
+    "35": [
+      "process_logo_cjs_process_logo",
+      "process_logo_cjs_process_logo_fs",
+      "process_logo_cjs_process_logo_png"
+    ],
+    "36": [
+      "process_logo_js_process_logo",
+      "process_logo_js_process_logo_fs",
+      "process_logo_js_process_logo_png"
+    ],
+    "37": [
+      "src_utils_dbmigrations",
+      "src_utils_dbmigrations_current_schema_version",
+      "src_utils_dbmigrations_rundatabasemigrations"
+    ],
+    "38": [
+      "test_excel_drawing_extents",
+      "test_excel_drawing_extents_fixooxmldrawingsext",
+      "test_excel_drawing_extents_runregressiontest"
+    ],
+    "39": [
+      "vite_config",
+      "vite_config_removecsscrossoriginplugin",
+      "vite_config_renderbuilturl"
+    ],
+    "40": [
+      "claude_commands_desktop_command",
+      "qa_desktop_test"
+    ],
+    "41": [
+      "claude_commands_mobile_command",
+      "qa_mobile_test"
+    ],
+    "42": [
+      "hitecapp_safety",
+      "readme"
+    ],
+    "43": [
+      "reconstruct_projects",
+      "reconstruct_projects_rationale_1"
+    ],
+    "44": [
+      "admin_screenshot_01"
+    ],
+    "45": [
+      "admin_screenshot_02_edit"
+    ],
+    "46": [
+      "admin_screenshot_02_new"
+    ],
+    "47": [
+      "admin_screenshot_03"
+    ],
+    "48": [
+      "agent_communicate_to_anti"
+    ],
+    "49": [
+      "agent_prompt_anti"
+    ],
+    "50": [
+      "check_proj_rrgspcuto"
+    ],
+    "51": [
+      "claude_commands_feedback_review"
+    ],
+    "52": [
+      "claude_zen"
+    ],
+    "53": [
+      "cleanup_proj_rrgspcuto"
+    ],
+    "54": [
+      "cleanup_test_projects"
+    ],
+    "55": [
+      "cloudbuild"
+    ],
+    "56": [
+      "cloudbuild_safety"
+    ],
+    "57": [
+      "cody_instructions"
+    ],
+    "58": [
+      "cody_task"
+    ],
+    "59": [
+      "cody_test"
+    ],
+    "60": [
+      "data_loss_risk"
+    ],
+    "61": [
+      "diag_projects"
+    ],
+    "62": [
+      "docs_build_doc"
+    ],
+    "63": [
+      "docs_diagrams"
+    ],
+    "64": [
+      "execution_report"
+    ],
+    "65": [
+      "find_unmatched_blobs"
+    ],
+    "66": [
+      "functions_requirements"
+    ],
+    "67": [
+      "image_wowo"
+    ],
+    "68": [
+      "index"
+    ],
+    "69": [
+      "live_application"
+    ],
+    "70": [
+      "pipeline_progress"
+    ],
+    "71": [
+      "postcss_config"
+    ],
+    "72": [
+      "public_HitecApp_Safety_Mobile_Surveyor_Manual_pdf"
+    ],
+    "73": [
+      "public_logo_hs_original"
+    ],
+    "74": [
+      "public_logo_hs_white"
+    ],
+    "75": [
+      "public_logo_icon"
+    ],
+    "76": [
+      "public_sw"
+    ],
+    "77": [
+      "scripts_dangerous_prod_targeting_cleanup_test_projects_prod_unsafe"
+    ],
+    "78": [
+      "scripts_dangerous_prod_targeting_readme"
+    ],
+    "79": [
+      "seed_projects"
+    ],
+    "80": [
+      "start_tunnel"
+    ],
+    "81": [
+      "tailwind_config"
+    ],
+    "82": [
+      "test_screenshot_01"
+    ],
+    "83": [
+      "test_screenshot_02"
+    ],
+    "84": [
+      "test_screenshot_04"
+    ],
+    "85": [
+      "test_screenshot_05"
+    ],
+    "86": [
+      "test_screenshot_10"
+    ],
+    "87": [
+      "tests_css_crossorigin_test"
+    ],
+    "88": [
+      "tests_html_shield_test"
+    ],
+    "89": [
+      "tests_mobile_qa_test"
+    ],
+    "90": [
+      "tests_sw_sanity_test"
+    ],
+    "91": [
+      "verify_firestore_count"
+    ]
+  },
+  "cohesion": {
+    "0": 0.061955965181771634,
+    "1": 0.05656565656565657,
+    "2": 0.047619047619047616,
+    "3": 0.156794425087108,
+    "4": 0.07682926829268293,
+    "5": 0.12179487179487179,
+    "6": 0.05714285714285714,
+    "7": 0.14285714285714285,
+    "8": 0.17894736842105263,
+    "9": 0.19298245614035087,
+    "10": 0.14035087719298245,
+    "11": 0.19047619047619047,
+    "12": 0.15384615384615385,
+    "13": 0.19230769230769232,
+    "14": 0.24242424242424243,
+    "15": 0.16666666666666666,
+    "16": 0.23636363636363636,
+    "17": 0.38181818181818183,
+    "18": 0.2222222222222222,
+    "19": 0.2857142857142857,
+    "20": 0.2857142857142857,
+    "21": 0.2857142857142857,
+    "22": 0.3333333333333333,
+    "23": 0.4,
+    "24": 0.3333333333333333,
+    "25": 0.4,
+    "26": 0.7,
+    "27": 0.7,
+    "28": 0.4,
+    "29": 0.5,
+    "30": 0.5,
+    "31": 0.5,
+    "32": 0.8333333333333334,
+    "33": 0.6666666666666666,
+    "34": 0.6666666666666666,
+    "35": 0.6666666666666666,
+    "36": 0.6666666666666666,
+    "37": 0.6666666666666666,
+    "38": 1.0,
+    "39": 0.6666666666666666,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0,
+    "49": 1.0,
+    "50": 1.0,
+    "51": 1.0,
+    "52": 1.0,
+    "53": 1.0,
+    "54": 1.0,
+    "55": 1.0,
+    "56": 1.0,
+    "57": 1.0,
+    "58": 1.0,
+    "59": 1.0,
+    "60": 1.0,
+    "61": 1.0,
+    "62": 1.0,
+    "63": 1.0,
+    "64": 1.0,
+    "65": 1.0,
+    "66": 1.0,
+    "67": 1.0,
+    "68": 1.0,
+    "69": 1.0,
+    "70": 1.0,
+    "71": 1.0,
+    "72": 1.0,
+    "73": 1.0,
+    "74": 1.0,
+    "75": 1.0,
+    "76": 1.0,
+    "77": 1.0,
+    "78": 1.0,
+    "79": 1.0,
+    "80": 1.0,
+    "81": 1.0,
+    "82": 1.0,
+    "83": 1.0,
+    "84": 1.0,
+    "85": 1.0,
+    "86": 1.0,
+    "87": 1.0,
+    "88": 1.0,
+    "89": 1.0,
+    "90": 1.0,
+    "91": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_components_dashboard_dashboard",
+      "label": "Dashboard()",
+      "degree": 28
+    },
+    {
+      "id": "concept_hitecapp_safety",
+      "label": "HitecApp-Safety - ATEX Compliance Platform",
+      "degree": 14
+    },
+    {
+      "id": "src_firebase_setdoc",
+      "label": "setDoc()",
+      "degree": 13
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 12
+    },
+    {
+      "id": "src_firebase_loadmockstore",
+      "label": "loadMockStore()",
+      "degree": 12
+    },
+    {
+      "id": "src_firebase_doc",
+      "label": "doc()",
+      "degree": 12
+    },
+    {
+      "id": "src_sessionsecurity_apilogin",
+      "label": "apiLogin()",
+      "degree": 12
+    },
+    {
+      "id": "src_components_login_login",
+      "label": "Login()",
+      "degree": 11
+    },
+    {
+      "id": "src_sessionsecurity_loadsessionstable",
+      "label": "loadSessionsTable()",
+      "degree": 11
+    },
+    {
+      "id": "src_sessionsecurity_apilogoutotherdevices",
+      "label": "apiLogoutOtherDevices()",
+      "degree": 11
+    }
+  ],
+  "surprises": [
+    {
+      "source": "build_output.txt - Vite Build Log",
+      "target": "HitecApp-Safety - ATEX Compliance Platform",
+      "source_files": [
+        "build_output.txt",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `build_output.txt - Vite Build Log` unexpectedly reaches hub `HitecApp-Safety - ATEX Compliance Platform`"
+    },
+    {
+      "source": "preview_log.txt - Static Preview Server Log",
+      "target": "HitecApp-Safety - ATEX Compliance Platform",
+      "source_files": [
+        "preview_log.txt",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `preview_log.txt - Static Preview Server Log` unexpectedly reaches hub `HitecApp-Safety - ATEX Compliance Platform`"
+    },
+    {
+      "source": "mcp-bridge/requirements.txt - MCP Bridge Python Dependencies",
+      "target": "HitecApp-Safety - ATEX Compliance Platform",
+      "source_files": [
+        "mcp-bridge/requirements.txt",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `mcp-bridge/requirements.txt - MCP Bridge Python Dependencies` unexpectedly reaches hub `HitecApp-Safety - ATEX Compliance Platform`"
+    },
+    {
+      "source": "test()",
+      "target": "aiFeedbackSynthesize()",
+      "source_files": [
+        "test_synthesis.js",
+        "src/aiAssessor.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `test()` unexpectedly reaches hub `aiFeedbackSynthesize()`"
+    },
+    {
+      "source": ".agent/AGENTS.md - AI Agent Orientation & Company Profile",
+      "target": "Anti - Primary Orchestrator (Gemini in AntiGravity IDE)",
+      "source_files": [
+        ".agent/AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; peripheral node `Anti - Primary Orchestrator (Gemini in AntiGravity IDE)` unexpectedly reaches hub `.agent/AGENTS.md - AI Agent Orientation & Company Profile`"
+    }
+  ],
+  "tokens": {
+    "input": 46862,
+    "output": 12466
+  }
+}

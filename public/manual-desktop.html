@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Desktop Lead Assessor Manual · HitecApp Safety</title>
+  <meta name="description" content="Step-by-step Desktop Lead Assessor & Engineering user manual for ATEX compliance reviews by PT Safety Indonesia Utama.">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Outfit -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px; /* Minimum 16px font size (!font16) */
+      line-height: 1.6;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+    }
+
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 14pt !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+      .card-box {
+        border: 1px solid #cbd5e1 !important;
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+        box-shadow: none !important;
+      }
+      .text-slate-100, .text-slate-200, .text-slate-300, .text-white {
+        color: #0f172a !important;
+      }
+      .text-slate-400, .text-slate-500 {
+        color: #475569 !important;
+      }
+      .bg-slate-900, .bg-slate-950, .bg-slate-900\/70, .bg-slate-950\/90 {
+        background-color: #f1f5f9 !important;
+      }
+      img {
+        max-width: 100% !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-sky-500 selection:text-white antialiased">
+
+  <!-- TOP APP BAR / HEADER -->
+  <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-6 py-4 flex items-center justify-between no-print shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center font-black text-xl text-white shadow-md shadow-sky-500/20">
+        H
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+          HitecApp <span class="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">Desktop Assessor Manual</span>
+        </h1>
+        <p class="text-xs text-slate-400">PT Safety Indonesia Utama · ATEX & Compliance Services</p>
+      </div>
+    </div>
+
+    <!-- ACTION BUTTONS: Download DOCX & Print PDF -->
+    <div class="flex items-center gap-3">
+      <a 
+        href="/HitecApp_Safety_Desktop_Assessor_Manual.docx" 
+        download="HitecApp_Safety_Desktop_Assessor_Manual.docx"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-sm transition-all shadow-lg shadow-sky-600/30 hover:scale-105 active:scale-95"
+        title="Download editable Microsoft Word manual"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <span>Download Word (.docx)</span>
+      </a>
+
+      <button 
+        onclick="window.print()" 
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-sm transition-all hover:scale-105 active:scale-95"
+        title="Print this manual or save as PDF"
+      >
+        <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+        <span>Print to PDF</span>
+      </button>
+
+      <a 
+        href="/" 
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-sm transition-colors"
+      >
+        <span>Back to App ➔</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER -->
+  <main class="max-w-5xl mx-auto px-6 py-10 space-y-12">
+
+    <!-- HERO / TITLE BANNER -->
+    <div class="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-sky-950/40 border border-slate-800 p-8 md:p-10 shadow-2xl relative overflow-hidden card-box">
+      <div class="absolute -right-10 -bottom-10 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div class="max-w-3xl space-y-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-sm font-semibold">
+          <span>Official Technical User Manual</span>
+        </div>
+        <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+          HitecApp Desktop Lead Assessor & Engineering Manual
+        </h2>
+        <p class="text-lg text-slate-300">
+          A visual guide for Lead Safety Assessors and Compliance Engineers. Learn how to review equipment photos, apply ATEX directives, navigate the 2-column studio, and export client reports.
+        </p>
+      </div>
+
+      <!-- HIGHLIGHT STATS -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-slate-800/80">
+        <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+          <p class="text-xs text-slate-400">Layout</p>
+          <p class="text-base font-bold text-white">2-Column Studio</p>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+          <p class="text-xs text-slate-400">Equipment Review</p>
+          <p class="text-base font-bold text-sky-400">High-Res Carousel</p>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+          <p class="text-xs text-slate-400">Compliance Scope</p>
+          <p class="text-base font-bold text-cyan-400">ATEX / IEC 60079</p>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+          <p class="text-xs text-slate-400">Multi-Assessor Sync</p>
+          <p class="text-base font-bold text-emerald-400">Up to 10 Units Live</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🌟 NEWBIE PROJECT SETUP SECTION -->
+    <section class="rounded-3xl bg-slate-900/70 border border-amber-500/30 p-8 card-box space-y-6 shadow-xl">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xl font-bold">
+          🌟
+        </div>
+        <div>
+          <h3 class="text-2xl font-bold text-white">First Step: Set Up Your Project</h3>
+          <p class="text-base text-amber-300">Choose or create a project before uploading photos</p>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-base">
+        <strong class="font-bold">Important Notice:</strong> You must choose or create a project first before uploading photos or editing captions.
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        <!-- OPTION A -->
+        <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-6 space-y-4">
+          <div class="flex items-center gap-2 text-sky-400 font-bold text-lg">
+            <span>Option A: Pick an Existing Project</span>
+          </div>
+          <ol class="space-y-2 text-slate-300 text-base list-decimal list-inside">
+            <li>Click the <strong class="text-white">"Select a project..."</strong> dropdown.</li>
+            <li>Click your plant / inspection name.</li>
+            <li><span class="text-emerald-400 font-semibold">Done!</span> All photos uploaded by field surveyors load automatically.</li>
+          </ol>
+        </div>
+
+        <!-- OPTION B -->
+        <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-6 space-y-4">
+          <div class="flex items-center gap-2 text-amber-400 font-bold text-lg">
+            <span>Option B: Create a New Project</span>
+          </div>
+          <ol class="space-y-2 text-slate-300 text-base list-decimal list-inside">
+            <li>Type <strong class="text-white">Company name</strong> (e.g. <em>PT Safety Indonesia Utama</em>).</li>
+            <li>Type <strong class="text-white">City</strong> (e.g. <em>Jakarta</em>).</li>
+            <li>Type your <strong class="text-white">New project name</strong>.</li>
+            <li>Click the <strong class="text-emerald-400">+ Create</strong> button.</li>
+            <li><span class="text-emerald-400 font-semibold">Done!</span> Project is created and ready for batch uploads.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 1 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 1</span>
+        <h3 class="text-2xl font-bold text-white">Log In & Desktop Mode Selection</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Open Google Chrome, Microsoft Edge, or Firefox. Select <strong>Desktop</strong> mode, enter your email and password, and click <strong>Sign In</strong>.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Selecting Desktop mode configures the wide 1440px 2-column studio layout for maximum efficiency on monitors.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/01_login_desktop.png" alt="Desktop Login" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 2</span>
+        <h3 class="text-2xl font-bold text-white">Desktop Two-Column Studio Overview</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        The desktop workspace divides into two panels: <strong>Left Column (35%)</strong> for photo queues, uploads, and reordering; and <strong>Right Column (65%)</strong> for the high-res photo carousel and caption/observation editor.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Use your keyboard Arrow Keys (Left / Right) to quickly flip through inspection photos in the Carousel Studio.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/02_dashboard.png" alt="Desktop Two Column Studio" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 3</span>
+        <h3 class="text-2xl font-bold text-white">Batch Upload Equipment Photos & Folders</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Click <strong>Choose Files</strong> or <strong>Upload Folder</strong> in the left panel to upload whole site directories. Photos are automatically compressed on the fly for rapid cloud storage while keeping nameplates razor sharp.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> You can upload up to 200 high-resolution equipment photos in a single batch without browser slowdown.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/04_photos_uploaded.png" alt="Batch Photo Upload" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 4</span>
+        <h3 class="text-2xl font-bold text-white">Dual-Panel Workspace & Focus Navigation</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Click any photo row in the left queue to open it in the right viewer. Status chips instantly show whether each photo has an approved caption (<span class="text-emerald-400">Green ✅</span>) or needs assessor attention (<span class="text-amber-400">Yellow ⚠️</span>).
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Hover over any thumbnail in the left queue to preview the filename, size, and quick caption summary.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/05_desktop_layout.png" alt="Dual Panel Workspace" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 5 (NEW: Multi-Color Markups, Rectangles, Arrows & Doodles) -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 5</span>
+        <h3 class="text-2xl font-bold text-white">Visual Image Markup, Doodles & Color Selection</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Highlight hazardous equipment zones, earthing studs, and enclosure gaps using engineering tools: <strong>Rect (Rectangle)</strong>, <strong>Arrow</strong>, <strong>Doodle (Free Draw)</strong>, or <strong>Text</strong> with various color options (<span class="text-red-400">Red for Ex d Enclosures</span>, <span class="text-amber-400">Amber for Earthing paths</span>, <span class="text-cyan-400">Cyan for Cooling fins</span>). Click <strong>Save Image</strong> to burn annotations directly into the report deliverables.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Use Red Rectangles to frame flameproof terminal boxes and Amber Arrows to verify electrostatic bonding continuity.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/06_annotated_markup.png" alt="Multi-Color Image Markup and Annotations" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 6 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 6</span>
+        <h3 class="text-2xl font-bold text-white">Technical Captioning & Equipment Identification</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Type detailed equipment specifications in the Caption field (e.g. <em>TECO 3-Phase Induction Motor 2.2kW, 220/380V, 50Hz, IP55 - Zone 1 HAC Assessment & Earthing Inspection</em>). Captions auto-sync to cloud storage immediately.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Always include equipment certification details (e.g. Ex d IIB T4, IP rating) in the caption for compliance audit readiness.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/06b_caption_edited.png" alt="Technical Captioning" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 7 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 7</span>
+        <h3 class="text-2xl font-bold text-white">ATEX Assessor Observations & Risk Priority Grading</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Document specific ignition risks, earthing checks, and standard compliance notes in the dedicated textfields. Assign Risk Priority Grades (<span class="text-red-400 font-bold">F1 Red = Immediate Hazard</span>, <span class="text-orange-400 font-bold">F2 Orange</span>, <span class="text-yellow-400 font-bold">F3 Yellow</span>, <span class="text-emerald-400 font-bold">F4 Green</span>) and toggle Status between <strong>Open</strong> and <strong>Close</strong>.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Reference relevant European and International standards (e.g. IEC 60079-14 Section 9, EN 1127-1) directly in your recommendations.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/07_assessor_fields.png" alt="ATEX Assessor Fields" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 8 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 8</span>
+        <h3 class="text-2xl font-bold text-white">Drag-and-Drop Photo Sequence Management</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Click and drag the 6-dot grip handle (⠿) on any left queue row to rearrange the photo sequence. The queue renumbers automatically (1., 2., 3...) and applies immediately to exported reports.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Group photos by process area or equipment skid (e.g. Overview first, followed by Nameplate close-up and Terminal Box).
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/08_reordered.png" alt="Reordering Photos" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 9 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 9</span>
+        <h3 class="text-2xl font-bold text-white">Save & View-Only Inspection Lock</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Click <strong>Save</strong> on the bottom action bar to transition the workspace into View Mode. All inputs lock to prevent unintended edits. Click <strong>Edit</strong> anytime to resume modifications.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Switch to View Mode before presenting inspection findings in client review meetings to ensure data safety.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/09_saved.png" alt="Save and View Mode" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+    <!-- STEP 10 -->
+    <section class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 card-box space-y-6 shadow-lg page-break">
+      <div class="flex items-center gap-3">
+        <span class="px-3.5 py-1 rounded-xl bg-sky-600 text-white font-bold text-base">Step 10</span>
+        <h3 class="text-2xl font-bold text-white">Multi-Format Report Generation (PDF, PPT, Word)</h3>
+      </div>
+      <p class="text-base text-slate-300">
+        Click <strong>Word (.docx)</strong>, <strong>PowerPoint (.pptx)</strong>, or <strong>PDF</strong> on the bottom PublishBar to generate client-ready inspection reports in seconds.
+      </p>
+      <div class="p-4 rounded-2xl bg-sky-950/40 border border-sky-800/40 text-sky-200 text-base">
+        💡 <strong>Pro Tip:</strong> Exported Word documents retain all formatting and typography rules (!font16) established by PT Safety Indonesia Utama.
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+        <img src="/manual-assets/10a_pdf.png" alt="Report Export" class="w-full h-auto object-contain max-h-[460px] mx-auto">
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="mt-20 border-t border-slate-800/80 bg-slate-950 py-10 px-6 text-center text-slate-400 no-print">
+    <div class="max-w-4xl mx-auto space-y-3">
+      <p class="font-semibold text-white">PT Safety Indonesia Utama</p>
+      <p class="text-sm">ATEX Assessment & Compliance Services — Ensuring Safe Operations in Explosive Atmospheres</p>
+      <p class="text-xs text-slate-400 pt-2">© 2026 PT Safety Indonesia Utama. All rights reserved. • HitecApp Safety Manual</p>
+    </div>
+  </footer>
+
+</body>
+</html>

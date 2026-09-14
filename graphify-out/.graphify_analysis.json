@@ -1,21 +1,12 @@
 {
   "communities": {
     "0": [
-      "src_aiassessor",
       "src_aiassessor_aigeneraterecommendation",
-      "src_aiassessor_aigrammarcheck",
       "src_aiassessor_aiobservationassessor",
       "src_aiassessor_aitranslateandgrammarcheck",
-      "src_aiassessor_default_ai_recommendation_rules",
-      "src_aiassessor_extractkeywords",
-      "src_aiassessor_generaterecommendation",
-      "src_aiassessor_getaisuggestions",
-      "src_aiassessor_getstoredcommentstraining",
-      "src_aiassessor_getstoredrules",
-      "src_aiassessor_learncomment",
-      "src_aiorientation",
-      "src_aiorientation_company_profile",
-      "src_aiorientation_getaiorientationprompt",
+      "src_components_annotatedimagecanvas",
+      "src_components_annotatedimagecanvas_annotatedimagecanvas",
+      "src_components_annotatedimagecanvas_canvasbackgroundimage",
       "src_components_autosaveindicator",
       "src_components_autosaveindicator_autosaveindicator",
       "src_components_dashboard",
@@ -24,6 +15,9 @@
       "src_components_dashboard_getprojectscachekey",
       "src_components_dashboard_loadprojectsfromcache",
       "src_components_dashboard_saveprojectstocache",
+      "src_components_header",
+      "src_components_header_header",
+      "src_components_header_usermenu",
       "src_components_helpmodal",
       "src_components_helpmodal_helpmodal",
       "src_components_publishbar",
@@ -31,13 +25,17 @@
       "src_components_upgrademodal",
       "src_components_upgrademodal_upgrademodal",
       "src_components_uploadworkerpool",
+      "src_components_uploadworkerpool_uploadworkerpool",
+      "src_components_uploadworkerpool_uploadworkerpool_add",
+      "src_components_uploadworkerpool_uploadworkerpool_checkdrain",
+      "src_components_uploadworkerpool_uploadworkerpool_constructor",
+      "src_components_uploadworkerpool_uploadworkerpool_drain",
+      "src_components_uploadworkerpool_uploadworkerpool_tick",
       "src_components_uploadworkerpool_withexponentialbackoff",
       "src_components_uploadzone",
       "src_components_uploadzone_uploadzone",
       "src_firebase",
-      "src_firebase_adddoc",
       "src_firebase_authlisteners",
-      "src_firebase_broadcastdbmutation",
       "src_firebase_collection",
       "src_firebase_dblisteners",
       "src_firebase_deletedoc",
@@ -60,7 +58,6 @@
       "src_firebase_orderby",
       "src_firebase_query",
       "src_firebase_ref",
-      "src_firebase_savemockstore",
       "src_firebase_setdoc",
       "src_firebase_signinwithpopup",
       "src_firebase_triggerdblisteners",
@@ -85,11 +82,6 @@
     "1": [
       "callablerequest",
       "cloudevent",
-      "fetch_feedback",
-      "fetch_feedback_fetch",
-      "fetch_feedback_init",
-      "fetch_feedback_print_report",
-      "fetch_feedback_rationale_1",
       "functions_main",
       "functions_main_api_admin_accounts",
       "functions_main_api_admin_sessions",
@@ -104,22 +96,25 @@
       "functions_main_getsigneduploadurl",
       "functions_main_initialize",
       "functions_main_onphotoupload",
-      "functions_main_rationale_121",
-      "functions_main_rationale_160",
-      "functions_main_rationale_253",
-      "functions_main_rationale_36",
-      "functions_main_rationale_376",
-      "functions_main_rationale_658",
-      "functions_main_rationale_663",
-      "functions_main_rationale_668",
-      "functions_main_rationale_690",
-      "functions_main_rationale_730",
-      "functions_main_rationale_76",
-      "functions_main_rationale_770",
-      "functions_main_rationale_818",
-      "functions_main_rationale_99",
+      "functions_main_rationale_106",
+      "functions_main_rationale_128",
+      "functions_main_rationale_167",
+      "functions_main_rationale_260",
+      "functions_main_rationale_384",
+      "functions_main_rationale_41",
+      "functions_main_rationale_667",
+      "functions_main_rationale_672",
+      "functions_main_rationale_677",
+      "functions_main_rationale_699",
+      "functions_main_rationale_739",
+      "functions_main_rationale_779",
+      "functions_main_rationale_81",
+      "functions_main_rationale_827",
+      "functions_main_rationale_871",
+      "functions_main_scheduled_survey_backup",
       "functions_main_sync_auth_user",
       "functions_main_validateupload",
+      "init",
       "on_call",
       "on_object_finalized",
       "on_request",
@@ -138,7 +133,9 @@
       "src_components_login_login",
       "src_components_securitypage",
       "src_components_securitypage_securitypage",
+      "src_firebase_adddoc",
       "src_firebase_onauthstatechanged",
+      "src_firebase_savemockstore",
       "src_firebase_signinwithemailandpassword",
       "src_firebase_signout",
       "src_main",
@@ -189,7 +186,6 @@
       "package_devdependencies_vite",
       "package_devdependencies_vitejs_plugin_react",
       "package_devdependencies_vitest",
-      "package_json_tailwindcss",
       "package_name",
       "package_private",
       "package_scripts",
@@ -199,11 +195,16 @@
       "package_scripts_dev",
       "package_scripts_preview",
       "package_scripts_test",
+      "package_scripts_test_ui",
+      "package_scripts_test_ui_desktop",
+      "package_scripts_test_ui_mobile",
+      "package_scripts_test_ui_sync",
       "package_scripts_verify_deploy",
       "package_type",
       "package_version",
       "pngjs",
       "postcss",
+      "tailwindcss",
       "testing_library_dom",
       "testing_library_react",
       "types_react",
@@ -250,6 +251,32 @@
       "xlsx"
     ],
     "5": [
+      "src_aiassessor",
+      "src_aiassessor_aifeedbackchatstep",
+      "src_aiassessor_aifeedbacksynthesize",
+      "src_aiassessor_aigrammarcheck",
+      "src_aiassessor_default_ai_recommendation_rules",
+      "src_aiassessor_extractkeywords",
+      "src_aiassessor_generaterecommendation",
+      "src_aiassessor_getaisuggestions",
+      "src_aiassessor_getstoredcommentstraining",
+      "src_aiassessor_getstoredrules",
+      "src_aiassessor_learncomment",
+      "src_aiassessor_translateidtoenglishissue",
+      "src_aiorientation",
+      "src_aiorientation_company_profile",
+      "src_aiorientation_getaiorientationprompt",
+      "src_components_feedbackmodal",
+      "src_components_feedbackmodal_feedbackmodal",
+      "src_components_photoitem",
+      "src_components_photoitem_photoitem",
+      "src_hooks_usespeechtotext",
+      "src_hooks_usespeechtotext_usespeechtotext",
+      "test_synthesis",
+      "test_synthesis_test",
+      "test_synthesis_testhistory"
+    ],
+    "6": [
       "claude_zen_bin_claude_zen",
       "claude_zen_bin_claude_zen__entry",
       "claude_zen_bin_claude_zen_anthropic_auth_token",
@@ -272,7 +299,7 @@
       "claude_zen_bin_claude_zen_usage",
       "claude_zen_bin_claude_zen_zen_model"
     ],
-    "6": [
+    "7": [
       "src_exportwordreport",
       "src_exportwordreport_base64tobytes",
       "src_exportwordreport_createlightbullet",
@@ -294,7 +321,7 @@
       "src_hooks_usereportexporter_useexportpptx",
       "src_hooks_usereportexporter_useexportword"
     ],
-    "7": [
+    "8": [
       "claude_zen_zen_proxy",
       "claude_zen_zen_proxy_demandsreasoning",
       "claude_zen_zen_proxy_fail",
@@ -315,12 +342,13 @@
       "claude_zen_zen_proxy_toanthropic",
       "claude_zen_zen_proxy_toopenai"
     ],
-    "8": [
+    "9": [
       "env_var_bigquery_location",
       "env_var_bigquery_project",
       "env_var_dataplex_project",
       "env_var_dataproc_project",
       "env_var_dataproc_region",
+      "env_var_drive_project",
       "env_var_google_cloud_project",
       "env_var_serverless_spark_location",
       "env_var_serverless_spark_project",
@@ -332,53 +360,88 @@
       "mcp_mcp_server_gcp_dataplex",
       "mcp_mcp_server_gcp_dataproc",
       "mcp_mcp_server_gcp_serverless_spark",
-      "mcp_mcp_server_gcp_spanner"
-    ],
-    "9": [
-      "chartjs_cdn",
-      "firebase_deploy",
-      "firebase_sdk_cdn",
-      "live_application",
-      "log_safety-260817",
-      "log_safety_260814",
-      "log_safety_260815",
-      "log_safety_260816",
-      "public_admin",
-      "public_logo_hs_white",
-      "public_progress",
-      "public_progress_ui_component_map",
-      "public_survey",
-      "tailwindcss_cdn"
+      "mcp_mcp_server_gcp_spanner",
+      "mcp_mcp_server_google_drive"
     ],
     "10": [
+      ".agent_agents_anti",
+      ".agent_agents_cody",
+      "dashboard_jsx",
+      "hitecapp_safety_app",
+      "log_safety_260827",
+      "log_safety_260827_1_editable_microsoft_word_manual_docx",
+      "log_safety_260827_2_standalone_interactive_mobile_web_guide_public_manual_surveyor_html",
+      "log_safety_260827_4_desktop_assessor_manual_docx_web_guide",
+      "log_safety_260827_5_in_app_user_guide_modal_src_components_helpmodal_jsx",
+      "log_safety_260827_6_production_hotfix_upload_photo_disappearance_bug_live_client_blocker",
+      "log_safety_260827_deployment_verification",
+      "log_safety_260827_hitecapp_safety_session_log_2026_08_27",
+      "log_safety_260827_key_deliverables_code_changes",
+      "log_safety_260827_overview",
+      "production_hitecapp_safety",
+      "public_admin_html"
+    ],
+    "11": [
+      "agent_scripts_verify_ui",
+      "agent_scripts_verify_ui_findbtn",
+      "agent_scripts_verify_ui_fs",
+      "agent_scripts_verify_ui_img_path",
+      "agent_scripts_verify_ui_path",
+      "agent_scripts_verify_ui_puppeteer",
+      "agent_scripts_verify_ui_runcrossdevicesyncsuite",
+      "agent_scripts_verify_ui_rundesktopsuite",
+      "agent_scripts_verify_ui_runmobilesuite",
+      "agent_scripts_verify_ui_screenshots_base",
+      "agent_scripts_verify_ui_screenshots_desktop",
+      "agent_scripts_verify_ui_screenshots_mobile",
+      "agent_scripts_verify_ui_screenshots_sync",
+      "agent_scripts_verify_ui_test_user",
+      "agent_scripts_verify_ui_wait"
+    ],
+    "12": [
+      "mcp_bridge_relay_daemon",
+      "mcp_bridge_relay_daemon_execute_directive",
+      "mcp_bridge_relay_daemon_get_status",
+      "mcp_bridge_relay_daemon_handle_event",
+      "mcp_bridge_relay_daemon_py_tool",
+      "mcp_bridge_relay_daemon_rationale_1",
+      "mcp_bridge_relay_daemon_rationale_158",
+      "mcp_bridge_relay_daemon_rationale_55",
+      "mcp_bridge_relay_daemon_rationale_72",
+      "mcp_bridge_relay_daemon_rationale_84",
+      "mcp_bridge_relay_daemon_rationale_91",
+      "mcp_bridge_relay_daemon_signal_handler",
+      "mcp_bridge_relay_daemon_sse_connection_session"
+    ],
+    "13": [
       "cody_mcp_bridge",
       "cody_mcp_bridge_assert_security_gate",
       "cody_mcp_bridge_execute_cody_directive",
       "cody_mcp_bridge_get_workspace_status",
+      "cody_mcp_bridge_py_tool",
       "cody_mcp_bridge_rationale_28",
       "cody_mcp_bridge_rationale_42",
       "cody_mcp_bridge_rationale_62",
       "cody_mcp_bridge_rationale_81",
       "cody_mcp_bridge_rationale_97",
       "cody_mcp_bridge_run_graphify_extraction",
-      "cody_mcp_bridge_run_workspace_command",
-      "tool"
+      "cody_mcp_bridge_run_workspace_command"
     ],
-    "11": [
-      "src_aiassessor_aifeedbackchatstep",
-      "src_aiassessor_aifeedbacksynthesize",
-      "src_aiassessor_translateidtoenglishissue",
-      "src_components_feedbackmodal",
-      "src_components_feedbackmodal_feedbackmodal",
-      "src_components_photoitem",
-      "src_components_photoitem_photoitem",
-      "src_hooks_usespeechtotext",
-      "src_hooks_usespeechtotext_usespeechtotext",
-      "test_synthesis",
-      "test_synthesis_test",
-      "test_synthesis_testhistory"
+    "14": [
+      "image_Trading",
+      "log_safety_260824",
+      "log_safety_260824_1_objectives_business_goals",
+      "log_safety_260824_2_key_changes_delivered_files",
+      "log_safety_260824_3_features_functional_specifications",
+      "log_safety_260824_4_verification_status",
+      "log_safety_260824_c_antigravity_ide_hitecapp_hitecsolution",
+      "log_safety_260824_collapsible_3_section_modal_form",
+      "log_safety_260824_export_sync_capabilities",
+      "log_safety_260824_kpi_cards_analytics",
+      "log_safety_260824_project_overview",
+      "log_safety_260824_session_log_2026_08_24_safety_260824"
     ],
-    "12": [
+    "15": [
       "agent_scripts_db_backup_restore",
       "agent_scripts_db_backup_restore_admin_html_path",
       "agent_scripts_db_backup_restore_backup_dir",
@@ -391,7 +454,20 @@
       "agent_scripts_db_backup_restore_restorelateststate",
       "agent_scripts_db_backup_restore_store_path"
     ],
-    "13": [
+    "16": [
+      "build_output",
+      "claude_pm_memory",
+      "concept_hitecapp_safety",
+      "log_safety_260814",
+      "log_safety_260815",
+      "log_safety_260816",
+      "log_safety_260817",
+      "mcp_bridge_requirements",
+      "preview_log",
+      "public_progress",
+      "public_survey"
+    ],
+    "17": [
       "src_emailalertservice",
       "src_emailalertservice_checkratelimit",
       "src_emailalertservice_email_config",
@@ -404,18 +480,62 @@
       "src_emailalertservice_sendtestadminemail",
       "src_emailalertservice_wrapemailtemplate"
     ],
-    "14": [
-      "agent_agents",
-      "anti_agent",
-      "atex_standards",
-      "claude_commands_feed_command",
-      "cody_agent",
-      "cody_commands",
-      "fetch_feedback_script",
-      "ohan_user",
-      "update_feedback_status"
+    "18": [
+      "CLAUDE",
+      "concept_anti",
+      "concept_atex_directive_1999_92_ec",
+      "concept_atex_directive_2014_34_eu",
+      "concept_cody",
+      "concept_dak",
+      "concept_iec_60079",
+      "concept_ohan",
+      "concept_pt_safety_indonesia_utama",
+      "concept_spark"
     ],
-    "15": [
+    "19": [
+      "concept_gem",
+      "log_safety_260825_ohan_gcp_setup",
+      "log_safety_260825_ohan_gcp_setup_1_project_separation_architecture_mapping",
+      "log_safety_260825_ohan_gcp_setup_2_configuration_record_for_ohanid",
+      "log_safety_260825_ohan_gcp_setup_3_financial_promotional_credit_analysis",
+      "log_safety_260825_ohan_gcp_setup_4_implemented_production_setup_gemini_3_7_flash_on_vs_code_claude_code_ui",
+      "log_safety_260825_ohan_gcp_setup_clean_team_billing_matrix",
+      "log_safety_260825_ohan_gcp_setup_credit_status",
+      "log_safety_260825_ohan_gcp_setup_critical_billing_distinction_1st_party_vs_3rd_party_marketplace",
+      "log_safety_260825_ohan_gcp_setup_executive_architecture_billing_summary_project_ohanid_vertex_ai_setup"
+    ],
+    "20": [
+      "log_safety_260819",
+      "log_safety_260819_1_executive_summary",
+      "log_safety_260819_2_key_code_architecture_changes",
+      "log_safety_260819_3_build_deployment_verification",
+      "log_safety_260819_4_next_planned_objectives",
+      "log_safety_260819_a_tri_mode_automated_qa_suite_agent_scripts_verify_ui_cjs",
+      "log_safety_260819_b_in_app_user_guide_modal_src_components_helpmodal_jsx",
+      "log_safety_260819_c_status_board_pipeline_sync_public_progress_html",
+      "log_safety_260819_hitecapp_safety_session_log_2026_08_19_safety_260819_md"
+    ],
+    "21": [
+      "log_safety_260820",
+      "log_safety_260820_1_executive_summary",
+      "log_safety_260820_2_key_code_architecture_changes",
+      "log_safety_260820_3_build_deployment_verification",
+      "log_safety_260820_4_next_planned_objectives",
+      "log_safety_260820_a_tri_mode_automated_qa_suite_agent_scripts_verify_ui_cjs",
+      "log_safety_260820_b_in_app_user_guide_modal_src_components_helpmodal_jsx",
+      "log_safety_260820_c_status_board_pipeline_sync_public_progress_html",
+      "log_safety_260820_hitecapp_safety_session_log_2026_08_20_safety_260820_md"
+    ],
+    "22": [
+      "agent_scripts_generate_hitec_slides_pptx",
+      "agent_scripts_generate_hitec_slides_pptx_c",
+      "agent_scripts_generate_hitec_slides_pptx_dirname",
+      "agent_scripts_generate_hitec_slides_pptx_filename",
+      "agent_scripts_generate_hitec_slides_pptx_pres",
+      "agent_scripts_generate_hitec_slides_pptx_publicpath",
+      "agent_scripts_generate_hitec_slides_pptx_targetprofilepath"
+    ],
+    "23": [
       "agent_scripts_verify_deployment",
       "agent_scripts_verify_deployment_admin_html_path",
       "agent_scripts_verify_deployment_env_safety_path",
@@ -424,24 +544,32 @@
       "agent_scripts_verify_deployment_path",
       "agent_scripts_verify_deployment_seed_path"
     ],
-    "16": [
-      "agent_scripts_verify_ui",
-      "agent_scripts_verify_ui_fs",
-      "agent_scripts_verify_ui_img_path",
-      "agent_scripts_verify_ui_path",
-      "agent_scripts_verify_ui_puppeteer",
-      "agent_scripts_verify_ui_screenshots_dir",
-      "agent_scripts_verify_ui_wait"
+    "24": [
+      "anti_agent",
+      "claude_commands_feed_command",
+      "cody_agent",
+      "cody_commands",
+      "fetch_feedback_script",
+      "ohan_user",
+      "update_feedback_status"
     ],
-    "17": [
-      "src_components_uploadworkerpool_uploadworkerpool",
-      "src_components_uploadworkerpool_uploadworkerpool_add",
-      "src_components_uploadworkerpool_uploadworkerpool_checkdrain",
-      "src_components_uploadworkerpool_uploadworkerpool_constructor",
-      "src_components_uploadworkerpool_uploadworkerpool_drain",
-      "src_components_uploadworkerpool_uploadworkerpool_tick"
+    "25": [
+      "diag_projects_result",
+      "diag_projects_result_context",
+      "diag_projects_result_diag_projects_py_execution_result",
+      "diag_projects_result_mock_store_contents_client_side",
+      "diag_projects_result_script_behavior",
+      "diag_projects_result_why_0_projects"
     ],
-    "18": [
+    "26": [
+      "mcp_bridge_main",
+      "mcp_bridge_main_execute_cody_directive",
+      "mcp_bridge_main_get_control_plane_status",
+      "mcp_bridge_main_py_tool",
+      "mcp_bridge_main_rationale_13",
+      "mcp_bridge_main_rationale_8"
+    ],
+    "27": [
       "src_main_errorboundary",
       "src_main_errorboundary_componentdidcatch",
       "src_main_errorboundary_constructor",
@@ -449,302 +577,369 @@
       "src_main_errorboundary_handlereset",
       "src_main_errorboundary_render"
     ],
-    "19": [
+    "28": [
       "agent_scripts_log_cody_activity",
       "agent_scripts_log_cody_activity_app",
       "agent_scripts_log_cody_activity_db",
       "agent_scripts_log_cody_activity_firebaseconfig",
       "agent_scripts_log_cody_activity_logactivity"
     ],
-    "20": [
+    "29": [
       "claude_zen_install",
       "claude_zen_install_die",
       "claude_zen_install_ok",
       "claude_zen_install_say",
       "claude_zen_install_sh__entry"
     ],
-    "21": [
+    "30": [
       "claude_zen_verify",
       "claude_zen_verify_info",
       "claude_zen_verify_no",
       "claude_zen_verify_ok",
       "claude_zen_verify_sh__entry"
     ],
-    "22": [
+    "31": [
+      "fetch_feedback",
+      "fetch_feedback_fetch",
+      "fetch_feedback_init",
+      "fetch_feedback_print_report",
+      "fetch_feedback_rationale_1"
+    ],
+    "32": [
       "src_demosafetyseed",
       "src_demosafetyseed_safety_demo_project_seed",
       "src_utils_seedprotection",
       "src_utils_seedprotection_ensuresafetydemoproject",
       "src_utils_seedprotection_ensurestaticaccountsexist"
     ],
-    "23": [
+    "33": [
+      "agent_workflows_test",
+      "concept_tri_mode_qa",
+      "flowchart_visualization",
+      "flowchart_visualization_qa_system_architecture"
+    ],
+    "34": [
       "src_context_authcontext",
       "src_context_authcontext_authcontext",
       "src_context_authcontext_authprovider",
       "src_context_authcontext_useauth"
     ],
-    "24": [
+    "35": [
       "src_utils_envsafety",
       "src_utils_envsafety_assertnonproductionoperation",
       "src_utils_envsafety_isproductionenv",
       "src_utils_envsafety_safefilteruserprojects"
     ],
-    "25": [
+    "36": [
+      ".agent_skills_safety_skill",
+      "audit_pak_bara_data_py",
+      "pt_tirta_investama_citeureup_plant"
+    ],
+    "37": [
       "agent_workflows_deploy_workflow",
       "db_backup_restore",
       "verify_deployment"
     ],
-    "26": [
-      "claude",
-      "graphify",
-      "graphify_out_graph_report"
+    "38": [
+      "claude_skills_frontend_slides_skill",
+      "claude_skills_frontend_slides_skill_core_principles",
+      "claude_skills_frontend_slides_skill_frontend_slides"
     ],
-    "27": [
+    "39": [
       "claude_zen_start",
       "claude_zen_start_port",
       "claude_zen_start_sh__entry"
     ],
-    "28": [
+    "40": [
+      "image_TECO_Motor_Nameplate",
+      "image_TECO_Motor_Overview",
+      "public_manual_desktop"
+    ],
+    "41": [
       "process_logo_cjs_process_logo",
       "process_logo_cjs_process_logo_fs",
       "process_logo_cjs_process_logo_png"
     ],
-    "29": [
+    "42": [
       "process_logo_js_process_logo",
       "process_logo_js_process_logo_fs",
       "process_logo_js_process_logo_png"
     ],
-    "30": [
-      "src_components_annotatedimagecanvas",
-      "src_components_annotatedimagecanvas_annotatedimagecanvas",
-      "src_components_annotatedimagecanvas_canvasbackgroundimage"
-    ],
-    "31": [
-      "src_components_header",
-      "src_components_header_header",
-      "src_components_header_usermenu"
-    ],
-    "32": [
+    "43": [
       "src_utils_dbmigrations",
       "src_utils_dbmigrations_current_schema_version",
       "src_utils_dbmigrations_rundatabasemigrations"
     ],
-    "33": [
+    "44": [
       "test_excel_drawing_extents",
       "test_excel_drawing_extents_fixooxmldrawingsext",
       "test_excel_drawing_extents_runregressiontest"
     ],
-    "34": [
+    "45": [
       "vite_config",
       "vite_config_removecsscrossoriginplugin",
       "vite_config_renderbuilturl"
     ],
-    "35": [
-      "agent_workflows_test_workflow",
-      "verify_ui"
-    ],
-    "36": [
+    "46": [
       "claude_commands_desktop_command",
       "qa_desktop_test"
     ],
-    "37": [
+    "47": [
       "claude_commands_mobile_command",
       "qa_mobile_test"
     ],
-    "38": [
+    "48": [
       "hitecapp_safety",
       "readme"
     ],
-    "39": [
+    "49": [
+      "optimistic_write_vs_server_confirmation",
+      "upload_photo_disappearance_bug"
+    ],
+    "50": [
       "reconstruct_projects",
       "reconstruct_projects_rationale_1"
     ],
-    "40": [
-      "admin_screenshot_01"
-    ],
-    "41": [
-      "admin_screenshot_02_edit"
-    ],
-    "42": [
-      "admin_screenshot_02_new"
-    ],
-    "43": [
-      "admin_screenshot_03"
-    ],
-    "44": [
-      "agent_communicate_to_anti"
-    ],
-    "45": [
-      "agent_prompt_anti"
-    ],
-    "46": [
-      "build_output"
-    ],
-    "47": [
-      "check_proj_rrgspcuto"
-    ],
-    "48": [
-      "claude_commands_feedback_review"
-    ],
-    "49": [
-      "claude_pm_memory"
-    ],
-    "50": [
-      "claude_zen"
-    ],
     "51": [
-      "cleanup_proj_rrgspcuto"
+      ".agent_agents_dak"
     ],
     "52": [
-      "cleanup_test_projects"
+      ".agent_agents_gem"
     ],
     "53": [
-      "cloudbuild"
+      ".agent_agents_ohan"
     ],
     "54": [
-      "cloudbuild_safety"
+      ".agent_agents_spark"
     ],
     "55": [
-      "cody_instructions"
+      "admin_screenshot_01"
     ],
     "56": [
-      "cody_task"
+      "admin_screenshot_02_edit"
     ],
     "57": [
-      "cody_test"
+      "admin_screenshot_02_new"
     ],
     "58": [
-      "data_loss_risk"
+      "admin_screenshot_03"
     ],
     "59": [
-      "diag_projects"
+      "agent_communicate_to_anti"
     ],
     "60": [
-      "docs_build_doc"
+      "agent_prompt_anti"
     ],
     "61": [
-      "docs_diagrams"
+      "ai_recommendation_guardrail"
     ],
     "62": [
-      "execution_report"
+      "check_proj_rrgspcuto"
     ],
     "63": [
-      "find_unmatched_blobs"
+      "claude_commands_feedback_review"
     ],
     "64": [
-      "functions_requirements"
+      "claude_zen"
     ],
     "65": [
-      "index"
+      "cleanup_proj_rrgspcuto"
     ],
     "66": [
-      "pipeline_progress"
+      "cleanup_test_projects"
     ],
     "67": [
-      "postcss_config"
+      "cloudbuild"
     ],
     "68": [
-      "public_logo_hs_original"
+      "cloudbuild_safety"
     ],
     "69": [
-      "public_logo_icon"
+      "cody_instructions"
     ],
     "70": [
-      "public_sw"
+      "cody_task"
     ],
     "71": [
-      "scripts_dangerous_prod_targeting_cleanup_test_projects_prod_unsafe"
+      "cody_test"
     ],
     "72": [
-      "scripts_dangerous_prod_targeting_readme"
+      "data_loss_risk"
     ],
     "73": [
-      "seed_projects"
+      "diag_projects"
     ],
     "74": [
-      "start_tunnel"
+      "docs_build_doc"
     ],
     "75": [
-      "tailwind_config"
+      "docs_diagrams"
     ],
     "76": [
-      "test_screenshot_01"
+      "dust_explosion_standards"
     ],
     "77": [
-      "test_screenshot_02"
+      "en_1127_1"
     ],
     "78": [
-      "test_screenshot_04"
+      "execution_report"
     ],
     "79": [
-      "test_screenshot_05"
+      "find_unmatched_blobs"
     ],
     "80": [
-      "test_screenshot_10"
+      "functions_requirements"
     ],
     "81": [
-      "tests_css_crossorigin_test"
+      "help_modal_jsx"
     ],
     "82": [
-      "tests_html_shield_test"
+      "iec_60079_series"
     ],
     "83": [
-      "tests_mobile_qa_test"
+      "image_wowo"
     ],
     "84": [
-      "tests_sw_sanity_test"
+      "index"
     ],
     "85": [
+      "iso_80079_36_37"
+    ],
+    "86": [
+      "live_application"
+    ],
+    "87": [
+      "pipeline_progress"
+    ],
+    "88": [
+      "postcss_config"
+    ],
+    "89": [
+      "public_HitecApp_Safety_Mobile_Surveyor_Manual_pdf"
+    ],
+    "90": [
+      "public_logo_hs_original"
+    ],
+    "91": [
+      "public_logo_hs_white"
+    ],
+    "92": [
+      "public_logo_icon"
+    ],
+    "93": [
+      "public_manual_surveyor"
+    ],
+    "94": [
+      "public_sw"
+    ],
+    "95": [
+      "report_download_failure_bug"
+    ],
+    "96": [
+      "safety_deploy_lock_protocol"
+    ],
+    "97": [
+      "safety_post_flight_verification"
+    ],
+    "98": [
+      "safety_pre_flight_baseline"
+    ],
+    "99": [
+      "safety_strict_target_write_filter"
+    ],
+    "100": [
+      "scripts_dangerous_prod_targeting_cleanup_test_projects_prod_unsafe"
+    ],
+    "101": [
+      "scripts_dangerous_prod_targeting_readme"
+    ],
+    "102": [
+      "seed_projects"
+    ],
+    "103": [
+      "start_tunnel"
+    ],
+    "104": [
+      "tailwind_config"
+    ],
+    "105": [
+      "test_screenshot_01"
+    ],
+    "106": [
+      "test_screenshot_02"
+    ],
+    "107": [
+      "test_screenshot_04"
+    ],
+    "108": [
+      "test_screenshot_05"
+    ],
+    "109": [
+      "test_screenshot_10"
+    ],
+    "110": [
+      "tests_css_crossorigin_test"
+    ],
+    "111": [
+      "tests_html_shield_test"
+    ],
+    "112": [
+      "tests_mobile_qa_test"
+    ],
+    "113": [
+      "tests_sw_sanity_test"
+    ],
+    "114": [
       "verify_firestore_count"
     ]
   },
   "cohesion": {
-    "0": 0.06518987341772152,
-    "1": 0.06767676767676768,
-    "2": 0.16219512195121952,
-    "3": 0.05263157894736842,
+    "0": 0.06049213943950786,
+    "1": 0.07419712070874862,
+    "2": 0.15171650055370986,
+    "3": 0.047619047619047616,
     "4": 0.05714285714285714,
-    "5": 0.14285714285714285,
-    "6": 0.17894736842105263,
-    "7": 0.19298245614035087,
-    "8": 0.15441176470588236,
-    "9": 0.15384615384615385,
-    "10": 0.24242424242424243,
-    "11": 0.2727272727272727,
-    "12": 0.23636363636363636,
-    "13": 0.38181818181818183,
-    "14": 0.2777777777777778,
-    "15": 0.2857142857142857,
-    "16": 0.2857142857142857,
-    "17": 0.4666666666666667,
-    "18": 0.3333333333333333,
-    "19": 0.4,
-    "20": 0.7,
-    "21": 0.7,
-    "22": 0.5,
-    "23": 0.5,
-    "24": 0.8333333333333334,
-    "25": 0.6666666666666666,
-    "26": 0.6666666666666666,
-    "27": 0.6666666666666666,
-    "28": 0.6666666666666666,
-    "29": 0.6666666666666666,
-    "30": 0.6666666666666666,
-    "31": 0.6666666666666666,
-    "32": 0.6666666666666666,
-    "33": 1.0,
-    "34": 0.6666666666666666,
-    "35": 1.0,
-    "36": 1.0,
-    "37": 1.0,
-    "38": 1.0,
-    "39": 1.0,
-    "40": 1.0,
-    "41": 1.0,
-    "42": 1.0,
-    "43": 1.0,
+    "5": 0.15579710144927536,
+    "6": 0.14285714285714285,
+    "7": 0.17894736842105263,
+    "8": 0.19298245614035087,
+    "9": 0.14035087719298245,
+    "10": 0.13333333333333333,
+    "11": 0.19047619047619047,
+    "12": 0.19230769230769232,
+    "13": 0.24242424242424243,
+    "14": 0.16666666666666666,
+    "15": 0.23636363636363636,
+    "16": 0.2,
+    "17": 0.38181818181818183,
+    "18": 0.2,
+    "19": 0.2,
+    "20": 0.2222222222222222,
+    "21": 0.2222222222222222,
+    "22": 0.2857142857142857,
+    "23": 0.2857142857142857,
+    "24": 0.2857142857142857,
+    "25": 0.3333333333333333,
+    "26": 0.4,
+    "27": 0.3333333333333333,
+    "28": 0.4,
+    "29": 0.7,
+    "30": 0.7,
+    "31": 0.4,
+    "32": 0.5,
+    "33": 0.5,
+    "34": 0.5,
+    "35": 0.8333333333333334,
+    "36": 0.6666666666666666,
+    "37": 0.6666666666666666,
+    "38": 0.6666666666666666,
+    "39": 0.6666666666666666,
+    "40": 0.6666666666666666,
+    "41": 0.6666666666666666,
+    "42": 0.6666666666666666,
+    "43": 0.6666666666666666,
     "44": 1.0,
-    "45": 1.0,
+    "45": 0.6666666666666666,
     "46": 1.0,
     "47": 1.0,
     "48": 1.0,
@@ -784,23 +979,47 @@
     "82": 1.0,
     "83": 1.0,
     "84": 1.0,
-    "85": 1.0
+    "85": 1.0,
+    "86": 1.0,
+    "87": 1.0,
+    "88": 1.0,
+    "89": 1.0,
+    "90": 1.0,
+    "91": 1.0,
+    "92": 1.0,
+    "93": 1.0,
+    "94": 1.0,
+    "95": 1.0,
+    "96": 1.0,
+    "97": 1.0,
+    "98": 1.0,
+    "99": 1.0,
+    "100": 1.0,
+    "101": 1.0,
+    "102": 1.0,
+    "103": 1.0,
+    "104": 1.0,
+    "105": 1.0,
+    "106": 1.0,
+    "107": 1.0,
+    "108": 1.0,
+    "109": 1.0,
+    "110": 1.0,
+    "111": 1.0,
+    "112": 1.0,
+    "113": 1.0,
+    "114": 1.0
   },
   "gods": [
     {
       "id": "src_components_dashboard_dashboard",
       "label": "Dashboard()",
-      "degree": 28
+      "degree": 30
     },
     {
-      "id": "src_firebase_setdoc",
-      "label": "setDoc()",
+      "id": "concept_hitecapp_safety",
+      "label": "HitecApp-Safety - ATEX Compliance Platform",
       "degree": 13
-    },
-    {
-      "id": "src_firebase_doc",
-      "label": "doc()",
-      "degree": 12
     },
     {
       "id": "src_sessionsecurity_apilogin",
@@ -808,9 +1027,24 @@
       "degree": 12
     },
     {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 12
+    },
+    {
       "id": "src_firebase_loadmockstore",
       "label": "loadMockStore()",
-      "degree": 11
+      "degree": 12
+    },
+    {
+      "id": "src_firebase_doc",
+      "label": "doc()",
+      "degree": 12
+    },
+    {
+      "id": "src_firebase_setdoc",
+      "label": "setDoc()",
+      "degree": 12
     },
     {
       "id": "src_components_login_login",
@@ -826,110 +1060,67 @@
       "id": "src_sessionsecurity_loadsessionstable",
       "label": "loadSessionsTable()",
       "degree": 11
-    },
-    {
-      "id": "src_sessionsecurity_apilogout",
-      "label": "apiLogout()",
-      "degree": 10
-    },
-    {
-      "id": "src_firebase_updatedoc",
-      "label": "updateDoc()",
-      "degree": 9
     }
   ],
   "surprises": [
     {
-      "source": "test()",
-      "target": "aiFeedbackSynthesize()",
+      "source": "mcp-bridge/requirements.txt - MCP Bridge Python Dependencies",
+      "target": "HitecApp-Safety - ATEX Compliance Platform",
       "source_files": [
-        "test_synthesis.js",
-        "src/aiAssessor.js"
+        "mcp-bridge/requirements.txt",
+        "CLAUDE.md"
       ],
-      "confidence": "EXTRACTED",
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `mcp-bridge/requirements.txt - MCP Bridge Python Dependencies` unexpectedly reaches hub `HitecApp-Safety - ATEX Compliance Platform`"
+    },
+    {
+      "source": "build_output.txt - Vite Build Log",
+      "target": "HitecApp-Safety - ATEX Compliance Platform",
+      "source_files": [
+        "build_output.txt",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `build_output.txt - Vite Build Log` unexpectedly reaches hub `HitecApp-Safety - ATEX Compliance Platform`"
+    },
+    {
+      "source": "preview_log.txt - Static Preview Server Log",
+      "target": "HitecApp-Safety - ATEX Compliance Platform",
+      "source_files": [
+        "preview_log.txt",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `preview_log.txt - Static Preview Server Log` unexpectedly reaches hub `HitecApp-Safety - ATEX Compliance Platform`"
+    },
+    {
+      "source": "Anti (Orchestrator)",
+      "target": "HitecApp Safety Application",
+      "source_files": [
+        ".agent/AGENTS.md",
+        "docs/hitecapp-safety-playbook.txt"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `Anti (Orchestrator)` unexpectedly reaches hub `HitecApp Safety Application`"
+    },
+    {
+      "source": "Cody (Executor)",
+      "target": "HitecApp Safety Application",
+      "source_files": [
+        ".agent/AGENTS.md",
+        "docs/hitecapp-safety-playbook.txt"
+      ],
+      "confidence": "INFERRED",
       "relation": "calls",
-      "why": "connects across different repos/directories; peripheral node `test()` unexpectedly reaches hub `aiFeedbackSynthesize()`"
-    },
-    {
-      "source": "Session Log 2026-08-14",
-      "target": "Progress HTML Status Board",
-      "source_files": [
-        "log/safety-260814.md",
-        "public/progress.html"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "connects across different repos/directories; peripheral node `Session Log 2026-08-14` unexpectedly reaches hub `Progress HTML Status Board`"
-    },
-    {
-      "source": "Session Log 2026-08-15",
-      "target": "Progress HTML Status Board",
-      "source_files": [
-        "log/safety-260815.md",
-        "public/progress.html"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "connects across different repos/directories; peripheral node `Session Log 2026-08-15` unexpectedly reaches hub `Progress HTML Status Board`"
-    },
-    {
-      "source": "initialize()",
-      "target": "init()",
-      "source_files": [
-        "functions/main.py",
-        "fetch_feedback.py"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "connects across different repos/directories"
-    },
-    {
-      "source": "Session Log 2026-08-16",
-      "target": "Admin Panel HTML",
-      "source_files": [
-        "log/safety-260816.md",
-        "public/admin.html"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "connects across different repos/directories"
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `Cody (Executor)` unexpectedly reaches hub `HitecApp Safety Application`"
     }
   ],
-  "questions": [
-    {
-      "type": "bridge_node",
-      "question": "Why does `dependencies` connect `File & Media Libraries` to `Build & Dev Dependencies`?",
-      "why": "High betweenness centrality (0.013) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `ErrorBoundary` connect `ErrorBoundary` to `sessionSecurity.js`?",
-      "why": "High betweenness centrality (0.006) - this node is a cross-community bridge."
-    },
-    {
-      "type": "isolated_nodes",
-      "question": "What connects `DEFAULT_AI_RECOMMENDATION_RULES`, `authListeners`, `dbListeners` to the rest of the system?",
-      "why": "121 weakly-connected nodes found - possible documentation gaps or missing edges."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `Dashboard.jsx` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.06518987341772152 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `API & Feedback Services` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.06767676767676768 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `Build & Dev Dependencies` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.05263157894736842 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `File & Media Libraries` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.05714285714285714 - nodes in this community are weakly interconnected."
-    }
-  ]
+  "tokens": {
+    "input": 30635,
+    "output": 9929
+  }
 }

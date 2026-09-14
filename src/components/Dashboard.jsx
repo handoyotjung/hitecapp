@@ -21,8 +21,7 @@ import { FeedbackModal } from './FeedbackModal';
 import { HelpModal } from './HelpModal';
 import { aiGrammarCheck, aiObservationAssessor, aiGenerateRecommendation, aiTranslateAndGrammarCheck, getAISuggestions, learnComment } from '../aiAssessor';
 import AnnotatedImageCanvas from './AnnotatedImageCanvas';
-import { useExportWord, useExportPDF, useExportPPTX } from '@/hooks/useReportExporter';
-import { createTwoColTable, getImageSize, createLightRow, createLightBullet } from '@/hooks/useReportExporter';
+import { handleExportWord, getBestPhotoBase64 } from '../exportWordReport';
 import PublishBar from './PublishBar';
 import { compressImage } from '../imageCompressor';
 import { shareFile } from '../utils/shareFile';
@@ -242,11 +241,9 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   const [photoTitle, setPhotoTitle] = useState('');
   const [photoDate, setPhotoDate] = useState('');
   const [photoLocation, setPhotoLocation] = useState('');
-  const [recMode, setRecMode] = useState('Auto'); // 'Auto' | 'Manual'
   const [aiAssistOn, setAiAssistOn] = useState(true);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [aiSuggestedRecText, setAiSuggestedRecText] = useState('');
-
   // AI Assistance Mode for Recommendations (Manual | Suggestions | AI Agent)
   const [aiRecMode, setAiRecMode] = useState(() => {
     try {
@@ -277,11 +274,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     const cappedLines = lines.length <= 3 ? lines : lines.slice(0, 3);
     setRecommendations(cappedLines);
     setAiSuggestedRecText(aiDraftRec);
-    if (recMode === 'Auto') setRecMode('Manual');
     updatePhotoFieldAndAutosave({
       recommendations_json: cappedLines,
       recommendations: cappedLines,
-      aiSuggestedRec: aiDraftRec
+      aiSuggestedRec: aiDraftRec,
+      source: 'ai_draft_accept'
     });
     setAiDraftRec('');
   };
@@ -291,7 +288,142 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
   };
 
   const { autosave, cancelAutosave, retrySave, isSaving, isError, lastSavedAt } = useProjectAutoSave(selectedProject?.id);
-  const photoDocTimeoutRef = useRef(null);
+  const photoAuditBaselineRef = useRef({});
+
+  const getPhotoBaseline = (photoId, filename) => {
+    if (photoId && photoAuditBaselineRef.current[photoId]) {
+      return photoAuditBaselineRef.current[photoId];
+    }
+    if (filename && photoAuditBaselineRef.current[filename]) {
+      return photoAuditBaselineRef.current[filename];
+    }
+    return null;
+  };
+
+  const commitAuditEvents = async (photoId, projectId, currentPhotoObj, source = 'assessor_edit') => {
+    if (!photoId || !user?.email) return;
+    const cleanEmail = user.email.trim().toLowerCase();
+    let baseline = getPhotoBaseline(photoId, currentPhotoObj?.filename);
+    if (!baseline) {
+      baseline = {
+        comments: '',
+        recommendations: [],
+        grade: 'F2',
+        status: 'Open',
+        caption: '',
+        annotations: null
+      };
+    }
+    const eventsToCreate = [];
+
+    // 1. Comments
+    const currentComments = currentPhotoObj.comments_text || currentPhotoObj.comments || '';
+    const oldComments = baseline.comments !== undefined ? baseline.comments : '';
+    if (currentComments !== oldComments) {
+      eventsToCreate.push({
+        field: 'comments',
+        oldValue: oldComments,
+        newValue: currentComments,
+        source: source
+      });
+      baseline.comments = currentComments;
+    }
+
+    // 2. Recommendations (Full snapshot of string array)
+    const currentRecs = Array.isArray(currentPhotoObj.recommendations_json)
+      ? currentPhotoObj.recommendations_json
+      : (Array.isArray(currentPhotoObj.recommendations) ? currentPhotoObj.recommendations : []);
+    const oldRecs = Array.isArray(baseline.recommendations) ? baseline.recommendations : [];
+    if (JSON.stringify(currentRecs) !== JSON.stringify(oldRecs)) {
+      eventsToCreate.push({
+        field: 'recommendations',
+        oldValue: [...oldRecs],
+        newValue: [...currentRecs],
+        source: source
+      });
+      baseline.recommendations = [...currentRecs];
+    }
+
+    // 3. Grade
+    const currentGrade = currentPhotoObj.grade || currentPhotoObj.assessment_grade || 'F2';
+    const oldGrade = baseline.grade !== undefined ? baseline.grade : 'F2';
+    if (currentGrade !== oldGrade) {
+      eventsToCreate.push({
+        field: 'grade',
+        oldValue: oldGrade,
+        newValue: currentGrade,
+        source: source
+      });
+      baseline.grade = currentGrade;
+    }
+
+    // 4. Status
+    const currentStatus = currentPhotoObj.latest_status || currentPhotoObj.status || 'Open';
+    const oldStatus = baseline.status !== undefined ? baseline.status : 'Open';
+    if (currentStatus !== oldStatus) {
+      eventsToCreate.push({
+        field: 'status',
+        oldValue: oldStatus,
+        newValue: currentStatus,
+        source: source
+      });
+      baseline.status = currentStatus;
+    }
+
+    // 5. Caption / Title
+    const currentCaption = currentPhotoObj.caption || currentPhotoObj.title || currentPhotoObj.asset_title || '';
+    const oldCaption = baseline.caption !== undefined ? baseline.caption : '';
+    if (currentCaption !== oldCaption) {
+      eventsToCreate.push({
+        field: 'caption',
+        oldValue: oldCaption,
+        newValue: currentCaption,
+        source: source
+      });
+      baseline.caption = currentCaption;
+    }
+
+    // 6. Annotations (Full object snapshot)
+    if (currentPhotoObj.annotations && JSON.stringify(currentPhotoObj.annotations) !== JSON.stringify(baseline.annotations)) {
+      eventsToCreate.push({
+        field: 'annotations',
+        oldValue: baseline.annotations || null,
+        newValue: currentPhotoObj.annotations,
+        source: 'canvas_markup_save'
+      });
+      baseline.annotations = currentPhotoObj.annotations;
+    }
+
+    photoAuditBaselineRef.current[photoId] = baseline;
+
+    console.log('[Audit Log] commitAuditEvents called for photoId:', photoId, 'events to create:', eventsToCreate.length);
+    if (eventsToCreate.length === 0) return;
+
+    for (const evt of eventsToCreate) {
+      const eventId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const docPayload = {
+        id: eventId,
+        photoId: photoId,
+        projectId: projectId || selectedProject?.id || '',
+        companyId: currentPhotoObj.company_id || user?.companyId || 'co_hitec',
+        userEmail: cleanEmail,
+        userId: user.uid || cleanEmail,
+        field: evt.field,
+        oldValue: evt.oldValue,
+        newValue: evt.newValue,
+        source: evt.source,
+        timestamp: Date.now(),
+        createdAt: new Date().toISOString()
+      };
+      try {
+        console.log('[Audit Log] Writing doc to Firestore:', `photos/${photoId}/audit_events/${eventId}`, docPayload);
+        await setDoc(doc(db, 'photos', photoId, 'audit_events', eventId), docPayload);
+        console.log('[Audit Log] Successfully written to Firestore:', eventId);
+      } catch (err) {
+        console.error('[Audit Log] Failed to write audit event to Firestore:', err);
+      }
+    }
+  };
 
   // E2E Test Harness listener for synthetic draft injection
   useEffect(() => {
@@ -326,6 +458,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       clearTimeout(photoDocTimeoutRef.current);
       photoDocTimeoutRef.current = setTimeout(() => {
         updateDoc(doc(db, 'photos', currentPhoto.id), payload).catch(() => {});
+        commitAuditEvents(currentPhoto.id, payload.project_id, updatedPhoto, fieldUpdates.source || 'assessor_edit');
       }, 1500);
     }
     autosave({
@@ -356,9 +489,13 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       aiSuggestedRec: aiSuggestedRecText || '',
       comments_lang: commentsLang || 'EN',
       recommendations_lang: recommendationsLang || 'EN',
-      lastModifiedAt: Date.now()
+      lastModifiedAt: Date.now(),
+      source: 'save_report'
     };
     updatePhotoFieldAndAutosave(updates);
+    if (currentPhoto.id) {
+      commitAuditEvents(currentPhoto.id, selectedProject?.id, { ...currentPhoto, ...updates }, 'save_report');
+    }
   };
 
   const cardASpeech = useSpeechToText();
@@ -1089,10 +1226,24 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         setPhotoTitle(activePhoto.caption || activePhoto.title || activePhoto.asset_title || '');
         setPhotoDate(activePhoto.date || activePhoto.exif_date || new Date().toISOString().split('T')[0]);
         setPhotoLocation(activePhoto.location || selectedProject?.location || 'Site');
-        setRecMode(isManual ? 'Manual' : 'Auto');
         const suggestions = getAISuggestions(obs, initialGrade, activePhoto.comments_lang || 'EN') || [];
         setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
         setAiSuggestedRecText(activePhoto.aiSuggestedRec || '');
+
+        const initialBaseline = {
+          comments: obs,
+          recommendations: Array.isArray(activePhoto.recommendations_json) ? [...activePhoto.recommendations_json] : (Array.isArray(activePhoto.recommendations) ? [...activePhoto.recommendations] : []),
+          grade: initialGrade,
+          status: initialStatus,
+          caption: activePhoto.caption || activePhoto.title || activePhoto.asset_title || '',
+          annotations: activePhoto.annotations || null
+        };
+        if (activePhoto.id && !photoAuditBaselineRef.current[activePhoto.id]) {
+          photoAuditBaselineRef.current[activePhoto.id] = initialBaseline;
+        }
+        if (activePhoto.filename && !photoAuditBaselineRef.current[activePhoto.filename]) {
+          photoAuditBaselineRef.current[activePhoto.filename] = initialBaseline;
+        }
       }
     } else if (projectPhotos.length === 0 || editorIndex === null) {
       lastActivePhotoKeyRef.current = null;
@@ -1104,35 +1255,22 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       setPhotoTitle('');
       setPhotoDate(new Date().toISOString().split('T')[0]);
       setPhotoLocation(selectedProject?.location || 'Site');
-      setRecMode('Auto');
       setAiSuggestions([]);
       setAiSuggestedRecText('');
     }
   }, [projectPhotos, editorIndex]);
 
-  // Auto-generate AI Recommendation when in Auto mode upon comment or grade changes
+  // Update AI suggestion pills upon comment or grade changes (Zero autonomous Gemini writes)
   useEffect(() => {
-    if (projectPhotos.length === 0 || !projectPhotos[editorIndex]) return;
+    if (projectPhotos.length === 0 || editorIndex === null || !projectPhotos[editorIndex]) return;
     
     const timeoutId = setTimeout(() => {
-      const currentLang = recommendationsLang || 'EN';
       const suggestions = getAISuggestions(commentsText, photoGrade, commentsLang || 'EN') || [];
       setAiSuggestions(Array.isArray(suggestions) ? suggestions : []);
-
-      if (recMode === 'Auto') {
-        (async () => {
-          const res = await generateGeminiSuggestions(commentsText, currentLang || 'EN', photoGrade || 'F2');
-          if (res && res.recommendation) {
-            const lines = res.recommendation.split('\n').filter(Boolean);
-            setRecommendations(lines);
-            setAiSuggestedRecText(res.recommendation);
-          }
-        })();
-      }
-    }, 1500);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [commentsText, photoGrade, recMode, recommendationsLang, commentsLang, editorIndex]);
+  }, [commentsText, photoGrade, commentsLang, editorIndex, projectPhotos.length]);
 
 
 
@@ -1512,15 +1650,28 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         });
 
         // Listen for backend validation result, with 30s stuck-watchdog
-        const unsub = onSnapshot(photoDocRef, (docSnap) => {
+        const unsub = onSnapshot(photoDocRef, { includeMetadataChanges: true }, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
-            if (data.status === 'done') {
+            const isServerConfirmed = !docSnap.metadata?.hasPendingWrites;
+            if (data.status === 'done' && isServerConfirmed) {
               setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Done', progress: 100 } : q));
               autosave({ snapshotCompletedAt: Date.now() }, { immediate: true });
               if (unsub) unsub();
               clearTimeout(stuckTimer);
             } else if (data.status === 'rejected') {
+              const reasonMsg = data.reason === 'DAILY_LIMIT_REACHED'
+                ? 'Daily photo upload limit reached for your plan. Please upgrade your plan or try again tomorrow.'
+                : data.reason === 'FILE_TOO_LARGE'
+                ? 'Photo exceeds file size limit for your plan.'
+                : data.reason === 'UNSUPPORTED_FILE_TYPE'
+                ? 'Unsupported file type. Please upload a standard image format (JPEG, PNG, WebP).'
+                : `Upload rejected by server: ${data.reason || 'Unknown error'}`;
+              setAlertPopup({
+                title: "Photo Upload Rejected",
+                message: `"${item.originalName || item.finalFilename}": ${reasonMsg}`,
+                type: 'error'
+              });
               setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server', warningStartedAt: Date.now() } : q));
               if (unsub) unsub();
               clearTimeout(stuckTimer);
@@ -1542,6 +1693,11 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
         }, 30000);
       }).catch((err) => {
         console.error('Upload failed after retries:', err);
+        setAlertPopup({
+          title: "Upload Failed",
+          message: `"${item.originalName || item.finalFilename}": Upload failed after 3 network retries. Please check your connection.`,
+          type: 'error'
+        });
         setQueue(prev => prev.map(q =>
           q.id === item.id ? { ...q, status: 'Rejected', error: 'Upload failed after 3 retries', warningStartedAt: Date.now() } : q
         ));
@@ -1573,15 +1729,28 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       created_at: new Date().toISOString()
     });
 
-    const unsub = onSnapshot(photoDocRef, (docSnap) => {
+    const unsub = onSnapshot(photoDocRef, { includeMetadataChanges: true }, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.status === 'done') {
+        const isServerConfirmed = !docSnap.metadata?.hasPendingWrites;
+        if (data.status === 'done' && isServerConfirmed) {
           setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Done', progress: 100 } : q));
           autosave({ snapshotCompletedAt: Date.now() }, { immediate: true });
           if (unsub) unsub();
           clearTimeout(stuckTimer);
         } else if (data.status === 'rejected') {
+          const reasonMsg = data.reason === 'DAILY_LIMIT_REACHED'
+            ? 'Daily photo upload limit reached for your plan. Please upgrade your plan or try again tomorrow.'
+            : data.reason === 'FILE_TOO_LARGE'
+            ? 'Photo exceeds file size limit for your plan.'
+            : data.reason === 'UNSUPPORTED_FILE_TYPE'
+            ? 'Unsupported file type. Please upload a standard image format (JPEG, PNG, WebP).'
+            : `Upload rejected by server: ${data.reason || 'Unknown error'}`;
+          setAlertPopup({
+            title: "Photo Upload Rejected",
+            message: `"${item.originalName || item.finalFilename}": ${reasonMsg}`,
+            type: 'error'
+          });
           setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'Rejected', error: data.reason || 'Rejected by Server', warningStartedAt: Date.now() } : q));
           if (unsub) unsub();
           clearTimeout(stuckTimer);
@@ -1735,7 +1904,6 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
       const res = await generateGeminiSuggestions(commentsText, recommendationsLang || 'EN', photoGrade || 'F2');
       if (res && res.recommendation) {
         setAiDraftRec(res.recommendation);
-        setAiRecMode('Auto');  // Set mode to automatic after successful Gemini suggestion
       } else {
         const res = await aiGenerateRecommendation(
           projectPhotos[editorIndex],
@@ -1902,8 +2070,8 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
     if (!selectedProject) return;
     setExportError(null);
     try {
-      const result = await useExportWord(selectedProject, queue, selectedPhotos)(
-        null, isMobileMode ? 'Mobile' : 'Desktop'
+      const result = await handleExportWord(
+        selectedProject, queue, selectedPhotos, null, isMobileMode ? 'Mobile' : 'Desktop', true
       );
 
       // Track successful Word/DOC report download for daily usage and admin analytics
@@ -2363,7 +2531,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
               </div>
             ) : (
               <div className={`mt-2 grid gap-1.5 ${queue.length > 20 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-                {queue.filter(item => item.status !== 'Rejected').map((item, index) => {
+                {queue.map((item, index) => {
                   const isDone = item.status === 'Done';
                   const isSelected = selectedPhotos.includes(item.finalFilename);
                   const matchedPhoto = projectPhotos.find(p => p.filename === item.finalFilename);
@@ -3141,6 +3309,7 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 {/* #1: Save Report button positioned right next to Bahasa/English toggle */}
                 <button
                   type="button"
+                  id="save-report-btn"
                   onClick={handleSaveReport}
                   disabled={isViewMode}
                   className="h-[38px] flex items-center gap-1.5 rounded-xl bg-[#107C41] hover:bg-[#0C5E31] px-3 text-xs font-bold text-white shadow-md shadow-[#107C41]/25 active:scale-95 transition-all cursor-pointer shrink-0"
@@ -3391,6 +3560,41 @@ export default function Dashboard({ user, onLogout, onOpenSecurity }) {
                 className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-lg shadow-rose-600/30 transition-all active:scale-95"
               >
                 {confirmModal.confirmLabel || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Modal for Rejections / Upload Errors */}
+      {alertPopup && (
+        <div 
+          id="alert-popup-modal"
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-rose-500/30 p-5 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white leading-tight">{alertPopup.title || "Notification"}</h3>
+                <span className="text-[10px] text-rose-400 font-semibold uppercase tracking-wider">Alert</span>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-300 leading-relaxed">
+              {alertPopup.message}
+            </p>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                id="alert-modal-close-btn"
+                onClick={() => setAlertPopup(null)}
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-bold text-white transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>

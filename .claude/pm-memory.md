@@ -1,5 +1,18 @@
 # PM Memory — hitecapp-safety migration
 
+## Team Roster & Roles
+- **👑 Ohan**: Project Lead & Boss. Makes decisions, gives direction, approves architecture, plans, and deployments.
+- **⚡ Spark**: Cloud Architect. Cloud infrastructure, GCP/Firebase architecture, and scaling.
+- **🛡️ Anti**: Primary Orchestrator (Gemini in AntiGravity IDE). Architecture, planning, diagnostics, monitoring, and verification.
+- **⚙️ Cody**: Hand / Autonomous Executor (Claude Code CLI, deepseek-v4-flash-free via zen proxy). File edits, shell commands, silent test/build, compact reporting (`CHANGE: APPLIED / BUILD: PASS / TEST: PASS`).
+- **💎 Gem**: Ohan's personal VS Code coding assistant (Claude Code CLI & UI running Gemini 3.7 Flash on Google Cloud Vertex AI project `ohanid` with $300 credit). Gem collaborates with Ohan in VS Code alongside Cody and Anti.
+- **📊 Dak**: Telemetry & Data Analyst.
+
+### Team Flow:
+👑 [ Ohan (Lead) ] ──► ⚡ [ Spark (Cloud Architect) ] ──► 🛡️ [ Anti (HUD) ] ⇄ ⚙️ [ Cody (CLI) ]
+                   └──► 💎 [ Gem (VS Code AI) ] ────► 📊 [ Dak (Telemetry) ]
+
+
 ## Codebase facts
 
 - **Two Firebase projects**: `hitecmedia-app` (legacy — ABANDONED) and `hitecapp-safety` (active — all services migrated as of 2026-08-04).

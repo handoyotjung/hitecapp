@@ -44,6 +44,13 @@
         "SERVERLESS_SPARK_PROJECT": "hitecapp-safety",
         "SERVERLESS_SPARK_LOCATION": "asia-southeast2"
       }
+    },
+    "google_drive": {
+      "command": "npx",
+      "args": ["-y", "@toolbox-sdk/server@>=1.1.0", "--prebuilt", "drive", "--stdio"],
+      "env": {
+        "DRIVE_PROJECT": "hitecapp-safety"
+      }
     }
   }
 }

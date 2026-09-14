@@ -2,6 +2,21 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Start Cody Bridge",
+      "type": "shell",
+      "command": "node .agent/scripts/cody_bridge.cjs",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never",
+        "panel": "new",
+        "focus": false
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Start Cody",
       "type": "shell",
       "command": "& 'C:/Program Files/Git/bin/bash.exe' 'C:/Users/Administrator/.local/bin/cody-start.sh'",

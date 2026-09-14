@@ -1,7 +1,12 @@
 import io
+import base64
 import os
 import json
+import uuid
+import urllib.parse
 import datetime
+import gzip
+import hashlib
 from datetime import timedelta
 from firebase_functions import options, https_fn, storage_fn, scheduler_fn
 from firebase_functions.core import init
@@ -14,8 +19,8 @@ import pandas as pd
 import requests
 import google.generativeai as genai
 
-# Set global GCP region to asia-southeast2 (Jakarta) for all 2nd Gen Cloud Functions
-options.set_global_options(region="asia-southeast2")
+# Set global GCP region to asia-southeast2 (Jakarta) with 1GB memory for report rendering
+options.set_global_options(region="asia-southeast2", memory=options.MemoryOption.GB_1, cpu=1)
 
 # Initialize Firebase Admin SDK
 firebase_app = initialize_app()
@@ -85,14 +90,16 @@ def get_company_plan_limits(user_email):
             if plan_snap.exists:
                 plan_data = plan_snap.to_dict()
                 return {
-                    'max_kb': plan_data.get('max_file_size_kb', 1024 if plan_name == 'pro' else 300)
+                    'max_kb': plan_data.get('max_file_size_kb', 1024 if plan_name == 'pro' else 300),
+                    'max_daily': plan_data.get('max_daily_photos', 300 if plan_name == 'pro' else 100)
                 }
             return {
-                'max_kb': 1024 if plan_name == 'pro' else 300
+                'max_kb': 1024 if plan_name == 'pro' else 300,
+                'max_daily': 300 if plan_name == 'pro' else 100
             }
     except Exception as e:
         print(f"Error checking plan limits: {e}")
-    return {'max_kb': 300}  # Basic fallback
+    return {'max_kb': 300, 'max_daily': 100}  # Basic fallback
 
 @https_fn.on_call()
 def validateUpload(req: https_fn.CallableRequest) -> dict:
@@ -210,7 +217,7 @@ def onPhotoUpload(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]) ->
                                  .where('status', '==', 'done')
         
         count = len(query_photos.get())
-        if count >= limits['max_daily']:
+        if count >= limits.get('max_daily', 100):
             rejection_reason = "DAILY_LIMIT_REACHED"
 
     # Handle rejection vs success
@@ -363,14 +370,15 @@ def exportPPTX(req: https_fn.CallableRequest) -> dict:
     export_blob = bucket.blob(export_path)
     export_blob.upload_from_file(pptx_io, content_type='application/vnd.openxmlformats-officedocument.presentationml.presentation')
 
-    # Generate 24-hr GCS Signed URL
-    signed_url = export_blob.generate_signed_url(
-        expiration=datetime.timedelta(hours=24),
-        method='GET',
-        response_disposition=f'attachment; filename="{export_filename}"'
-    )
+    # Generate direct Firebase Storage Download URL with security token
+    token = str(uuid.uuid4())
+    export_blob.metadata = {"firebaseStorageDownloadTokens": token}
+    export_blob.patch()
 
-    return {"downloadUrl": signed_url}
+    encoded_name = urllib.parse.quote(export_path, safe='')
+    download_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/{encoded_name}?alt=media&token={token}"
+
+    return {"downloadUrl": download_url}
 
 def _generate_pdf_report(req: https_fn.CallableRequest) -> dict:
     """Reads photos from Firestore (or uses frontend photos_data) and creates a professional PDF report of photos."""
@@ -644,14 +652,15 @@ def _generate_pdf_report(req: https_fn.CallableRequest) -> dict:
     export_blob = bucket.blob(export_path)
     export_blob.upload_from_file(pdf_io, content_type='application/pdf')
 
-    # Generate 24-hr GCS Signed URL
-    signed_url = export_blob.generate_signed_url(
-        expiration=datetime.timedelta(hours=24),
-        method='GET',
-        response_disposition=f'attachment; filename="{export_filename}"'
-    )
+    # Generate direct Firebase Storage Download URL with security token
+    token = str(uuid.uuid4())
+    export_blob.metadata = {"firebaseStorageDownloadTokens": token}
+    export_blob.patch()
 
-    return {"downloadUrl": signed_url}
+    encoded_name = urllib.parse.quote(export_path, safe='')
+    download_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/{encoded_name}?alt=media&token={token}"
+
+    return {"downloadUrl": download_url}
 
 @https_fn.on_call()
 def exportXLSX(req: https_fn.CallableRequest) -> dict:
@@ -856,3 +865,90 @@ def generateAISuggestions(req: https_fn.CallableRequest) -> dict:
             "suggestion": fallback_suggestion,
             "recommendation": fallback_rec
         }
+
+@scheduler_fn.on_schedule(schedule="0 19 * * *", timezone="UTC")  # 02:00 Asia/Jakarta daily
+def scheduled_survey_backup(event: scheduler_fn.ScheduledEvent) -> None:
+    """Daily Disaster Recovery snapshot of client_surveys and audit_events subcollections to GCS."""
+    global db
+    if db is None:
+        db = firestore.client()
+
+    now_utc = datetime.datetime.utcnow()
+    date_str = now_utc.strftime("%Y-%m-%d")
+    timestamp_str = now_utc.strftime("%Y%m%d_%H%M%SZ")
+    backup_bucket_name = os.environ.get("DR_BACKUP_BUCKET", "hitecapp-safety-backups")
+
+    try:
+        # 1. Stream client_surveys collection
+        surveys = []
+        try:
+            for s_doc in db.collection('client_surveys').stream():
+                d = s_doc.to_dict()
+                d['id'] = s_doc.id
+                surveys.append(d)
+        except Exception as survey_err:
+            print(f"[DR Backup] client_surveys stream note: {survey_err}")
+
+        # 2. Stream all audit_events across photos subcollections
+        audit_events = []
+        try:
+            for a_doc in db.collection_group('audit_events').stream():
+                d = a_doc.to_dict()
+                d['id'] = a_doc.id
+                audit_events.append(d)
+        except Exception as ag_err:
+            print(f"[DR Backup] collection_group('audit_events') stream note: {ag_err}")
+
+        backup_payload = {
+            "version": "1.0",
+            "exported_at": now_utc.isoformat() + "Z",
+            "environment": "production",
+            "collections": {
+                "client_surveys": {
+                    "total_count": len(surveys),
+                    "documents": surveys
+                },
+                "audit_events": {
+                    "total_count": len(audit_events),
+                    "documents": audit_events
+                }
+            }
+        }
+
+        # 3. Serialize and compute SHA256 cryptographic checksum
+        json_bytes = json.dumps(backup_payload, sort_keys=True, indent=2).encode('utf-8')
+        sha256_hash = hashlib.sha256(json_bytes).hexdigest()
+        compressed_bytes = gzip.compress(json_bytes)
+
+        # 4. Upload compressed snapshot & checksum to GCS backup bucket
+        bucket = storage.bucket(backup_bucket_name)
+        archive_blob_path = f"surveys_and_audits/{date_str}/dr_backup_{timestamp_str}.json.gz"
+        checksum_blob_path = f"surveys_and_audits/{date_str}/dr_backup_{timestamp_str}.sha256"
+
+        archive_blob = bucket.blob(archive_blob_path)
+        archive_blob.content_type = "application/gzip"
+        archive_blob.metadata = {
+            "sha256": sha256_hash,
+            "survey_count": str(len(surveys)),
+            "audit_event_count": str(len(audit_events))
+        }
+        archive_blob.upload_from_string(compressed_bytes)
+
+        checksum_blob = bucket.blob(checksum_blob_path)
+        checksum_blob.content_type = "text/plain"
+        checksum_blob.upload_from_string(f"{sha256_hash}  dr_backup_{timestamp_str}.json.gz\n")
+
+        print(f"[DR BACKUP SUCCESS] Exported {len(surveys)} surveys and {len(audit_events)} audit events to gs://{backup_bucket_name}/{archive_blob_path} (SHA256: {sha256_hash})")
+
+    except Exception as err:
+        print(f"[DR BACKUP ERROR]: {err}")
+        try:
+            db.collection('system_alerts').add({
+                'type': 'dr_backup_failure',
+                'error': str(err),
+                'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+                'resolved': False
+            })
+        except Exception as alert_err:
+            print(f"Failed to record system_alert: {alert_err}")
+

@@ -421,14 +421,15 @@ export const collection = (dbInstance, path) => {
   return fbCollection(dbInstance, path);
 };
 
-export const doc = (dbInstance, path, docId) => {
+export const doc = (dbInstance, ...pathSegments) => {
   if (isMockMode) {
-    if (typeof path === "object" && path.path) {
-      return { colPath: path.path, docId };
-    }
-    return { colPath: path, docId };
+    const joined = pathSegments.map(p => (typeof p === 'object' && p?.path ? p.path : p)).join('/');
+    const parts = joined.split('/');
+    const docId = parts.pop();
+    const colPath = parts.join('/');
+    return { colPath, docId };
   }
-  return fbDoc(dbInstance, path, docId);
+  return fbDoc(dbInstance, ...pathSegments);
 };
 
 export const getDoc = async (docRef) => {
@@ -442,47 +443,6 @@ export const getDoc = async (docRef) => {
     };
   }
   return fbGetDoc(docRef);
-};
-
-// ----------------------------------------------------
-// MULTI-DEVICE REAL-TIME SYNCHRONIZATION & LWW ENGINE
-// ----------------------------------------------------
-let realtimeSyncChannel = null;
-if (typeof window !== 'undefined') {
-  try {
-    if (typeof BroadcastChannel !== 'undefined') {
-      realtimeSyncChannel = new BroadcastChannel('hitec_realtime_sync_channel');
-      realtimeSyncChannel.onmessage = (event) => {
-        if (event.data && event.data.type === 'DB_MUTATION' && event.data.colPath) {
-          triggerDbListeners(event.data.colPath);
-        }
-      };
-    }
-  } catch (e) {
-    console.warn("BroadcastChannel init failed:", e);
-  }
-
-  window.addEventListener('storage', (event) => {
-    if (event.key === 'hitecmedia_mock_db') {
-      Object.keys(dbListeners).forEach(colPath => {
-        triggerDbListeners(colPath);
-      });
-    }
-  });
-}
-
-export const broadcastDbMutation = (colPath, docId = null) => {
-  triggerDbListeners(colPath);
-  if (realtimeSyncChannel && typeof realtimeSyncChannel.postMessage === 'function') {
-    try {
-      realtimeSyncChannel.postMessage({
-        type: 'DB_MUTATION',
-        colPath,
-        docId,
-        timestamp: Date.now()
-      });
-    } catch (e) {}
-  }
 };
 
 export const updateDoc = async (docRef, data) => {

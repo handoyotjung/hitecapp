@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobile Surveyor User Manual · HitecApp Safety</title>
+  <meta name="description" content="Easy English step-by-step mobile user manual for field surveyors and ATEX assessors by PT Safety Indonesia Utama.">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Outfit -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px; /* Minimum 16px font size (!font16) */
+      line-height: 1.6;
+    }
+    
+    /* Smooth Scroll */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Print Styles for Crisp PDF Generation */
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 14pt !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+      .card-box {
+        border: 1px solid #cbd5e1 !important;
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+        box-shadow: none !important;
+      }
+      .text-slate-100, .text-slate-200, .text-slate-300, .text-white {
+        color: #0f172a !important;
+      }
+      .text-slate-400, .text-slate-500 {
+        color: #475569 !important;
+      }
+      .bg-slate-900, .bg-slate-950, .bg-slate-900\/70, .bg-slate-950\/90 {
+        background-color: #f1f5f9 !important;
+      }
+      img {
+        max-width: 100% !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      a {
+        text-decoration: none !important;
+        color: #0284c7 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200 pb-20">
+
+  <!-- Ambient Glow -->
+  <div class="fixed top-0 right-1/4 -z-10 h-[400px] w-[400px] rounded-full bg-emerald-500/10 blur-[130px] pointer-events-none no-print"></div>
+  <div class="fixed bottom-10 left-1/4 -z-10 h-[400px] w-[400px] rounded-full bg-sky-500/10 blur-[130px] pointer-events-none no-print"></div>
+
+  <!-- Sticky Header -->
+  <header class="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-slate-800/80 bg-slate-900/90 px-4 sm:px-8 backdrop-blur-md">
+    <div class="flex items-center gap-3">
+      <img src="/logo-hs-white.png" alt="HS Logo" class="h-8 w-auto object-contain" onerror="this.style.display='none'" />
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-lg sm:text-xl font-bold tracking-tight text-white">Mobile Surveyor Manual</span>
+          <span class="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-xs font-bold uppercase tracking-wider">Easy English</span>
+        </div>
+        <p class="text-xs font-medium text-slate-400">PT Safety Indonesia Utama · ATEX Safety Field App</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-2 sm:gap-3 no-print">
+      <a href="/HitecApp_Safety_Mobile_Surveyor_Manual.docx" download class="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 text-sm font-bold shadow-lg shadow-blue-900/30 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <span class="hidden sm:inline">Download</span> Word (.docx)
+      </a>
+      <a href="/HitecApp_Safety_Mobile_Surveyor_Manual.pdf" download class="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        <span class="hidden sm:inline">Download</span> PDF
+      </a>
+      <a href="/survey.html" class="flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 text-sm font-semibold transition-all">
+        <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z"/></svg>
+        <span class="hidden sm:inline">Feedback</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-10">
+
+    <!-- Hero Title Card -->
+    <div class="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/80 p-6 sm:p-8 backdrop-blur-md shadow-2xl relative overflow-hidden card-box">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 mb-3">
+        📱 Mobile Field Guide
+      </div>
+      <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+        How to Use HitecApp on Your Mobile Phone
+      </h1>
+      <p class="text-base sm:text-lg text-slate-300 mt-3 max-w-2xl leading-relaxed">
+        Welcome to HitecApp! This simple guide shows you how to take inspection photos, speak captions with your voice, and sync your work with your team.
+      </p>
+
+      <!-- Quick Checklist Box -->
+      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-800">
+        <div class="flex items-center gap-2.5 text-sm text-slate-300">
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold">✓</span>
+          <span>One-column fast mobile view</span>
+        </div>
+        <div class="flex items-center gap-2.5 text-sm text-slate-300">
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold">✓</span>
+          <span>Hold mic to speak captions</span>
+        </div>
+        <div class="flex items-center gap-2.5 text-sm text-slate-300">
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold">✓</span>
+          <span>Zero data loss auto-save</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🌟 NEWBIE SPECIAL GUIDE: Project Setup -->
+    <div class="rounded-3xl border-2 border-amber-500/50 bg-amber-950/10 p-6 sm:p-8 backdrop-blur-md shadow-2xl relative overflow-hidden card-box">
+      <div class="flex items-center gap-2.5 text-amber-400 font-extrabold text-sm uppercase tracking-wider mb-2">
+        <span class="text-lg">🌟</span> Newbie First Step: Set Up Your Project
+      </div>
+      <h2 class="text-xl sm:text-2xl font-bold text-white mb-2">
+        Before Taking Photos, Choose or Create a Project!
+      </h2>
+      <p class="text-base text-slate-300 mb-6">
+        The camera buttons stay locked until you have an active project. Follow one of the two options below:
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Option A: Pick Existing -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-full border border-sky-500/20">Option A</span>
+            <span class="text-xs text-slate-400 font-semibold">2 Fast Taps</span>
+          </div>
+          <h3 class="text-lg font-bold text-white">Pick an Existing Project</h3>
+          <ol class="space-y-2 text-sm text-slate-300 list-decimal list-inside">
+            <li>Look at the <strong class="text-white">Project</strong> dropdown box.</li>
+            <li>Tap <strong class="text-sky-300">Select a project...</strong></li>
+            <li>Tap your facility or plant name (e.g. <em>Cilacap RU IV Zone 1</em>).</li>
+          </ol>
+          <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-xs text-emerald-300 flex items-center gap-2">
+            <span>✅</span>
+            <span><strong>Ready!</strong> Company, City, and all photos load instantly.</span>
+          </div>
+        </div>
+
+        <!-- Option B: Make New -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">Option B</span>
+            <span class="text-xs text-slate-400 font-semibold">New Plant / Survey</span>
+          </div>
+          <h3 class="text-lg font-bold text-white">Create a Brand New Project</h3>
+          <ol class="space-y-2 text-sm text-slate-300 list-decimal list-inside">
+            <li>Type <strong class="text-white">Company</strong> (e.g. <em>PT Safety Indonesia Utama</em>).</li>
+            <li>Type <strong class="text-white">City</strong> (e.g. <em>Jakarta</em>).</li>
+            <li>In <strong class="text-amber-300">New project name...</strong>, type your survey title.</li>
+            <li>Tap the <strong class="text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">+ Create</strong> button.</li>
+          </ol>
+          <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-xs text-emerald-300 flex items-center gap-2">
+            <span>🚀</span>
+            <span><strong>Unlocked!</strong> Camera buttons are now ready to use.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Navigation Anchor Links -->
+    <div class="no-print rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Jump to Step:</div>
+      <div class="flex flex-wrap gap-2 text-sm">
+        <a href="#step1" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">1. Log In</a>
+        <a href="#step2" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">2. Single Column</a>
+        <a href="#step3" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">3. Take Photos</a>
+        <a href="#step4" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">4. Voice Captions</a>
+        <a href="#step5" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">5. Edit Captions</a>
+        <a href="#step6" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">6. Reorder Photos</a>
+        <a href="#step7" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">7. Lock Screen</a>
+        <a href="#step8" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">8. Export Report</a>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- STEP 1: Log In -->
+    <!-- ================================================================= -->
+    <section id="step1" class="page-break space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 card-box">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-400 font-extrabold text-base border border-sky-500/30">1</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Log In & Session Security</h2>
+          <p class="text-xs font-semibold text-slate-400">Easy login on Chrome or Safari mobile browsers</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
+        <div class="space-y-3 text-base text-slate-300">
+          <p>1. Open your mobile browser and enter your <strong>Email</strong> and <strong>Password</strong>.</p>
+          <p>2. Tap the blue <strong>Log In</strong> button.</p>
+          <div class="p-3.5 rounded-xl bg-sky-950/30 border border-sky-800/40 text-sm text-sky-200 space-y-1">
+            <div class="font-bold flex items-center gap-1.5 text-sky-300">
+              <span>🔒</span> Zero Data Loss Protection
+            </div>
+            <p>If you close your browser or walk away, your work is saved automatically. Just log back in and your photos and captions will be waiting for you!</p>
+          </div>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex justify-center p-2">
+          <img src="/manual-assets/step_01_login_mobile.png" alt="Login Screen Screenshot" class="max-h-80 object-contain rounded-xl shadow-lg" onerror="this.src='/logo-hs-white.png'" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- STEP 2: Single Column Layout & Hide Details -->
+    <!-- ================================================================= -->
+    <section id="step2" class="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 card-box">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 font-extrabold text-base border border-emerald-500/30">2</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Understanding the Mobile Single-Column</h2>
+          <p class="text-xs font-semibold text-slate-400">Designed for one-handed operation on plant floors</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
+        <div class="space-y-3 text-base text-slate-300">
+          <p>On mobile phones, everything is organized in <strong>one smooth vertical stream</strong>:</p>
+          <ul class="list-disc list-inside space-y-1.5 text-sm pl-2">
+            <li><strong>Top Bar:</strong> Shows AutoSave status and <code class="text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded text-xs">Collapse Details ▲</code> button.</li>
+            <li><strong>Project Section:</strong> Pick plant name, company, and city.</li>
+            <li><strong>Upload Buttons:</strong> Big buttons to take camera photos.</li>
+            <li><strong>Photo Cards List:</strong> Your photos with voice mic and captions.</li>
+            <li><strong>Bottom Bar:</strong> Save/Lock screen and Export buttons.</li>
+          </ul>
+          <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-sm text-emerald-200">
+            <strong>💡 Pro Tip:</strong> Tap <strong>Collapse Details ▲</strong> to hide the company boxes. This gives you maximum screen space to see your photos!
+          </div>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex justify-center p-2">
+          <img src="/manual-assets/step_02_dashboard.png" alt="Mobile Dashboard Screenshot" class="max-h-80 object-contain rounded-xl shadow-lg" onerror="this.src='/logo-hs-white.png'" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- STEP 3: Take Photos & Upload -->
+    <!-- ================================================================= -->
+    <section id="step3" class="page-break space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 card-box">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-400 font-extrabold text-base border border-sky-500/30">3</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Take Photos in the Field</h2>
+          <p class="text-xs font-semibold text-slate-400">Direct camera capture with automatic low-bandwidth compression</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
+        <div class="space-y-3 text-base text-slate-300">
+          <p>1. Tap the <strong class="text-emerald-400">📷 Take Photo (Camera)</strong> button.</p>
+          <p>2. Your phone camera opens. Snap your equipment, junction box, or hazard.</p>
+          <p>3. Tap <strong>Use Photo</strong> or <strong>OK</strong>.</p>
+          <p>4. The app automatically compresses the photo so it uploads instantly, even on slow 3G/4G plant networks!</p>
+          <div class="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-300">
+            <strong>📁 Gallery Option:</strong> You can also tap <em>Choose Files</em> to select multiple existing photos from your photo gallery.
+          </div>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex justify-center p-2">
+          <img src="/manual-assets/step_04_camera_capture.png" alt="Camera Capture Screenshot" class="max-h-80 object-contain rounded-xl shadow-lg" onerror="this.src='/logo-hs-white.png'" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- STEP 4: Voice Captioning (Hold to Talk) -->
+    <!-- ================================================================= -->
+    <section id="step4" class="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 card-box">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 font-extrabold text-base border border-emerald-500/30">4</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Speak Your Captions (Hold to Talk)</h2>
+          <p class="text-xs font-semibold text-slate-400">Fast hands-free dictation right next to each photo</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
+        <div class="space-y-3 text-base text-slate-300">
+          <p>Next to every photo thumbnail, you will see a square <strong class="text-emerald-400">[🎙️ Mic]</strong> button.</p>
+          <ol class="space-y-2 text-sm text-slate-300 list-decimal list-inside pl-1">
+            <li><strong>Press and hold</strong> the <strong class="text-emerald-400">Mic</strong> button with your thumb.</li>
+            <li>The button turns <span class="text-rose-400 font-bold">RED (Rec)</span>.</li>
+            <li>Speak your observation (e.g. <em>"Ex d IIB T4 Junction Box with missing grounding strap"</em>).</li>
+            <li><strong>Release</strong> your thumb when done speaking.</li>
+            <li>The app automatically writes your words into the caption!</li>
+          </ol>
+          <div class="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-sm text-amber-200">
+            <strong>🟢 Status Colors:</strong><br>
+            • <span class="text-emerald-400 font-bold">Green text</span> = Photo has a caption ✅<br>
+            • <span class="text-yellow-400 font-bold">Yellow text</span> = Needs a caption ⚠️
+          </div>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex justify-center p-2">
+          <img src="/manual-assets/step_05_photos_uploaded.png" alt="Voice Mic Button Screenshot" class="max-h-80 object-contain rounded-xl shadow-lg" onerror="this.src='/logo-hs-white.png'" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- STEP 5: Inline 5-Row Caption Editor -->
+    <!-- ================================================================= -->
+    <section id="step5" class="page-break space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 card-box">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-400 font-extrabold text-base border border-sky-500/30">5</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Tap to Type or Edit Captions</h2>
+          <p class="text-xs font-semibold text-slate-400">Expandable 5-row text box for quick adjustments</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
+        <div class="space-y-3 text-base text-slate-300">
+          <p>If you prefer typing or want to edit what you spoke:</p>
+          <ol class="space-y-2 text-sm text-slate-300 list-decimal list-inside pl-1">
+            <li><strong>Tap on the caption text</strong> below the filename.</li>
+            <li>A large 5-row text box expands immediately.</li>
+            <li>Type or correct your inspection notes.</li>
+            <li>Tap the <strong class="text-emerald-400">Green Checkmark ✅</strong> on the bottom right to save.</li>
+            <li>Tap the <strong class="text-rose-400">Red X ❌</strong> on the top right if you want to clear the text.</li>
+          </ol>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex justify-center p-2">
+          <img src="/manual-assets/step_06_caption_edited.png" alt="Caption Editor Screenshot" class="max-h-80 object-contain rounded-xl shadow-lg" onerror="this.src='/logo-hs-white.png'" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- STEP 6: Reorder Photos by Touch & Drag -->
+    <!-- ================================================================= -->
+    <section id="step6" class="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 card-box">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 font-extrabold text-base border border-emerald-500/30">6</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Reorder Photos (Touch & Drag)</h2>
+          <p class="text-xs font-semibold text-slate-400">Change photo sequence for your final report</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
+        <div class="space-y-3 text-base text-slate-300">
+          <p>On the right side of each photo row, you will see a <strong>6-dot grip handle (<code class="text-white">⠿</code>)</strong>.</p>
+          <ol class="space-y-2 text-sm text-slate-300 list-decimal list-inside pl-1">
+            <li><strong>Touch and hold</strong> the 6-dot grip handle.</li>
+            <li><strong>Slide your finger up or down</strong> to the position you want.</li>
+            <li><strong>Lift your finger</strong> to drop the photo in place.</li>
+            <li>The row numbers (1., 2., 3...) update automatically!</li>
+          </ol>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex justify-center p-2">
+          <img src="/manual-assets/step_07_reordered.png" alt="Reordering Photos Screenshot" class="max-h-80 object-contain rounded-xl shadow-lg" onerror="this.src='/logo-hs-white.png'" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- STEP 7: Lock Screen (View Mode) -->
+    <!-- ================================================================= -->
+    <section id="step7" class="page-break space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 card-box">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-400 font-extrabold text-base border border-sky-500/30">7</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Lock Screen (View Mode) in the Field</h2>
+          <p class="text-xs font-semibold text-slate-400">Prevent accidental touches while walking the plant</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
+        <div class="space-y-3 text-base text-slate-300">
+          <p>While walking in hazardous areas, you can lock the screen so you don't accidentally delete or edit captions:</p>
+          <ul class="list-disc list-inside space-y-1.5 text-sm pl-2">
+            <li>Tap the <strong class="text-emerald-400">Save</strong> button on the bottom action bar.</li>
+            <li>The screen switches to <strong>View Mode</strong> (inputs are locked).</li>
+            <li>The button now says <strong class="text-white">Edit</strong>.</li>
+            <li>Whenever you want to take more photos or edit notes, tap <strong class="text-emerald-400">Edit</strong> to unlock!</li>
+          </ul>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex justify-center p-2">
+          <img src="/manual-assets/step_08_saved.png" alt="View Mode Locked Screen Screenshot" class="max-h-80 object-contain rounded-xl shadow-lg" onerror="this.src='/logo-hs-white.png'" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- STEP 8: Export Reports & Multi-Device Sync -->
+    <!-- ================================================================= -->
+    <section id="step8" class="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 card-box">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 font-extrabold text-base border border-emerald-500/30">8</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Export Reports & Team Sync</h2>
+          <p class="text-xs font-semibold text-slate-400">Generate documents or sync live with team members</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-2">
+        <div class="space-y-3 text-base text-slate-300">
+          <p><strong>1. Instant Document Export:</strong></p>
+          <p class="text-sm">On the bottom bar, select your photos and tap:</p>
+          <div class="flex flex-wrap gap-2 text-xs font-bold pt-1">
+            <span class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2.5 py-1 rounded-lg">📄 Word (.docx)</span>
+            <span class="bg-amber-600/30 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg">📊 PowerPoint (.pptx)</span>
+            <span class="bg-rose-600/30 text-rose-300 border border-rose-500/40 px-2.5 py-1 rounded-lg">📑 PDF Report</span>
+          </div>
+
+          <p class="pt-2"><strong>2. Multi-Device Real-Time Sync:</strong></p>
+          <p class="text-sm">Up to 10 surveyors can work on the same plant project at the same time. Photos uploaded by your teammates appear on your screen automatically in real time!</p>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex justify-center p-2">
+          <img src="/manual-assets/step_09a_pdf.png" alt="Report Export Screenshot" class="max-h-80 object-contain rounded-xl shadow-lg" onerror="this.src='/logo-hs-white.png'" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Help & Support Footer -->
+    <div class="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 sm:p-8 text-center space-y-4 card-box">
+      <h3 class="text-xl font-bold text-white">Need Help or Want to Suggest an Improvement?</h3>
+      <p class="text-sm text-slate-400 max-w-lg mx-auto">
+        Your on-site feedback helps us make HitecApp faster and easier to use. Please take 2 minutes to fill out our quick survey.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3 pt-2 no-print">
+        <a href="/survey.html" class="rounded-xl bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 text-sm font-bold shadow-lg shadow-sky-900/30 transition-all">
+          📝 Open 2-Minute Survey
+        </a>
+        <a href="/HitecApp_Safety_Mobile_Surveyor_Manual.pdf" download class="rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-5 py-2.5 text-sm font-bold transition-all">
+          📥 Download PDF Version
+        </a>
+      </div>
+      <div class="text-xs text-slate-500 pt-4 border-t border-slate-800">
+        PT Safety Indonesia Utama · ATEX Assessment & Compliance Services · IEC 60079 & EN 1127-1 Standards
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    console.log("HitecApp Mobile Surveyor User Manual Loaded.");
+  </script>
+</body>
+</html>

@@ -5,9 +5,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -sf --max-time 2 http://127.0.0.1:8787/health > /dev/null 2>&1 || bash /c/Users/Administrator/.zen-claude/start.sh & curl -sf --max-time 2 http://127.0.0.1:7779/health > /dev/null 2>&1 || py -3 /c/Users/Administrator/.zen-claude/cody-bridge.py &",
+            "command": "curl -sf --max-time 2 http://127.0.0.1:3456/health > /dev/null 2>&1 || wscript.exe \"C:\\Users\\Administrator\\.claude-code-router\\start-ccr.vbs\" & curl -sf --max-time 2 http://127.0.0.1:8787/health > /dev/null 2>&1 || bash /c/Users/Administrator/.zen-claude/start.sh & curl -sf --max-time 2 http://127.0.0.1:7779/health > /dev/null 2>&1 || py -3 /c/Users/Administrator/.zen-claude/cody-bridge.py &",
             "async": true,
-            "statusMessage": "Starting claude-zen proxy..."
+            "statusMessage": "Ensuring CCR router and proxies are running..."
           }
         ]
       }

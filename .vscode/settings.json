@@ -1,4 +1,18 @@
 {
     "git.ignoreLimitWarning": true,
-    "opencode.port": 35964
+    "opencode.port": 35964,
+    "terminal.integrated.environmentChangesIndicator": "off",
+    "terminal.integrated.environmentChangesRelaunch": false,
+    "editor.fontSize": 16,
+    "terminal.integrated.fontSize": 16,
+    "chat.editor.fontSize": 16,
+    "markdown.preview.fontSize": 16,
+    "interactiveWindow.fontSize": 16,
+    "debug.console.fontSize": 16,
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.value": 3,
+    "workbench.editor.limit.perEditorGroup": true,
+    "workbench.editor.enablePreview": true,
+    "workbench.editor.enablePreviewFromQuickOpen": true,
+    "workbench.editor.revealIfOpen": true
 }
