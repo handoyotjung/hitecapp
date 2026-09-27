@@ -1,0 +1,72 @@
+From c7516fdcedd12d31564efd37b4400051b6c6b821 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 27 Sep 2026 13:39:04 +0000
+Subject: [PATCH] fix(meterai-1): blank meterai space, no box or label, on
+ invoice + receipt
+
+- Hardcopy (Show stamp unticked): plain blank space above Handoyo for the
+  meterai tempel + wet stamp/sign -- no dashed box, no 'Meterai Rp10.000' text.
+- Softcopy (Show stamp ticked): printed stamp centred, no meterai space.
+- Receipt: blank space, no label.
+- test_doc3.js: no dashed box / no meterai label on either template (32 PASS).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ js/invoices.js              | 12 ++++--------
+ tests/invoices/test_doc3.js |  2 ++
+ 2 files changed, 6 insertions(+), 8 deletions(-)
+
+diff --git a/js/invoices.js b/js/invoices.js
+index a1aa80b..709d725 100644
+--- a/js/invoices.js
++++ b/js/invoices.js
+@@ -2464,10 +2464,7 @@
+         // ~3x2.5cm at this doc's 210mm/794px render scale (pxToMm = 210/794, quoter.js:1265).
+         const showMeterai = inv.meterai_space !== undefined ? inv.meterai_space === true : grandTotal > 5000000;
+         const meteraiBoxHtml = showMeterai ? `
+-            <div style="text-align:center;">
+-              <div class="pdf-item" style="width:113px; height:95px; border:1.5px dashed #0f172a; border-radius:4px;"></div>
+-              <div style="font-size:6.5pt; color:#0f172a; margin-top:2px;">Meterai Rp10.000</div>
+-            </div>` : '';
++            <div class="pdf-item" style="width:113px; height:95px;"></div>` : ''; // METERAI-1: blank space for the meterai tempel -- no box, no label
+ 
+         // Line items match the quotation table: from the linked SO (if any) or
+         // the linked quotation, read live (same resolveDocLineItems() as the
+@@ -2594,10 +2591,9 @@
+               <div style="color:#1e3a8a; font-size:9pt; font-weight:bold;">Issued by,</div>
+               <div style="color:#0f172a; margin-top:2px; font-size:8.5pt;">PT. Hitecsolution Teknologi Prima</div>
+               <div class="pdf-item" style="display:flex; flex-direction:column; align-items:center; margin-top:10px;">
+-                <!-- DOC-3b: stamp ticked = softcopy (printed stamp + signature); unticked = print copy, blank for wet stamp/sign -->
++                <!-- DOC-3b/METERAI-1: stamp ticked = softcopy (printed stamp + signature, no meterai space); unticked = hardcopy, blank space for meterai + wet stamp/sign -->
+                 <div style="display:flex; align-items:flex-end; justify-content:center; gap:6px;">
+-                  ${meteraiBoxHtml}
+-                  ${showStamp ? `<img src="${(typeof HITEC_STAMP_B64 !== 'undefined' && HITEC_STAMP_B64) ? HITEC_STAMP_B64 : 'assets/hitec_stamp_signature.png'}" style="height:55px; width:auto;" />` : (meteraiBoxHtml ? '' : '<div style="height:57px;"></div>')}
++                  ${showStamp ? `<img src="${(typeof HITEC_STAMP_B64 !== 'undefined' && HITEC_STAMP_B64) ? HITEC_STAMP_B64 : 'assets/hitec_stamp_signature.png'}" style="height:55px; width:auto;" />` : (meteraiBoxHtml || '<div style="height:57px;"></div>')}
+                 </div>
+                 <div style="font-weight:bold; color:#0f172a; font-size:9pt; margin-top:4px;">Handoyo</div>
+               </div>
+@@ -6526,7 +6522,7 @@
+             <div style="color:#1e3a8a; font-size:9pt; font-weight:bold;">Received by,</div>
+             <div style="color:#0f172a; margin-top:2px; font-size:8.5pt;">PT. Hitecsolution Teknologi Prima</div>
+             <div class="pdf-item" style="display:flex; flex-direction:column; align-items:center; margin-top:10px;">
+-              <div style="height:95px; display:flex; align-items:center; justify-content:center; font-size:7.5pt; color:#0f172a;">Meterai Rp10.000</div>
++              <div style="height:95px;"></div><!-- METERAI-1: blank space for meterai + wet stamp/sign, no label -->
+               <div style="font-weight:bold; color:#0f172a; font-size:9pt; margin-top:4px;">Handoyo</div>
+             </div>
+           </div>
+diff --git a/tests/invoices/test_doc3.js b/tests/invoices/test_doc3.js
+index c093448..3e16e41 100644
+--- a/tests/invoices/test_doc3.js
++++ b/tests/invoices/test_doc3.js
+@@ -58,6 +58,8 @@ for (const [name, tpl] of [['invoice', invTpl], ['receipt', rcpTpl]]) {
+   assertEq(`${name} template found`, tpl.length > 1000, true);
+   assertEq(`${name}: no grey #64748b/#475569/#94a3b8`, /#64748b|#475569|#94a3b8/i.test(tpl), false);
+   assertEq(`${name}: no CONTRACT SUB TOTAL`, tpl.includes('CONTRACT SUB TOTAL'), false);
++  assertEq(`${name}: no dashed meterai box`, /dashed/.test(tpl), false);
++  assertEq(`${name}: no meterai label`, tpl.includes('Meterai Rp10.000'), false);
+   assertEq(`${name}: no page footer`, tpl.includes('drawPageFooters'), false);
+ }
+ 
+-- 
+2.43.0
+
