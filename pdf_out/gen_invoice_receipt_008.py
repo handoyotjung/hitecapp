@@ -32,7 +32,7 @@ RCP_NO = '001/R/HTP/0926'
 
 
 def page(title, doc_no, details_label, details_rows, bottom_left, signer_label, show_stamp):
-    refs = PO_LINE if title == 'RECEIPT' else BOX
+    refs = PO_LINE if title == 'RECEIPT' else ''   # invoice: no references box
     rows = ''.join(f'''
       <tr style="border-bottom:1px solid #cbd5e1;">
         <td style="padding:10px 8px; text-align:center;">{i}</td>
@@ -42,8 +42,8 @@ def page(title, doc_no, details_label, details_rows, bottom_left, signer_label, 
         <td class="amt" style="padding:10px 8px; font-weight:bold;">{fmt(q * p)}</td>
       </tr>''' for i, (d, q, p) in enumerate(items, 1))
     details = ''.join(f'<div style="margin-top:2px;">{r}</div>' for r in details_rows)
-    # Invoice: company stamp + signature. Receipt: empty Rp10.000 meterai box to sign over by hand.
-    stamp = ('<img src="hitec_stamp_signature.png" style="height:55px;">' if show_stamp else
+    # Invoice: blank space for a wet signature (no printed stamp). Receipt: Rp10.000 meterai space.
+    stamp = ('<div style="height:55px;"></div>' if show_stamp else
              '<div><div style="width:113px; height:95px; '
              'display:flex; align-items:center; justify-content:center; font-size:7.5pt;">Meterai Rp10.000</div></div>')
     name = 'Handoyo'
@@ -117,7 +117,6 @@ def page(title, doc_no, details_label, details_rows, bottom_left, signer_label, 
     </div>
   </div>
 </div>
-<div style="position:absolute; bottom:26px; width:100%; text-align:center; font-size:8pt;">Page 1 of 1</div>
 </body></html>'''
 
 
