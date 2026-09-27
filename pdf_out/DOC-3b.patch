@@ -1,0 +1,135 @@
+From 11edf47b8b13b14e28a1f770f48022fe5416aa5e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 27 Sep 2026 12:08:54 +0000
+Subject: [PATCH] fix(doc-3b): signature layout, drop invoice stamp dialog,
+ full DOC-3 tests
+
+- Receipt: Handoyo stacked directly under the Rp10.000 meterai space (was beside it).
+- Invoice: Handoyo under the meterai box, or under a 57px blank when no meterai.
+- exportInvoicePdfDirect renders directly; the stamp dialog is moot since the
+  commercial invoice never prints the stamp (proforma keeps its dialog).
+- Remove leftover implicit global contractSourceLabel + unused cVal.
+- test_doc3.js: spec terbilang/receipt/inclusive-PO cases + template scan (28 PASS).
+- QUEUE.md: restore the DOC-2 line DOC-3 overwrote; DOC-3 as its own item.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ docs/QUEUE.md               |  7 ++++++-
+ js/invoices.js              | 23 ++++++++---------------
+ tests/invoices/test_doc3.js | 28 ++++++++++++++++++++++++++++
+ 3 files changed, 42 insertions(+), 16 deletions(-)
+
+diff --git a/docs/QUEUE.md b/docs/QUEUE.md
+index faf44ed..c7a1ce6 100644
+--- a/docs/QUEUE.md
++++ b/docs/QUEUE.md
+@@ -28,7 +28,12 @@ BAST-2 `5a189b9`, FILES-1 M1 `1918547`.
+ 1. **QUOTFORM-4b** (Anti): committed `1de8e78`; nothing to build unless QA reopens it.
+ 2. **QUOTFORM-QA-1** (Cody): PASS. Browser QA of QUOTFORM-4 + 4b (Q1-Q12, all PASS, no fixes needed);
+    backup push via subtree split with ancestor check done. Tag `quotform-qa-1-done`.
+-3. **DOC-3** (Anti): DONE. Next: Cody QA DOC-3.
++3. **DOC-2** BAST + Invoice output (Anti): apply R1–R8; invoices keep DPP; fix LPSK print issues.
++   Partial work already committed (`82a0f1b`, `52e580d`, HOTFIX-DOC-1/1b/1c); diff against R1–R8 and do only the gaps.
++3a. **DOC-3** Commercial Invoice clean-up + Receipt PDF (Anti build `faca98b`, fix-up DOC-3b by Claude): DONE.
++   Invoice: description-only rows, no grey text, DPP / VAT 11% / GRAND TOTAL, no references box, no stamp, no page footer.
++   Receipt: NNN/R/HTP/MMYY (own monthly sequence, saved as inv.receipt_no/receipt_date), Handoyo under the meterai space.
++   LPSK data fix: PO 102/PPK-UDK/09/2026 inclusive_tax=true; 008/INV/HTP/0926 = 6275676 / 690324 / 6966000. Next: Cody QA DOC-3.
+ 4. **Cody QA**: DOC-2 + BAST-2 (`5a189b9`, Node tests only so far): export the LPSK BAST with no PO on record
+    and with a signed quotation; check the service-item "Lot" unit, Selesai status, commitment label, and the neutral blue note.
+    Tag `bast-2-done` if it passes.
+diff --git a/js/invoices.js b/js/invoices.js
+index 5c387e9..6185d22 100644
+--- a/js/invoices.js
++++ b/js/invoices.js
+@@ -2337,7 +2337,8 @@
+         showToast('⚠️ Invoice not found', '⚠️');
+         return;
+       }
+-      showStampConfirmDialog('Export Commercial Invoice PDF', inv.show_stamp !== false, 'confirmInvoiceStampAndExport', targetInvNo);
++      // DOC-3b: the commercial invoice never prints the stamp, so no stamp dialog.
++      renderInvoicePdfDirect(targetInvNo);
+     }
+     window.exportInvoicePdfDirect = exportInvoicePdfDirect;
+ 
+@@ -2391,8 +2392,6 @@
+           dateStr = d.toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
+ 
+           poRef = inv.po_ref || (p?.client_po?.po_no || p?.po_number || '—');
+-          const cVal = resolveProjectContractValue(p);
+-          contractSourceLabel = inv.values_snapshot?.source_label || cVal.label;
+           isAdjusted = inv.values_snapshot?.amount_adjusted === true;
+           showStamp = inv.show_stamp !== false;
+           if (inv.faktur_type === 'Settlement' && inv.values_snapshot?.full_contract_dpp != null) {
+@@ -2595,10 +2594,9 @@
+             <div style="text-align:center; width:220px;">
+               <div style="color:#1e3a8a; font-size:9pt; font-weight:bold;">Issued by,</div>
+               <div style="color:#0f172a; margin-top:2px; font-size:8.5pt;">PT. Hitecsolution Teknologi Prima</div>
+-              <div class="pdf-item" style="display:flex; align-items:flex-end; justify-content:center; gap:6px;">
+-                ${meteraiBoxHtml}
+-                <div style="height:57px;"></div>
+-                <div style="font-weight:bold; color:#0f172a; font-size:9pt;">Handoyo</div>
++              <div class="pdf-item" style="display:flex; flex-direction:column; align-items:center; margin-top:10px;">
++                ${meteraiBoxHtml || '<div style="height:57px;"></div>'}
++                <div style="font-weight:bold; color:#0f172a; font-size:9pt; margin-top:4px;">Handoyo</div>
+               </div>
+             </div>
+           </div>
+@@ -6524,14 +6522,9 @@
+           <div style="text-align:center; width:220px;">
+             <div style="color:#1e3a8a; font-size:9pt; font-weight:bold;">Received by,</div>
+             <div style="color:#0f172a; margin-top:2px; font-size:8.5pt;">PT. Hitecsolution Teknologi Prima</div>
+-            <div class="pdf-item" style="display:flex; align-items:flex-end; justify-content:center; gap:6px;">
+-              <div style="text-align:center;">
+-                <div class="pdf-item" style="width:113px; height:95px; border:none; display:flex; justify-content:center; align-items:center;">
+-                  <div style="font-size:6.5pt; color:#0f172a;">Meterai Rp10.000</div>
+-                </div>
+-              </div>
+-              <div style="height:57px;"></div>
+-              <div style="font-weight:bold; color:#0f172a; font-size:9pt;">Handoyo</div>
++            <div class="pdf-item" style="display:flex; flex-direction:column; align-items:center; margin-top:10px;">
++              <div style="height:95px; display:flex; align-items:center; justify-content:center; font-size:7.5pt; color:#0f172a;">Meterai Rp10.000</div>
++              <div style="font-weight:bold; color:#0f172a; font-size:9pt; margin-top:4px;">Handoyo</div>
+             </div>
+           </div>
+         </div>
+diff --git a/tests/invoices/test_doc3.js b/tests/invoices/test_doc3.js
+index 9e20591..dd83606 100644
+--- a/tests/invoices/test_doc3.js
++++ b/tests/invoices/test_doc3.js
+@@ -34,5 +34,33 @@ window.erpState.invoices.push({ receipt_no: '001/R/HTP/0926' });
+ window.erpState.invoices.push({ receipt_no: '002/R/HTP/0926' });
+ assertEq('Third receipt no for Sep 26', generateNextReceiptNo('2026-09-27'), '003/R/HTP/0926');
+ 
++// DOC-3b: spec cases DOC-3 left out
++assertEq('terbilangIDR 6966000', terbilangIDR(6966000), 'Enam juta sembilan ratus enam puluh enam ribu');
++assertEq('terbilangIDR 111', terbilangIDR(111), 'Seratus sebelas');
++assertEq('terbilangIDR 2015000', terbilangIDR(2015000), 'Dua juta lima belas ribu');
++assertEq('terbilangIDR 1000000', terbilangIDR(1000000), 'Satu juta');
++assertEq('terbilangIDR 1100000000', terbilangIDR(1100000000), 'Satu miliar seratus juta');
++
++assertEq('New month restarts at 001', generateNextReceiptNo('2026-10-02'), '001/R/HTP/1026');
++window.erpState.invoices.push({ invoice_no: '009/INV/HTP/1026' });
++assertEq('Invoice numbers never counted as receipts', generateNextReceiptNo('2026-10-02'), '001/R/HTP/1026');
++
++const cv = resolveProjectContractValue({ client_po: { po_no: 'X', po_value: 6966000, inclusive_tax: true } });
++assertEq('Inclusive PO -> DPP', cv.dpp, 6275676);
++assertEq('Inclusive PO -> total', cv.total, 6966000);
++
++// Text scan: invoice + receipt templates carry no grey text and no removed rows.
++const src = require('fs').readFileSync(require('path').join(__dirname, '../../js/invoices.js'), 'utf8');
++const slice = (from, to) => src.slice(src.indexOf(from), src.indexOf(to, src.indexOf(from)));
++const invTpl = slice('async function renderInvoicePdfDirect', 'window.renderInvoicePdfDirect');
++const rcpTpl = slice('async function exportReceiptPdf', 'window.exportReceiptPdf');
++for (const [name, tpl] of [['invoice', invTpl], ['receipt', rcpTpl]]) {
++  assertEq(`${name} template found`, tpl.length > 1000, true);
++  assertEq(`${name}: no grey #64748b/#475569/#94a3b8`, /#64748b|#475569|#94a3b8/i.test(tpl), false);
++  assertEq(`${name}: no CONTRACT SUB TOTAL`, tpl.includes('CONTRACT SUB TOTAL'), false);
++  assertEq(`${name}: no stamp image`, /buildStampSignatureHtml|hitec_stamp_signature/.test(tpl), false);
++  assertEq(`${name}: no page footer`, tpl.includes('drawPageFooters'), false);
++}
++
+ console.log(`\nTests finished: ${passCount} PASS, ${failCount} FAIL`);
+ if (failCount > 0) process.exitCode = 1;
+-- 
+2.43.0
+
