@@ -1,0 +1,58 @@
+From 8854562c1e8b6551c967ac1a0accc11ec82ee5a7 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 27 Sep 2026 12:43:06 +0000
+Subject: [PATCH] fix(bast-ref-1): BAST prints only real DO / invoice numbers
+
+exportBastPdf guessed 'NNN/DO/HTP/MMYY' and 'NNN/INV/HTP/MMYY' from the
+quotation sequence when the project had no do_no/invoice_no (the app never
+sets p.invoice_no), so a BAST for quotation 010 named invoice 010/INV even
+when the real invoice is 009 or 011. Now: DO = p.do_no or the deal's
+delivery_orders; invoice = the deal's non-cancelled invoices; a row with
+nothing on record is omitted. test_bast2 24 PASS; verified by export.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ js/projects.js | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/js/projects.js b/js/projects.js
+index d342d4e..e408c5b 100644
+--- a/js/projects.js
++++ b/js/projects.js
+@@ -2115,8 +2115,12 @@ This will remove the project from All Active & Pipeline Projects.`);
+       const quoteNo = p.quote_no || p.deal_id || '001/Q/HTP/0926';
+       const quoteRefLabel = getBastCommitmentLabel(commitment, quoteNo, 'id');
+ 
+-      const doRef = p.do_no || `${cleanSeq}/DO/HTP/${mmyy}`;
+-      const invRef = p.invoice_no || `${cleanSeq}/INV/HTP/${mmyy}`;
++      // BAST-REF-1: only real DO / invoice numbers on record -- never numbers guessed
++      // from the quotation sequence. A reference row with nothing on record is omitted.
++      const sameDeal = x => x && (x.deal_id === p.deal_id || (p.quote_no && x.deal_id === p.quote_no));
++      const doRef = p.do_no || (erpState?.delivery_orders || []).filter(sameDeal).map(d => d.do_no).filter(Boolean).join(', ');
++      const invRef = (erpState?.invoices || []).filter(i => sameDeal(i) && !(typeof isInvoiceCancelled === 'function' && isInvoiceCancelled(i)))
++        .map(i => i.invoice_no).filter(Boolean).join(', ');
+ 
+       showToast(`📝 Generating Official BAST Handover (${bastNo})...`, '📝');
+ 
+@@ -2193,14 +2197,14 @@ This will remove the project from All Active & Pipeline Projects.`);
+                 <td style="padding:6px 8px; font-weight:bold; color:#1e3a8a; vertical-align:top;">Referensi Komitmen Klien</td>
+                 <td style="padding:6px 8px; color:#0f172a; vertical-align:top;">${quoteRefLabel.replace('Ref. ', '')}</td>
+               </tr>
+-              <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
++              ${doRef ? `<tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                 <td style="padding:6px 8px; font-weight:bold; color:#1e3a8a; vertical-align:top;">Referensi Surat Jalan (Delivery Order)</td>
+                 <td style="padding:6px 8px; color:#0f172a; vertical-align:top;">${doRef}</td>
+-              </tr>
+-              <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
++              </tr>` : ''}
++              ${invRef ? `<tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                 <td style="padding:6px 8px; font-weight:bold; color:#1e3a8a; vertical-align:top;">Referensi Faktur Komersial (Invoice)</td>
+                 <td style="padding:6px 8px; color:#0f172a; vertical-align:top;">${invRef}</td>
+-              </tr>
++              </tr>` : ''}
+               <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                 <td style="padding:6px 8px; font-weight:bold; color:#1e3a8a; vertical-align:top;">Status Pekerjaan & Uji Fungsi</td>
+                 <td style="padding:6px 8px; color:#10b981; font-weight:bold; vertical-align:top;">100% Selesai, Lulus Uji Fungsi (Testcom) & Beroperasi Normal</td>
+-- 
+2.43.0
+
