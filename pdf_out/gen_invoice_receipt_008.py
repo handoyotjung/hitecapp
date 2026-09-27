@@ -44,7 +44,7 @@ def page(title, doc_no, details_label, details_rows, bottom_left, signer_label, 
     details = ''.join(f'<div style="margin-top:2px;">{r}</div>' for r in details_rows)
     # Invoice: company stamp + signature. Receipt: empty Rp10.000 meterai box to sign over by hand.
     stamp = ('<img src="hitec_stamp_signature.png" style="height:55px;">' if show_stamp else
-             '<div><div style="width:113px; height:95px; border:1.5px dashed #0f172a; border-radius:4px; '
+             '<div><div style="width:113px; height:95px; '
              'display:flex; align-items:center; justify-content:center; font-size:7.5pt;">Meterai Rp10.000</div></div>')
     name = 'Handoyo'
     return f'''<!doctype html><html><head><meta charset="utf-8"><title>{title} {doc_no}</title>
