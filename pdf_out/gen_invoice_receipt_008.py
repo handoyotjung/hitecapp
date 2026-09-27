@@ -1,7 +1,7 @@
 """One-off: corrected Commercial Invoice 008/INV/HTP/0926 + matching Receipt, printed via Chromium."""
 import subprocess, pathlib
 
-HERE = pathlib.Path(__file__).parent
+HERE = pathlib.Path('/tmp/claude-0/-home-user-hitecapp/ded4584d-3fca-59fd-9632-a267b8e85ee0/scratchpad')
 OUT = pathlib.Path('/home/user/hitecapp/pdf_out')
 CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 
@@ -18,11 +18,21 @@ total = dpp + vat                                # 6.966.000
 assert (dpp, vat, total) == (6275676, 690324, 6966000)
 
 fmt = lambda n: f'{n:,}'.replace(',', '.')
+PO_REF = '102/PPK-UDK/09/2026'
+# Invoice: highlighted references box. Receipt: plain PO Ref line, no box, no contract value.
+BOX = f'''  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:7px 10px; margin-bottom:14px; font-size:7.5pt; line-height:1.4; display:flex; justify-content:space-between;">
+    <div><strong style="color:{NAVY};">Contract Value:</strong> Client PO {PO_REF}: {fmt(total)} (incl. VAT 11%)</div>
+    <div><strong style="color:{NAVY};">PO Ref:</strong> {PO_REF}</div>
+  </div>'''
+PO_LINE = f'''  <div style="margin:-6px 0 14px 0; font-size:9.5pt;">
+    <span style="color:{NAVY}; font-weight:bold;">PO Ref:</span> {PO_REF}
+  </div>'''
 INV_NO = '008/INV/HTP/0926'
-RCP_NO = '008/RCP/HTP/0926'
+RCP_NO = '001/R/HTP/0926'
 
 
 def page(title, doc_no, details_label, details_rows, bottom_left, signer_label, show_stamp):
+    refs = PO_LINE if title == 'RECEIPT' else BOX
     rows = ''.join(f'''
       <tr style="border-bottom:1px solid #cbd5e1;">
         <td style="padding:10px 8px; text-align:center;">{i}</td>
@@ -32,8 +42,11 @@ def page(title, doc_no, details_label, details_rows, bottom_left, signer_label, 
         <td class="amt" style="padding:10px 8px; font-weight:bold;">{fmt(q * p)}</td>
       </tr>''' for i, (d, q, p) in enumerate(items, 1))
     details = ''.join(f'<div style="margin-top:2px;">{r}</div>' for r in details_rows)
-    stamp = f'<img src="hitec_stamp_signature.png" style="height:55px;">' if show_stamp else ''
-    name = 'Handoyo' if show_stamp else '&nbsp;'
+    # Invoice: company stamp + signature. Receipt: empty Rp10.000 meterai box to sign over by hand.
+    stamp = ('<img src="hitec_stamp_signature.png" style="height:55px;">' if show_stamp else
+             '<div><div style="width:113px; height:95px; border:1.5px dashed #0f172a; border-radius:4px; '
+             'display:flex; align-items:center; justify-content:center; font-size:7.5pt;">Meterai Rp10.000</div></div>')
+    name = 'Handoyo'
     return f'''<!doctype html><html><head><meta charset="utf-8"><title>{title} {doc_no}</title>
 <style>
   @page {{ size: A4; margin: 0; }}
@@ -71,10 +84,7 @@ def page(title, doc_no, details_label, details_rows, bottom_left, signer_label, 
     <span style="color:{NAVY}; font-weight:bold;">Project:</span> <span style="font-weight:bold;">Setting ZKBio CVSecurity</span>
   </div>
 
-  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:7px 10px; margin-bottom:14px; font-size:7.5pt; line-height:1.4; display:flex; justify-content:space-between;">
-    <div><strong style="color:{NAVY};">Contract Value:</strong> Client PO 102/PPK-UDK/09/2026: {fmt(total)} (incl. VAT 11%)</div>
-    <div><strong style="color:{NAVY};">PO Ref:</strong> 102/PPK-UDK/09/2026</div>
-  </div>
+{refs}
 
   <table style="width:100%; border-collapse:collapse; font-size:8.5pt; margin-bottom:16px;">
     <thead><tr style="background:{NAVY}; color:#fff;">
@@ -101,7 +111,7 @@ def page(title, doc_no, details_label, details_rows, bottom_left, signer_label, 
       <div style="color:{NAVY}; font-size:9pt; font-weight:bold;">{signer_label}</div>
       <div style="margin-top:2px; font-size:8.5pt;">PT. Hitecsolution Teknologi Prima</div>
       <div style="margin-top:20px;">
-        <div style="height:57px; display:flex; align-items:center; justify-content:center; margin:4px 0;">{stamp}</div>
+        <div style="min-height:57px; display:flex; align-items:center; justify-content:center; margin:4px 0;">{stamp}</div>
         <div style="font-weight:bold; font-size:9pt;">{name}</div>
       </div>
     </div>
@@ -135,7 +145,7 @@ docs = {
         'COMMERCIAL INVOICE', INV_NO, 'INVOICE DETAILS:',
         ['Date: 28 September 2026', 'Terms: Custom Billing (100%)', 'Currency: <b>IDR</b>'],
         invoice_left, 'Issued by,', True),
-    'Receipt_008-RCP-HTP-0926_LPSK': page(
+    'Receipt_001-R-HTP-0926_LPSK': page(
         'RECEIPT', RCP_NO, 'RECEIPT DETAILS:',
         ['Date: 28 September 2026', f'Invoice Ref: {INV_NO}', 'Currency: <b>IDR</b>'],
         receipt_left, 'Received by,', False),
